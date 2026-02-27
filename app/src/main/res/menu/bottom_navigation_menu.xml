@@ -3,15 +3,15 @@
     <item
         android:id="@+id/navigation_home"
         android:title="Home"
-        android:icon="@drawable/baseline_home_24_white" />
+        android:icon="@drawable/bottom_nav_home_selector" />
 
     <item
         android:id="@+id/navigation_cart"
         android:title="Keranjang"
-        android:icon="@drawable/baseline_shopping_cart_24_white" />
+        android:icon="@drawable/bottom_nav_cart_selector" />
 
     <item
         android:id="@+id/navigation_history"
         android:title="Pesanan"
-        android:icon="@drawable/baseline_assignment_24_white" />
+        android:icon="@drawable/bottom_nav_assignment_selector" />
 </menu>

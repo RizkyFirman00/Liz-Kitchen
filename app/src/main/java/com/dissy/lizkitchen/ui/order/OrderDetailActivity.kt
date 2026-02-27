@@ -1,7 +1,6 @@
 package com.dissy.lizkitchen.ui.order
 
 import android.content.Intent
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.print.PrintAttributes
 import android.print.PrintManager
@@ -17,17 +16,18 @@ import com.dissy.lizkitchen.model.Cake
 import com.dissy.lizkitchen.model.Cart
 import com.dissy.lizkitchen.model.Order
 import com.dissy.lizkitchen.model.User
+import com.dissy.lizkitchen.ui.base.BaseActivity
 import com.dissy.lizkitchen.ui.konfirmasi.ConfirmActivity
+import com.dissy.lizkitchen.ui.admin.user.AdminUserOrderActivity // Added import
 import com.dissy.lizkitchen.utility.Preferences
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 
-class OrderDetailActivity : AppCompatActivity() {
+class OrderDetailActivity : BaseActivity() {
     private val db = Firebase.firestore
     private lateinit var userId: String
     private lateinit var orderId: String
     private lateinit var cartDetailUserAdapter: CartDetailUserAdapter
-    private lateinit var order: Order
     private val binding by lazy { ActivityOrderDetailBinding.inflate(layoutInflater) }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -146,7 +146,7 @@ class OrderDetailActivity : AppCompatActivity() {
             }
 
         binding.btnToHome.setOnClickListener {
-            Intent(this, OrderActivity::class.java).also {
+            Intent(this, AdminUserOrderActivity::class.java).also { // Corrected navigation
                 startActivity(it)
                 finish()
             }
@@ -171,7 +171,7 @@ class OrderDetailActivity : AppCompatActivity() {
                                 .show()
                         }
                     Toast.makeText(this, "Pesanan berhasil diterima", Toast.LENGTH_SHORT).show()
-                    val intent = Intent(this, OrderActivity::class.java)
+                    val intent = Intent(this, AdminUserOrderActivity::class.java) // Corrected navigation
                     startActivity(intent)
                     finish()
                 }.addOnFailureListener {
@@ -328,7 +328,7 @@ class OrderDetailActivity : AppCompatActivity() {
         db.collection("orders").document(orderId).update("status", "Dibatalkan")
             .addOnSuccessListener {
                 Toast.makeText(this, "Pesanan berhasil dibatalkan", Toast.LENGTH_SHORT).show()
-                val intent = Intent(this, OrderActivity::class.java)
+                val intent = Intent(this, AdminUserOrderActivity::class.java) // Corrected navigation
                 startActivity(intent)
                 finish()
             }.addOnFailureListener {

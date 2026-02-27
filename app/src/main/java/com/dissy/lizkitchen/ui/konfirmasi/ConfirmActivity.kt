@@ -4,7 +4,6 @@ import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
@@ -14,19 +13,16 @@ import androidx.core.content.FileProvider
 import com.bumptech.glide.Glide
 import com.dissy.lizkitchen.R
 import com.dissy.lizkitchen.databinding.ActivityConfirmBinding
-import com.dissy.lizkitchen.model.User
+import com.dissy.lizkitchen.ui.base.BaseActivity
 import com.dissy.lizkitchen.ui.home.MainActivity
 import com.dissy.lizkitchen.utility.Preferences
 import com.dissy.lizkitchen.utility.uriToFile
 import com.google.firebase.Firebase
 import com.google.firebase.firestore.firestore
-import com.google.firebase.storage.ktx.storage
 import com.google.firebase.storage.storage
 import java.io.File
-import java.text.SimpleDateFormat
-import java.util.Locale
 
-class ConfirmActivity : AppCompatActivity() {
+class ConfirmActivity : BaseActivity() {
     private val db = Firebase.firestore
     private lateinit var photoPath: String
     val storage = Firebase.storage

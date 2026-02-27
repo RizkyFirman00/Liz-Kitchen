@@ -50,12 +50,6 @@
             android:name=".ui.admin.AdminHomeActivity"
             android:exported="false" />
         <activity
-            android:name=".ui.order.OrderActivity"
-            android:exported="false" />
-        <activity
-            android:name=".ui.cart.CartActivity"
-            android:exported="false" />
-        <activity
             android:name=".ui.cart.DetailCartActivity"
             android:exported="false" />
         <activity

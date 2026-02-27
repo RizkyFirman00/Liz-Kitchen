@@ -3,7 +3,6 @@ package com.dissy.lizkitchen.ui.admin.report
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.print.PrintAttributes
 import android.print.PrintDocumentAdapter
@@ -21,10 +20,11 @@ import com.dissy.lizkitchen.model.Cake
 import com.dissy.lizkitchen.model.Cart
 import com.dissy.lizkitchen.model.Order
 import com.dissy.lizkitchen.model.User
+import com.dissy.lizkitchen.ui.base.BaseActivity
 import com.google.firebase.Firebase
 import com.google.firebase.firestore.firestore
 
-class ReportDetailActivity : AppCompatActivity() {
+class ReportDetailActivity : BaseActivity() {
     private lateinit var reportAdminAdapter: ReportAdminAdapter
     private lateinit var banyakData: String
     private var orderList = mutableListOf<Order>()

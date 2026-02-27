@@ -1,6 +1,7 @@
 package com.dissy.lizkitchen.ui.home
 
-import androidx.appcompat.app.AppCompatActivity
+import android.annotation.SuppressLint
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.view.View
@@ -9,6 +10,8 @@ import com.bumptech.glide.Glide
 import com.dissy.lizkitchen.R
 import com.dissy.lizkitchen.databinding.ActivityCakeDetailUserBinding
 import com.dissy.lizkitchen.model.Cake
+import com.dissy.lizkitchen.ui.admin.user.AdminUserOrderActivity
+import com.dissy.lizkitchen.ui.base.BaseActivity
 import com.dissy.lizkitchen.utility.Preferences
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
@@ -16,7 +19,7 @@ import java.text.NumberFormat
 import java.util.Locale
 import kotlin.properties.Delegates
 
-class CakeDetailUserActivity : AppCompatActivity() {
+class CakeDetailUserActivity : BaseActivity() {
     private val binding by lazy { ActivityCakeDetailUserBinding.inflate(layoutInflater) }
     private val db = Firebase.firestore
     private val userCollection = db.collection("users")
@@ -24,6 +27,7 @@ class CakeDetailUserActivity : AppCompatActivity() {
     private var hargaPerPcs = 0
     private var stok = 0
     private lateinit var imageUrlDb: String
+    @SuppressLint("SetTextI18n")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
@@ -54,14 +58,19 @@ class CakeDetailUserActivity : AppCompatActivity() {
                         binding.apply {
                             tvCakeName.text = namaKue
                             tvPriceCake.text = hargaKue.toString()
-                            tvPriceSum.text = hargaKue
-                            Glide.with(this@CakeDetailUserActivity)
-                                .load(imageUrl)
-                                .into(ivImageBanner)
-
+                            tvPriceSum.setText("0")
+                            if (!isDestroyed && !isFinishing) {
+                                Glide.with(this@CakeDetailUserActivity)
+                                    .load(imageUrl)
+                                    .into(ivImageBanner)
+                            }
                         }
                     }
                 }
+        } else {
+            intent = Intent(this, AdminUserOrderActivity::class.java)
+            startActivity(intent)
+            finish()
         }
 
         updateTotalPrice()
@@ -90,12 +99,13 @@ class CakeDetailUserActivity : AppCompatActivity() {
                     progressBar2.visibility = View.GONE
                     btnAddCart.isEnabled = true
                 }
-                Toast.makeText(this, "Stok tidak mencukupi, Stok = $stok", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Stok tidak mencukupi, Stok = $stok", Toast.LENGTH_SHORT)
+                    .show()
                 return@setOnClickListener
             }
 
-            val cartRef = userCollection.document(userId.toString()).collection("cart").document(cakeId.toString())
-
+            val cartRef = userCollection.document(userId.toString()).collection("cart")
+                .document(cakeId.toString())
             cartRef.get().addOnSuccessListener { documentSnapshot ->
                 if (documentSnapshot.exists()) {
                     // Produk sudah ada di keranjang, update jumlah pesanan
@@ -107,11 +117,21 @@ class CakeDetailUserActivity : AppCompatActivity() {
                                 progressBar2.visibility = View.GONE
                                 btnAddCart.isEnabled = true
                             }
-                            Toast.makeText(this, "Berhasil menambahkan ke keranjang", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(
+                                this,
+                                "Berhasil menambahkan ke keranjang",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                            intent = Intent(this, MainActivity::class.java)
+                            startActivity(intent)
                             finish()
                         }
                         .addOnFailureListener {
-                            Toast.makeText(this, "Gagal menambahkan ke keranjang", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(
+                                this,
+                                "Gagal menambahkan ke keranjang",
+                                Toast.LENGTH_SHORT
+                            ).show()
                         }
                 } else {
                     // Produk belum ada di keranjang, tambahkan produk baru
@@ -133,11 +153,21 @@ class CakeDetailUserActivity : AppCompatActivity() {
                                 progressBar2.visibility = View.GONE
                                 btnAddCart.isEnabled = true
                             }
-                            Toast.makeText(this, "Berhasil menambahkan ke keranjang", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(
+                                this,
+                                "Berhasil menambahkan ke keranjang",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                            intent = Intent(this, MainActivity::class.java)
+                            startActivity(intent)
                             finish()
                         }
                         .addOnFailureListener {
-                            Toast.makeText(this, "Gagal menambahkan ke keranjang", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(
+                                this,
+                                "Gagal menambahkan ke keranjang",
+                                Toast.LENGTH_SHORT
+                            ).show()
                         }
                 }
             }

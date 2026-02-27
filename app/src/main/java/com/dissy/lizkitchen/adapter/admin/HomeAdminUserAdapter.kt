@@ -11,7 +11,6 @@ class HomeAdminUserAdapter(private val onItemClick: (String) -> Unit) :
         DiffCallback()
     ), Filterable {
 
-
     private var orderListFull: List<Order> = ArrayList()
     private var originalOrderList: List<Order> = ArrayList()
 

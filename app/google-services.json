@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "815513082735",
-    "project_id": "lizkitchen-17e7b",
-    "storage_bucket": "lizkitchen-17e7b.appspot.com"
+    "project_number": "747671628481",
+    "project_id": "lizkitchen",
+    "storage_bucket": "lizkitchen.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:815513082735:android:eb6e265a90a1ffd859a69a",
+        "mobilesdk_app_id": "1:747671628481:android:e784a316a2a457d5d64240",
         "android_client_info": {
           "package_name": "com.dissy.lizkitchen"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyA_vwnYrgZdcDqmszvoI1cjQQKqStY7Flo"
+          "current_key": "AIzaSyBAP9RASYVpn3MfgDO2rlus40ooYZ_ixtg"
         }
       ],
       "services": {

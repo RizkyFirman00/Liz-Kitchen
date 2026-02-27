@@ -1,12 +1,12 @@
 package com.dissy.lizkitchen.ui.profile
 
 import android.content.Intent
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
 import androidx.lifecycle.ViewModelProvider
 import com.dissy.lizkitchen.databinding.ActivityProfileBinding
+import com.dissy.lizkitchen.ui.base.BaseActivity
 import com.dissy.lizkitchen.ui.home.MainActivity
 import com.dissy.lizkitchen.ui.login.LoginActivity
 import com.dissy.lizkitchen.utility.Preferences
@@ -14,7 +14,7 @@ import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 
-class ProfileActivity : AppCompatActivity() {
+class ProfileActivity : BaseActivity() {
     private val db = Firebase.firestore
     private val usersCollection = db.collection("users")
     private val binding by lazy { ActivityProfileBinding.inflate(layoutInflater) }

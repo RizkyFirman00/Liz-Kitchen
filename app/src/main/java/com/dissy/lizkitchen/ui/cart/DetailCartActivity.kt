@@ -1,7 +1,6 @@
 package com.dissy.lizkitchen.ui.cart
 
 import android.content.Intent
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
@@ -11,13 +10,16 @@ import com.dissy.lizkitchen.databinding.ActivityDetailCartBinding
 import com.dissy.lizkitchen.model.Cake
 import com.dissy.lizkitchen.model.Cart
 import com.dissy.lizkitchen.model.User
+import com.dissy.lizkitchen.ui.base.BaseActivity
 import com.dissy.lizkitchen.ui.home.MainActivity
+import com.dissy.lizkitchen.ui.home.MainActivity.Companion.EXTRA_FRAGMENT_TO_LOAD
+import com.dissy.lizkitchen.ui.home.MainActivity.Companion.FRAGMENT_CART
 import com.dissy.lizkitchen.ui.konfirmasi.ConfirmActivity
 import com.dissy.lizkitchen.utility.Preferences
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 
-class DetailCartActivity : AppCompatActivity(), MetodeAmbilFragment.MetodePengambilanListener {
+class DetailCartActivity : BaseActivity(), MetodeAmbilFragment.MetodePengambilanListener {
     private val db = Firebase.firestore
     private lateinit var checkoutAdapter: CheckoutUserAdapter
     private val binding by lazy { ActivityDetailCartBinding.inflate(layoutInflater) }
@@ -66,7 +68,8 @@ class DetailCartActivity : AppCompatActivity(), MetodeAmbilFragment.MetodePengam
         }
 
         binding.btnToHome.setOnClickListener {
-            Intent(this, CartActivity::class.java).also {
+            Intent(this, MainActivity::class.java).also {
+                it.putExtra(EXTRA_FRAGMENT_TO_LOAD, FRAGMENT_CART)
                 startActivity(it)
                 finish()
             }

@@ -1,7 +1,6 @@
 package com.dissy.lizkitchen.ui.admin.user
 
 import android.content.Intent
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
 import androidx.appcompat.widget.SearchView
@@ -14,12 +13,13 @@ import com.dissy.lizkitchen.model.Order
 import com.dissy.lizkitchen.model.User
 import com.dissy.lizkitchen.ui.admin.AdminHomeActivity
 import com.dissy.lizkitchen.ui.admin.report.ReportActivity
+import com.dissy.lizkitchen.ui.base.BaseActivity
 import com.dissy.lizkitchen.ui.login.LoginActivity
 import com.dissy.lizkitchen.utility.Preferences
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 
-class AdminUserOrderActivity : AppCompatActivity() {
+class AdminUserOrderActivity : BaseActivity() {
     private val db = Firebase.firestore
     private lateinit var orderId: String
     private lateinit var adminUserAdapter: HomeAdminUserAdapter

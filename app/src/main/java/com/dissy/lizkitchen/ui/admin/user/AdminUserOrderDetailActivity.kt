@@ -2,7 +2,6 @@ package com.dissy.lizkitchen.ui.admin.user
 
 import android.annotation.SuppressLint
 import android.content.Intent
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.print.PrintAttributes
 import android.print.PrintManager
@@ -19,19 +18,21 @@ import com.dissy.lizkitchen.model.Cake
 import com.dissy.lizkitchen.model.Cart
 import com.dissy.lizkitchen.model.Order
 import com.dissy.lizkitchen.model.User
+import com.dissy.lizkitchen.ui.base.BaseActivity
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-class AdminUserOrderDetailActivity : AppCompatActivity() {
+class AdminUserOrderDetailActivity : BaseActivity() {
     private val db = Firebase.firestore
     private lateinit var orderId: String
     private lateinit var userId: String
     private lateinit var cartDetailUserAdapter: CartDetailUserAdapter
     private lateinit var orderStatus: String
     private val binding by lazy { ActivityUserDetailBinding.inflate(layoutInflater) }
+
     @SuppressLint("SimpleDateFormat")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -88,7 +89,13 @@ class AdminUserOrderDetailActivity : AppCompatActivity() {
                 binding.apply {
                     btnToPrint.setOnClickListener {
                         val webView = WebView(this@AdminUserOrderDetailActivity)
-                        webView.loadDataWithBaseURL(null, generateOrderHtml(order = order), "text/HTML", "UTF-8", null)
+                        webView.loadDataWithBaseURL(
+                            null,
+                            generateOrderHtml(order = order),
+                            "text/HTML",
+                            "UTF-8",
+                            null
+                        )
                     }
                     tvOrderId.text = order.orderId
                     tvStatus.text = order.status
@@ -115,6 +122,8 @@ class AdminUserOrderDetailActivity : AppCompatActivity() {
                         "Sedang Dikirim" -> {
                             binding.tvStatus.setTextColor(android.graphics.Color.parseColor("#0ACB12"))
                             btnCancel.visibility = GONE
+                            btnConfirm.visibility = GONE
+                            btnProcess.visibility = GONE
                         }
 
                         "Sudah Dikonfirmasi" -> {
@@ -134,6 +143,7 @@ class AdminUserOrderDetailActivity : AppCompatActivity() {
                                     btnReady.visibility = VISIBLE
                                     btnReady.gravity = 1
                                 }
+
                                 "Pesan Antar" -> {
                                     btnShipping.visibility = VISIBLE
                                     btnReady.visibility = GONE
@@ -153,6 +163,8 @@ class AdminUserOrderDetailActivity : AppCompatActivity() {
             }
 
         binding.btnToHome.setOnClickListener {
+            intent = Intent(this, AdminUserOrderActivity::class.java)
+            startActivity(intent)
             finish()
         }
 
@@ -174,13 +186,18 @@ class AdminUserOrderDetailActivity : AppCompatActivity() {
                             "tanggalOrder", formattedDate,
                             "status", "Sudah Dikonfirmasi"
                         )
-                        .addOnSuccessListener { Log.d("TAG", "DocumentSnapshot successfully updated!") }
+                        .addOnSuccessListener {
+                            Log.d(
+                                "TAG",
+                                "DocumentSnapshot successfully updated!"
+                            )
+                        }
                         .addOnFailureListener { e -> Log.w("TAG", "Error updating document", e) }
                     Toast.makeText(this, "Berhasil mengkonfirmasi pesanan", Toast.LENGTH_SHORT)
                         .show()
-                    startActivity(Intent(this, AdminUserOrderActivity::class.java)).also {
-                        finish()
-                    }
+                    val intent = Intent(this, AdminUserOrderDetailActivity::class.java)
+                    intent.putExtra("orderId", orderId)
+                    startActivityForResult(intent, REQUEST_CODE_CONFIRM_ORDER)
                 }
                 .addOnFailureListener { exception ->
                     Toast.makeText(this, "Gagal mengkonfirmasi pesanan", Toast.LENGTH_SHORT).show()
@@ -193,13 +210,17 @@ class AdminUserOrderDetailActivity : AppCompatActivity() {
                 .addOnSuccessListener {
                     db.collection("users").document(userId).collection("orders").document(orderId)
                         .update("status", "Sedang Diproses")
-                        .addOnSuccessListener { Log.d("TAG", "DocumentSnapshot successfully updated!") }
+                        .addOnSuccessListener {
+                            Log.d(
+                                "TAG",
+                                "DocumentSnapshot successfully updated!"
+                            )
+                        }
                         .addOnFailureListener { e -> Log.w("TAG", "Error updating document", e) }
                     Toast.makeText(this, "Berhasil memproses pesanan", Toast.LENGTH_SHORT).show()
-                    Intent(this, AdminUserOrderActivity::class.java).also {
-                        startActivity(it)
-                        finish()
-                    }
+                    val intent = Intent(this, AdminUserOrderDetailActivity::class.java)
+                    intent.putExtra("orderId", orderId)
+                    startActivityForResult(intent, REQUEST_CODE_CONFIRM_ORDER)
                 }
                 .addOnFailureListener { exception ->
                     Toast.makeText(this, "Gagal memproses pesanan", Toast.LENGTH_SHORT).show()
@@ -212,7 +233,12 @@ class AdminUserOrderDetailActivity : AppCompatActivity() {
                 .addOnSuccessListener {
                     db.collection("users").document(userId).collection("orders").document(orderId)
                         .update("status", "Sedang Dikirim")
-                        .addOnSuccessListener { Log.d("TAG", "DocumentSnapshot successfully updated!") }
+                        .addOnSuccessListener {
+                            Log.d(
+                                "TAG",
+                                "DocumentSnapshot successfully updated!"
+                            )
+                        }
                         .addOnFailureListener { e -> Log.w("TAG", "Error updating document", e) }
                     Toast.makeText(this, "Berhasil mengirim pesanan", Toast.LENGTH_SHORT).show()
                     Intent(this, AdminUserOrderActivity::class.java).also {
@@ -231,7 +257,12 @@ class AdminUserOrderDetailActivity : AppCompatActivity() {
                 .addOnSuccessListener {
                     db.collection("users").document(userId).collection("orders").document(orderId)
                         .update("status", "Sedang Dikirim")
-                        .addOnSuccessListener { Log.d("TAG", "DocumentSnapshot successfully updated!") }
+                        .addOnSuccessListener {
+                            Log.d(
+                                "TAG",
+                                "DocumentSnapshot successfully updated!"
+                            )
+                        }
                         .addOnFailureListener { e -> Log.w("TAG", "Error updating document", e) }
                     Toast.makeText(this, "Berhasil mengirim pesanan", Toast.LENGTH_SHORT).show()
                     Intent(this, AdminUserOrderActivity::class.java).also {
@@ -355,7 +386,7 @@ class AdminUserOrderDetailActivity : AppCompatActivity() {
         return cartItemsHtml.toString()
     }
 
-    private fun cancelOrder(){
+    private fun cancelOrder() {
         db.collection("orders").document(orderId).update("status", "Dibatalkan")
             .addOnSuccessListener {
                 db.collection("users").document(userId).collection("orders").document(orderId)
@@ -481,5 +512,17 @@ class AdminUserOrderDetailActivity : AppCompatActivity() {
             }
     }
 
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == REQUEST_CODE_CONFIRM_ORDER) {
+            if (resultCode == RESULT_OK) {
+                // Do something if needed
+            }
+        }
+    }
+
+    companion object {
+        const val REQUEST_CODE_CONFIRM_ORDER = 1
+    }
 
 }

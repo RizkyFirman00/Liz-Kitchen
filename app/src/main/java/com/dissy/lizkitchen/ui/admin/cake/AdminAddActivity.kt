@@ -2,17 +2,21 @@ package com.dissy.lizkitchen.ui.admin.cake
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.app.AlertDialog
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.BitmapFactory
+import android.graphics.drawable.ColorDrawable
 import android.net.Uri
-import androidx.appcompat.app.AppCompatActivity
+import android.os.Build
 import android.os.Bundle
 import android.provider.MediaStore
 import android.text.Editable
 import android.text.TextWatcher
 import android.util.Log
+import android.view.LayoutInflater
 import android.view.View
+import android.widget.Button
 import android.widget.EditText
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -21,6 +25,7 @@ import androidx.core.content.FileProvider
 import com.bumptech.glide.Glide
 import com.dissy.lizkitchen.R
 import com.dissy.lizkitchen.databinding.ActivityAdminAddBinding
+import com.dissy.lizkitchen.ui.base.BaseActivity
 import com.dissy.lizkitchen.utility.createCustomTempFile
 import com.dissy.lizkitchen.utility.uriToFile
 import com.google.firebase.firestore.ktx.firestore
@@ -28,12 +33,31 @@ import com.google.firebase.ktx.Firebase
 import com.google.firebase.storage.ktx.storage
 import java.io.File
 
-class AdminAddActivity : AppCompatActivity() {
+class AdminAddActivity : BaseActivity() {
     private val db = Firebase.firestore
     private lateinit var photoPath: String
     val storage = Firebase.storage
     private var file: File? = null
     private val binding by lazy { ActivityAdminAddBinding.inflate(layoutInflater) }
+
+    private val requestCameraPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted: Boolean ->
+            if (isGranted) {
+                openCamera()
+            } else {
+                Toast.makeText(this, getString(R.string.permission_camera_denied), Toast.LENGTH_SHORT).show()
+            }
+        }
+
+    private val requestGalleryPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted: Boolean ->
+            if (isGranted) {
+                openGallery()
+            } else {
+                Toast.makeText(this, getString(R.string.permission_gallery_denied), Toast.LENGTH_SHORT).show()
+            }
+        }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
@@ -100,12 +124,8 @@ class AdminAddActivity : AppCompatActivity() {
             }
         })
 
-        binding.btnCamera.setOnClickListener {
-            startCamera()
-        }
-
-        binding.btnGaleri.setOnClickListener {
-            startGallery()
+        binding.ivBanner.setOnClickListener {
+            showImagePickerDialog()
         }
 
         binding.btnToHome.setOnClickListener {
@@ -128,14 +148,33 @@ class AdminAddActivity : AppCompatActivity() {
         }
     }
 
+    private fun showImagePickerDialog() {
+        val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_image_picker, null)
+        val dialog = AlertDialog.Builder(this)
+            .setView(dialogView)
+            .create()
+
+        dialog.window?.setBackgroundDrawable(ColorDrawable(android.graphics.Color.TRANSPARENT))
+
+        dialogView.findViewById<Button>(R.id.btn_dialog_camera).setOnClickListener {
+            startCameraWithPermissionCheck()
+            dialog.dismiss()
+        }
+
+        dialogView.findViewById<Button>(R.id.btn_dialog_gallery).setOnClickListener {
+            startGalleryWithPermissionCheck()
+            dialog.dismiss()
+        }
+
+        dialog.show()
+    }
+
     private fun uploadImageAndGetUrl(namaKue: String, harga: String, stok: Long, gambar: File) {
         binding.apply {
             progressBar2.visibility = View.VISIBLE
             etNamaKue.isEnabled = false
             etHarga.isEnabled = false
             etStok.isEnabled = false
-            btnCamera.isEnabled = false
-            btnGaleri.isEnabled = false
         }
         val storageRef = storage.reference
         val imageRef = storageRef.child("images/${namaKue}")
@@ -163,8 +202,6 @@ class AdminAddActivity : AppCompatActivity() {
                                     etNamaKue.isEnabled = true
                                     etHarga.isEnabled = true
                                     etStok.isEnabled = true
-                                    btnCamera.isEnabled = true
-                                    btnGaleri.isEnabled = true
                                 }
                                 Log.d(
                                     "AdminAddActivity",
@@ -207,34 +244,38 @@ class AdminAddActivity : AppCompatActivity() {
     }
 
     //Permission Function
-    private fun allPermissionsGranted() = REQUIRED_PERMISSIONS.all {
-        ContextCompat.checkSelfPermission(
-            baseContext, it
+    private fun isPermissionGranted(permission: String): Boolean {
+        return ContextCompat.checkSelfPermission(
+            baseContext,
+            permission
         ) == PackageManager.PERMISSION_GRANTED
     }
 
-    companion object {
-        private val REQUIRED_PERMISSIONS = arrayOf(Manifest.permission.CAMERA)
-        private const val REQUEST_CODE_PERMISSIONS = 123
+    private fun startCameraWithPermissionCheck() {
+        if (isPermissionGranted(Manifest.permission.CAMERA)) {
+            openCamera()
+        } else {
+            requestCameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+        }
     }
 
-    override fun onRequestPermissionsResult(
-        requestCode: Int, permissions: Array<String>, grantResults: IntArray
-    ) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == REQUEST_CODE_PERMISSIONS) {
-            if (!allPermissionsGranted()) {
-                Toast.makeText(
-                    this, getString(R.string.permission_not_granted), Toast.LENGTH_SHORT
-                ).show()
-                finish()
-            }
+    private fun startGalleryWithPermissionCheck() {
+        val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            Manifest.permission.READ_MEDIA_IMAGES
+        } else {
+            Manifest.permission.READ_EXTERNAL_STORAGE
+        }
+
+        if (isPermissionGranted(permission)) {
+            openGallery()
+        } else {
+            requestGalleryPermissionLauncher.launch(permission)
         }
     }
 
     //Camera Function
     @SuppressLint("QueryPermissionsNeeded")
-    private fun startCamera() {
+    private fun openCamera() {
         val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
         intent.resolveActivity(packageManager)
         createCustomTempFile(application).also {
@@ -261,7 +302,7 @@ class AdminAddActivity : AppCompatActivity() {
     }
 
     //Gallery Function
-    private fun startGallery() {
+    private fun openGallery() {
         val intent = Intent()
         intent.action = Intent.ACTION_GET_CONTENT
         intent.type = "image/*"

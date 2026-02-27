@@ -1,13 +1,13 @@
 package com.dissy.lizkitchen.ui.login
 
 import android.content.Intent
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
 import com.dissy.lizkitchen.databinding.ActivityLoginBinding
 import com.dissy.lizkitchen.model.User
 import com.dissy.lizkitchen.ui.admin.AdminHomeActivity
+import com.dissy.lizkitchen.ui.base.BaseActivity
 import com.dissy.lizkitchen.ui.home.MainActivity
 import com.dissy.lizkitchen.ui.register.RegisterActivity
 import com.dissy.lizkitchen.utility.Preferences
@@ -18,7 +18,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
-class LoginActivity : AppCompatActivity() {
+class LoginActivity : BaseActivity() {
     private val db = Firebase.firestore
     private val usersCollection = db.collection("users")
     private val binding by lazy { ActivityLoginBinding.inflate(layoutInflater) }

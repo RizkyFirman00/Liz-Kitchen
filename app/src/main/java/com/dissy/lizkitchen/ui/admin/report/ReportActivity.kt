@@ -2,7 +2,6 @@ package com.dissy.lizkitchen.ui.admin.report
 
 import android.app.DatePickerDialog
 import android.content.Intent
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.widget.Toast
 import com.dissy.lizkitchen.R
@@ -10,13 +9,14 @@ import com.dissy.lizkitchen.databinding.ActivityReportBinding
 import com.dissy.lizkitchen.ui.admin.AdminHomeActivity
 import com.dissy.lizkitchen.ui.admin.cake.AdminCakeActivity
 import com.dissy.lizkitchen.ui.admin.user.AdminUserOrderActivity
+import com.dissy.lizkitchen.ui.base.BaseActivity
 import com.google.android.material.textfield.TextInputEditText
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
-class ReportActivity : AppCompatActivity() {
+class ReportActivity : BaseActivity() {
     private val binding by lazy { ActivityReportBinding.inflate(layoutInflater) }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

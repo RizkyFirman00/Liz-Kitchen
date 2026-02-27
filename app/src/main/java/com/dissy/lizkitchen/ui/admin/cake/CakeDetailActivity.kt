@@ -6,7 +6,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.BitmapFactory
 import android.net.Uri
-import androidx.appcompat.app.AppCompatActivity
+import android.os.Build
 import android.os.Bundle
 import android.provider.MediaStore
 import android.text.Editable
@@ -21,6 +21,7 @@ import androidx.core.content.FileProvider
 import com.bumptech.glide.Glide
 import com.dissy.lizkitchen.R
 import com.dissy.lizkitchen.databinding.ActivityCakeDetailBinding
+import com.dissy.lizkitchen.ui.base.BaseActivity
 import com.dissy.lizkitchen.utility.createCustomTempFile
 import com.dissy.lizkitchen.utility.uriToFile
 import com.google.firebase.firestore.ktx.firestore
@@ -28,7 +29,7 @@ import com.google.firebase.ktx.Firebase
 import com.google.firebase.storage.ktx.storage
 import java.io.File
 
-class CakeDetailActivity : AppCompatActivity() {
+class CakeDetailActivity : BaseActivity() {
     private val db = Firebase.firestore
     private lateinit var photoPath: String
     private val storage = Firebase.storage
@@ -36,6 +37,27 @@ class CakeDetailActivity : AppCompatActivity() {
     private val cakeCollection = db.collection("cakes")
     private var isImageChanged = false
     private val binding by lazy { ActivityCakeDetailBinding.inflate(layoutInflater) }
+
+    private val requestCameraPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted: Boolean ->
+            if (isGranted) {
+                openCamera()
+            }
+            else {
+                Toast.makeText(this, getString(R.string.permission_camera_denied), Toast.LENGTH_SHORT).show()
+            }
+        }
+
+    private val requestGalleryPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted: Boolean ->
+            if (isGranted) {
+                openGallery()
+            }
+            else {
+                Toast.makeText(this, getString(R.string.permission_gallery_denied), Toast.LENGTH_SHORT).show()
+            }
+        }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
@@ -151,12 +173,12 @@ class CakeDetailActivity : AppCompatActivity() {
         })
 
         binding.btnCamera.setOnClickListener {
-            startCamera()
+            startCameraWithPermissionCheck()
             isImageChanged = true
         }
 
         binding.btnGaleri.setOnClickListener {
-            startGallery()
+            startGalleryWithPermissionCheck()
             isImageChanged = true
         }
 
@@ -172,7 +194,7 @@ class CakeDetailActivity : AppCompatActivity() {
             val harga = binding.etHarga.text.toString()
             val stok = binding.etStok.text.toString().toLong()
             val imageUrl = file
-            Log.d("CakeDetailActivity", "$namaKue, $harga, $stok, $imageUrl")
+            Log.d("CakeDetailActivity", "${'$'}namaKue, ${'$'}harga, ${'$'}stok, ${'$'}imageUrl")
             if (namaKue.isNotEmpty() || harga.isNotEmpty() || imageUrl != null) {
                 file?.let { it1 ->
                     uploadImageAndGetUrl(
@@ -200,7 +222,7 @@ class CakeDetailActivity : AppCompatActivity() {
                     .addOnFailureListener { exception ->
                         Toast.makeText(
                             this,
-                            "Gagal menghapus data: ${exception.message}",
+                            "Gagal menghapus data: ${'$'}{exception.message}",
                             Toast.LENGTH_SHORT
                         ).show()
                     }
@@ -208,35 +230,38 @@ class CakeDetailActivity : AppCompatActivity() {
         }
     }
 
-    //Permission Function
-    private fun allPermissionsGranted() = REQUIRED_PERMISSIONS.all {
-        ContextCompat.checkSelfPermission(
-            baseContext, it
+    private fun isPermissionGranted(permission: String): Boolean {
+        return ContextCompat.checkSelfPermission(
+            baseContext,
+            permission
         ) == PackageManager.PERMISSION_GRANTED
     }
 
-    companion object {
-        private val REQUIRED_PERMISSIONS = arrayOf(Manifest.permission.CAMERA)
-        private const val REQUEST_CODE_PERMISSIONS = 123
+    private fun startCameraWithPermissionCheck() {
+        if (isPermissionGranted(Manifest.permission.CAMERA)) {
+            openCamera()
+        } else {
+            requestCameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+        }
     }
 
-    override fun onRequestPermissionsResult(
-        requestCode: Int, permissions: Array<String>, grantResults: IntArray
-    ) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == REQUEST_CODE_PERMISSIONS) {
-            if (!allPermissionsGranted()) {
-                Toast.makeText(
-                    this, getString(R.string.permission_not_granted), Toast.LENGTH_SHORT
-                ).show()
-                finish()
-            }
+    private fun startGalleryWithPermissionCheck() {
+        val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            Manifest.permission.READ_MEDIA_IMAGES
+        } else {
+            Manifest.permission.READ_EXTERNAL_STORAGE
+        }
+
+        if (isPermissionGranted(permission)) {
+            openGallery()
+        } else {
+            requestGalleryPermissionLauncher.launch(permission)
         }
     }
 
     //Camera Function
     @SuppressLint("QueryPermissionsNeeded")
-    private fun startCamera() {
+    private fun openCamera() {
         val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
         intent.resolveActivity(packageManager)
         createCustomTempFile(application).also {
@@ -263,7 +288,7 @@ class CakeDetailActivity : AppCompatActivity() {
     }
 
     //Gallery Function
-    private fun startGallery() {
+    private fun openGallery() {
         val intent = Intent()
         intent.action = Intent.ACTION_GET_CONTENT
         intent.type = "image/*"
@@ -303,9 +328,9 @@ class CakeDetailActivity : AppCompatActivity() {
         if (isImageChanged) {
             // Jika gambar berubah, upload gambar baru ke Firebase Storage
             val storageRef = storage.reference
-            val imageRef = storageRef.child("images/${namaKue}")
+            val imageRef = storageRef.child("images/${'$'}namaKue")
             val uploadTask = imageRef.putFile(Uri.fromFile(gambar))
-            Log.d("CakeDetailActivity", "uploadImageAndGetUrl: $gambar")
+            Log.d("CakeDetailActivity", "uploadImageAndGetUrl: ${'$'}gambar")
             uploadTask.addOnSuccessListener { taskSnapshot ->
                 imageRef.downloadUrl.addOnSuccessListener { uri ->
                     val url = uri.toString()
@@ -315,13 +340,13 @@ class CakeDetailActivity : AppCompatActivity() {
             }.addOnFailureListener { exception ->
                 Toast.makeText(
                     this,
-                    "Gagal mengupload gambar: ${exception.message}",
+                    "Gagal mengupload gambar: ${'$'}{exception.message}",
                     Toast.LENGTH_SHORT
                 ).show()
             }
         } else {
             // Jika gambar tidak berubah dan berupa File, gunakan URL gambar yang sudah ada di Firestore
-            Log.d("CakeDetailActivity", "else 2 uploadImageAndGetUrl: $gambar")
+            Log.d("CakeDetailActivity", "else 2 uploadImageAndGetUrl: ${'$'}gambar")
             updateDataInFirestore(cakeId, namaKue, harga, stok, gambar.path)
         }
         binding.apply {
@@ -361,7 +386,7 @@ class CakeDetailActivity : AppCompatActivity() {
             .addOnFailureListener { exception ->
                 Toast.makeText(
                     this,
-                    "Gagal mengupdate data: ${exception.message}",
+                    "Gagal mengupdate data: ${'$'}{exception.message}",
                     Toast.LENGTH_SHORT
                 ).show()
             }

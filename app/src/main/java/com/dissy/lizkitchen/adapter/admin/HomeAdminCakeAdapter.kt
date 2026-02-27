@@ -10,6 +10,8 @@ import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.dissy.lizkitchen.databinding.RvCakeBinding
 import com.dissy.lizkitchen.model.Cake
+import java.util.Locale
+import java.util.Locale.getDefault
 
 class HomeAdminCakeAdapter(private val onItemClick: (String) -> Unit) :
     ListAdapter<Cake, HomeAdminCakeAdapter.HomeAdminViewHolder>(
@@ -77,13 +79,13 @@ class HomeAdminCakeAdapter(private val onItemClick: (String) -> Unit) :
     override fun getFilter(): Filter {
         return object : Filter() {
             override fun performFiltering(constraint: CharSequence?): FilterResults {
-                val filterPattern = constraint.toString().trim().toLowerCase()
+                val filterPattern = constraint.toString().trim().lowercase(getDefault())
                 val filteredList: List<Cake> = if (constraint.isNullOrEmpty()) {
                     originalCakeList
                 } else {
                     originalCakeList.filter { cake ->
-                        cake.namaKue.toLowerCase().contains(filterPattern) ||
-                                cake.documentId.toLowerCase().contains(filterPattern)
+                        cake.namaKue.lowercase().contains(filterPattern) ||
+                                cake.documentId.lowercase().contains(filterPattern)
                     }
                 }
 

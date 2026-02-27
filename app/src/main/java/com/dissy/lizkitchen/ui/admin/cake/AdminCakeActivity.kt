@@ -1,7 +1,6 @@
 package com.dissy.lizkitchen.ui.admin.cake
 
 import android.content.Intent
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
@@ -10,14 +9,14 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.dissy.lizkitchen.adapter.admin.HomeAdminCakeAdapter
 import com.dissy.lizkitchen.databinding.ActivityAdminBinding
 import com.dissy.lizkitchen.model.Cake
-import com.dissy.lizkitchen.model.Order
 import com.dissy.lizkitchen.ui.admin.AdminHomeActivity
+import com.dissy.lizkitchen.ui.base.BaseActivity
 import com.dissy.lizkitchen.ui.login.LoginActivity
 import com.dissy.lizkitchen.utility.Preferences
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 
-class AdminCakeActivity : AppCompatActivity() {
+class AdminCakeActivity : BaseActivity() {
     private val db = Firebase.firestore
     private val cakesCollection = db.collection("cakes")
     private lateinit var adminCakeAdapter: HomeAdminCakeAdapter

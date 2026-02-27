@@ -1,17 +1,16 @@
 package com.dissy.lizkitchen.ui.register
 
 import android.content.Intent
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
 import com.dissy.lizkitchen.databinding.ActivityRegisterBinding
+import com.dissy.lizkitchen.ui.base.BaseActivity
 import com.dissy.lizkitchen.ui.login.LoginActivity
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
-import java.util.UUID
 
-class RegisterActivity : AppCompatActivity() {
+class RegisterActivity : BaseActivity() {
     private val binding by lazy { ActivityRegisterBinding.inflate(layoutInflater) }
     private val db = Firebase.firestore
     private val usersCollection = db.collection("users")
@@ -49,68 +48,46 @@ class RegisterActivity : AppCompatActivity() {
         alamat: String
     ) {
         loadingProgress()
-        val user = hashMapOf(
-            "email" to email,
-            "phoneNumber" to phoneNumber,
-            "username" to username,
-            "password" to password,
-            "alamat" to alamat
-        )
 
-        usersCollection.whereEqualTo("username", username).get().addOnCompleteListener { task ->
-            if (task.isSuccessful) {
-                val existingUser = task.result?.documents
-
-                if (existingUser != null && existingUser.isNotEmpty()) {
+        usersCollection.whereEqualTo("username", username).get()
+            .addOnSuccessListener { querySnapshot ->
+                if (!querySnapshot.isEmpty) {
+                    // Username already exists
                     unLoadingProgress()
                     Toast.makeText(this, "Username sudah dipakai", Toast.LENGTH_SHORT).show()
                 } else {
-                    // Menggunakan add untuk membuat dokumen baru dengan ID yang dihasilkan oleh Firestore
-                    usersCollection.add(user)
-                        .addOnCompleteListener { registrationTask ->
-                            if (registrationTask.isSuccessful) {
-                                // Mendapatkan ID dokumen yang baru dibuat
-                                val newUserId = registrationTask.result?.id
+                    // Username is available, proceed with registration
+                    val newUserId = usersCollection.document().id
+                    val user = hashMapOf(
+                        "userId" to newUserId,
+                        "email" to email,
+                        "phoneNumber" to phoneNumber,
+                        "username" to username,
+                        "password" to password,
+                        "alamat" to alamat
+                    )
 
-                                // Memperbarui userId di dokumen dengan ID yang baru
-                                usersCollection.document(newUserId!!)
-                                    .update("userId", newUserId)
-                                    .addOnSuccessListener {
-                                        unLoadingProgress()
-                                        Toast.makeText(
-                                            this,
-                                            "Registrasi berhasil",
-                                            Toast.LENGTH_SHORT
-                                        ).show()
-                                        Intent(
-                                            this@RegisterActivity,
-                                            LoginActivity::class.java
-                                        ).also {
-                                            startActivity(it)
-                                            finish()
-                                        }
-                                    }
-                                    .addOnFailureListener { exception ->
-                                        Toast.makeText(
-                                            this,
-                                            "Gagal memperbarui userId",
-                                            Toast.LENGTH_SHORT
-                                        ).show()
-                                        Log.e(
-                                            "RegisterActivity",
-                                            "Error updating userId",
-                                            exception
-                                        )
-                                    }
-                            } else {
-                                Toast.makeText(this, "Registrasi gagal", Toast.LENGTH_SHORT).show()
+                    usersCollection.document(newUserId).set(user)
+                        .addOnSuccessListener {
+                            unLoadingProgress()
+                            Toast.makeText(this, "Registrasi berhasil", Toast.LENGTH_SHORT).show()
+                            Intent(this, LoginActivity::class.java).also {
+                                startActivity(it)
+                                finish()
                             }
                         }
+                        .addOnFailureListener { e ->
+                            unLoadingProgress()
+                            Toast.makeText(this, "Registrasi gagal: ${e.message}", Toast.LENGTH_LONG).show()
+                            Log.e("RegisterActivity", "Error writing new user", e)
+                        }
                 }
-            } else {
-                Toast.makeText(this, "Error checking existing user", Toast.LENGTH_SHORT).show()
             }
-        }
+            .addOnFailureListener { e ->
+                unLoadingProgress()
+                Toast.makeText(this, "Gagal memeriksa username: ${e.message}", Toast.LENGTH_LONG).show()
+                Log.e("RegisterActivity", "Error checking existing user", e)
+            }
     }
 
     private fun loadingProgress() {
