@@ -15,10 +15,14 @@ import com.dissy.lizkitchen.model.Cake
 import com.dissy.lizkitchen.model.Cart
 import com.dissy.lizkitchen.model.User
 import com.dissy.lizkitchen.ui.login.LoginActivity
-import com.dissy.lizkitchen.ui.profile.ProfileActivity
 import com.dissy.lizkitchen.utility.Preferences
+import com.dissy.lizkitchen.utility.cakeFromMap
+import com.dissy.lizkitchen.utility.productPriceToLong
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
+
+import androidx.navigation.fragment.findNavController
+import com.dissy.lizkitchen.R
 
 class CartFragment : Fragment(), 
     HomeCartUserAdapter.CartInteractionListener, 
@@ -47,14 +51,20 @@ class CartFragment : Fragment(),
         binding.rvCart.layoutManager = LinearLayoutManager(requireContext())
         fetchDataAndUpdateRecyclerView()
 
-        binding.btnToProfile.setOnClickListener {
-            startActivity(Intent(requireContext(), ProfileActivity::class.java))
-        }
-
-        binding.btnToLogout.setOnClickListener {
-            Preferences.logout(requireContext())
-            startActivity(Intent(requireContext(), LoginActivity::class.java))
-            requireActivity().finish()
+        binding.topAppBar.setOnMenuItemClickListener { menuItem ->
+            when (menuItem.itemId) {
+                R.id.btn_toProfile -> {
+                    findNavController().navigate(R.id.navigation_profile)
+                    true
+                }
+                R.id.btn_toLogout -> {
+                    Preferences.logout(requireContext())
+                    startActivity(Intent(requireContext(), LoginActivity::class.java))
+                    requireActivity().finish()
+                    true
+                }
+                else -> false
+            }
         }
 
         binding.btnCheckout.setOnClickListener {
@@ -64,17 +74,11 @@ class CartFragment : Fragment(),
                     .addOnSuccessListener { result ->
                         val cartList = mutableListOf<Cart>()
                         for (document in result) {
-                            val cakeId = document.id
+                            val cartId = document.id
                             val jumlahPesanan = document.get("jumlahPesanan") as Long
-                            val cakeDataMap = document.get("cake") as HashMap<String, Any>
-                            val cakeData = Cake(
-                                cakeId,
-                                cakeDataMap["harga"] as String,
-                                cakeDataMap["imageUrl"] as String,
-                                cakeDataMap["namaKue"] as String,
-                                cakeDataMap["stok"] as Long
-                            )
-                            cartList.add(Cart(cakeId, cakeData, jumlahPesanan))
+                            val cakeDataMap = document.get("cake") as? Map<*, *> ?: emptyMap<String, Any>()
+                            val cakeData = cakeFromMap(cakeDataMap["documentId"]?.toString().orEmpty().ifBlank { cartId }, cakeDataMap)
+                            cartList.add(Cart(cartId, cakeData, jumlahPesanan))
                         }
                         val userInfo = Preferences.getUserInfo(requireContext())
                         val user = User(
@@ -98,9 +102,8 @@ class CartFragment : Fragment(),
                             .addOnSuccessListener {
                                 clearCart(userId)
                                 binding.progressBar2.visibility = View.GONE
-                                val intent = Intent(requireContext(), DetailCartActivity::class.java)
-                                intent.putExtra("orderId", orderId)
-                                startActivity(intent)
+                                val bundle = Bundle().apply { putString("orderId", orderId) }
+                                findNavController().navigate(R.id.navigation_detail_cart, bundle)
                             }
                     }
             }
@@ -115,10 +118,10 @@ class CartFragment : Fragment(),
                 val cartList = mutableListOf<Cart>()
                 totalPrice = 0
                 for (document in result) {
-                    val cakeDataMap = document.get("cake") as HashMap<String, Any>
+                    val cakeDataMap = document.get("cake") as? Map<*, *> ?: emptyMap<String, Any>()
                     val jumlah = document.get("jumlahPesanan") as Long
-                    val harga = (cakeDataMap["harga"] as String).replace(".", "").toLong()
-                    val cake = Cake(document.id, cakeDataMap["harga"] as String, cakeDataMap["imageUrl"] as String, cakeDataMap["namaKue"] as String, cakeDataMap["stok"] as Long)
+                    val cake = cakeFromMap(cakeDataMap["documentId"]?.toString().orEmpty().ifBlank { document.id }, cakeDataMap)
+                    val harga = productPriceToLong(cake.harga)
                     cartList.add(Cart(document.id, cake, jumlah))
                     totalPrice += harga * jumlah
                 }

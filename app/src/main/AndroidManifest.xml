@@ -29,48 +29,6 @@
         android:theme="@style/Theme.LizKitchen"
         tools:targetApi="31">
         <activity
-            android:name=".ui.admin.report.ReportDetailActivity"
-            android:exported="false" />
-        <activity
-            android:name=".ui.admin.report.ReportActivity"
-            android:exported="false" />
-        <activity
-            android:name=".ui.konfirmasi.ConfirmActivity"
-            android:exported="false" />
-        <activity
-            android:name=".ui.order.OrderDetailActivity"
-            android:exported="false" />
-        <activity
-            android:name=".ui.admin.user.AdminUserOrderActivity"
-            android:exported="false" />
-        <activity
-            android:name=".ui.admin.user.AdminUserOrderDetailActivity"
-            android:exported="false" />
-        <activity
-            android:name=".ui.admin.AdminHomeActivity"
-            android:exported="false" />
-        <activity
-            android:name=".ui.cart.DetailCartActivity"
-            android:exported="false" />
-        <activity
-            android:name=".ui.home.CakeDetailUserActivity"
-            android:exported="false" />
-        <activity
-            android:name=".ui.admin.cake.CakeDetailActivity"
-            android:exported="false" />
-        <activity
-            android:name=".ui.admin.cake.AdminAddActivity"
-            android:exported="false" />
-        <activity
-            android:name=".ui.admin.cake.AdminCakeActivity"
-            android:exported="false" />
-        <activity
-            android:name=".ui.profile.ProfileActivity"
-            android:exported="false" />
-        <activity
-            android:name=".ui.register.RegisterActivity"
-            android:exported="false" />
-        <activity
             android:name=".ui.splash.SplashActivity"
             android:exported="true">
             <intent-filter>
@@ -84,6 +42,12 @@
             android:exported="false" />
         <activity
             android:name=".ui.home.MainActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ui.admin.AdminActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ui.register.RegisterActivity"
             android:exported="false" />
 
         <provider

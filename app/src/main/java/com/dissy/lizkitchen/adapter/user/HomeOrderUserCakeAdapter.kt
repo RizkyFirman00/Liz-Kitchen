@@ -7,6 +7,7 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.dissy.lizkitchen.databinding.RvOrderCakeUserBinding
 import com.dissy.lizkitchen.model.Cart
+import com.dissy.lizkitchen.utility.displayNameWithCategory
 
 class HomeOrderUserCakeAdapter : ListAdapter<Cart, HomeOrderUserCakeAdapter.HomeOrderUserCakeViewHolder>(
     DiffCallback()
@@ -18,7 +19,7 @@ class HomeOrderUserCakeAdapter : ListAdapter<Cart, HomeOrderUserCakeAdapter.Home
 
             fun bind(cart: Cart) {
                 binding.apply {
-                    tvCakeName.text = cart.cake.namaKue
+                    tvCakeName.text = cart.cake.displayNameWithCategory()
                     tvJumlahPesanan.text = cart.jumlahPesanan.toString()
                 }
             }

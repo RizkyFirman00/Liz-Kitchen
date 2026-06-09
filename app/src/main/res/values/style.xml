@@ -14,8 +14,16 @@
         <item name="android:textColor">@color/white</item>
     </style>
 
-    <style name="App_Custom_Indicator" parent="Widget.Material3.BottomNavigationView.ActiveIndicator">
-        <item name="android:color">@color/brown_old</item>
+    <style name="BottomNavigationTextActive" parent="TextAppearance.MaterialComponents.Caption">
+        <item name="android:fontFamily">@font/poppins_bold</item>
+        <item name="fontFamily">@font/poppins_bold</item>
+        <item name="android:textSize">11sp</item>
+    </style>
+
+    <style name="BottomNavigationTextInactive" parent="TextAppearance.MaterialComponents.Caption">
+        <item name="android:fontFamily">@font/poppins_medium</item>
+        <item name="fontFamily">@font/poppins_medium</item>
+        <item name="android:textSize">11sp</item>
     </style>
 
 </resources>

@@ -2,6 +2,7 @@ package com.dissy.lizkitchen.adapter.user
 
 import android.view.LayoutInflater
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
@@ -9,6 +10,8 @@ import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.dissy.lizkitchen.databinding.RvCartBinding
 import com.dissy.lizkitchen.model.Cart
+import com.dissy.lizkitchen.utility.displayNameWithCategory
+import com.dissy.lizkitchen.utility.displayUnit
 
 class HomeCartUserAdapter(
     private val listener: CartInteractionListener,
@@ -43,13 +46,18 @@ class HomeCartUserAdapter(
 
         fun bind(cart: Cart) {
             binding.apply {
-                tvCakeName.text = cart.cake.namaKue
+                tvCakeName.text = cart.cake.displayNameWithCategory()
                 tvPrice.text = cart.cake.harga
+                tvUnit.text = "/${cart.cake.displayUnit()}"
                 tvJmlh.text = cart.jumlahPesanan.toString()
                 Glide.with(itemView.context)
                     .load(cart.cake.imageUrl)
                     .into(ivCakeBanner)
                 btnPlus.setOnClickListener {
+                    if (cart.jumlahPesanan >= cart.cake.stok) {
+                        Toast.makeText(itemView.context, "Stok tidak mencukupi, Stok = ${cart.cake.stok}", Toast.LENGTH_SHORT).show()
+                        return@setOnClickListener
+                    }
                     cart.jumlahPesanan++
                     tvJmlh.text = cart.jumlahPesanan.toString()
                     listener.onQuantityChanged(cart, cart.jumlahPesanan)

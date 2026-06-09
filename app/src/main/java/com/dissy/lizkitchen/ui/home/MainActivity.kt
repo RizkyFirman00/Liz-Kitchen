@@ -1,12 +1,17 @@
 package com.dissy.lizkitchen.ui.home
 
 import android.os.Bundle
-import androidx.fragment.app.Fragment
+import android.view.View
+import android.widget.ImageView
+import android.widget.TextView
+import androidx.core.content.ContextCompat
+import androidx.core.content.res.ResourcesCompat
+import androidx.navigation.NavController
+import androidx.navigation.NavOptions
+import androidx.navigation.fragment.NavHostFragment
 import com.dissy.lizkitchen.R
 import com.dissy.lizkitchen.databinding.ActivityMainBinding
 import com.dissy.lizkitchen.ui.base.BaseActivity
-import com.dissy.lizkitchen.ui.cart.CartFragment
-import com.dissy.lizkitchen.ui.order.OrderFragment
 
 class MainActivity : BaseActivity() {
     private val binding by lazy { ActivityMainBinding.inflate(layoutInflater) }
@@ -15,48 +20,93 @@ class MainActivity : BaseActivity() {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
 
-        // Set default fragment
-        if (savedInstanceState == null) {
-            replaceFragment(HomeFragment())
+        val navHostFragment = supportFragmentManager.findFragmentById(R.id.nav_host_fragment) as NavHostFragment
+        val navController = navHostFragment.navController
+        setupBottomNavigation(navController)
+
+        navController.addOnDestinationChangedListener { _, destination, _ ->
+            when (destination.id) {
+                R.id.navigation_home, R.id.navigation_cart, R.id.navigation_history -> {
+                    binding.bottomNavigationView.visibility = android.view.View.VISIBLE
+                    updateBottomNavigation(destination.id)
+                }
+                else -> {
+                    binding.bottomNavigationView.visibility = android.view.View.GONE
+                }
+            }
         }
 
         // Check intent for fragment to load
         intent.getStringExtra(EXTRA_FRAGMENT_TO_LOAD)?.let { fragmentName ->
             if (fragmentName == FRAGMENT_CART) {
-                replaceFragment(CartFragment())
-                binding.bottomNavigationView.selectedItemId = R.id.navigation_cart
-            }
-        }
-
-        binding.bottomNavigationView.setOnItemSelectedListener { item ->
-            when (item.itemId) {
-                R.id.navigation_home -> {
-                    replaceFragment(HomeFragment())
-                    true
-                }
-                R.id.navigation_cart -> {
-                    replaceFragment(CartFragment())
-                    true
-                }
-                R.id.navigation_history -> {
-                    replaceFragment(OrderFragment())
-                    true
-                }
-                else -> false
+                navController.navigate(R.id.navigation_cart)
             }
         }
     }
 
-    private fun replaceFragment(fragment: Fragment) {
-        val fragmentManager = supportFragmentManager
-        val fragmentTransaction = fragmentManager.beginTransaction()
-        
-        // Cek jika fragment sudah aktif untuk menghindari reload yang tidak perlu
-        val currentFragment = fragmentManager.findFragmentById(R.id.fragmentContainerView)
-        if (currentFragment?.javaClass == fragment.javaClass) return
+    private fun setupBottomNavigation(navController: NavController) {
+        binding.bottomNavHome.setOnClickListener {
+            navigateTopLevel(navController, R.id.navigation_home)
+        }
+        binding.bottomNavCart.setOnClickListener {
+            navigateTopLevel(navController, R.id.navigation_cart)
+        }
+        binding.bottomNavHistory.setOnClickListener {
+            navigateTopLevel(navController, R.id.navigation_history)
+        }
+        updateBottomNavigation(navController.currentDestination?.id ?: R.id.navigation_home)
+    }
 
-        fragmentTransaction.replace(R.id.fragmentContainerView, fragment)
-        fragmentTransaction.commit()
+    private fun navigateTopLevel(navController: NavController, destinationId: Int) {
+        if (navController.currentDestination?.id == destinationId) return
+
+        val navOptions = NavOptions.Builder()
+            .setLaunchSingleTop(true)
+            .setPopUpTo(R.id.navigation_home, false)
+            .build()
+
+        navController.navigate(destinationId, null, navOptions)
+    }
+
+    private fun updateBottomNavigation(destinationId: Int) {
+        setBottomNavigationItem(
+            binding.bottomNavHomeIndicator,
+            binding.bottomNavHomeIcon,
+            binding.bottomNavHomeLabel,
+            destinationId == R.id.navigation_home
+        )
+        setBottomNavigationItem(
+            binding.bottomNavCartIndicator,
+            binding.bottomNavCartIcon,
+            binding.bottomNavCartLabel,
+            destinationId == R.id.navigation_cart
+        )
+        setBottomNavigationItem(
+            binding.bottomNavHistoryIndicator,
+            binding.bottomNavHistoryIcon,
+            binding.bottomNavHistoryLabel,
+            destinationId == R.id.navigation_history
+        )
+    }
+
+    private fun setBottomNavigationItem(
+        indicator: View,
+        icon: ImageView,
+        label: TextView,
+        selected: Boolean
+    ) {
+        val iconColor = if (selected) R.color.brown_old else R.color.brown_nav_inactive
+        val textColor = if (selected) R.color.white else R.color.brown_nav_inactive
+        val font = if (selected) R.font.poppins_bold else R.font.poppins_medium
+
+        indicator.background = if (selected) {
+            ContextCompat.getDrawable(this, R.drawable.shape_bottom_nav_indicator)
+        } else {
+            null
+        }
+        icon.setColorFilter(ContextCompat.getColor(this, iconColor))
+        label.setTextColor(ContextCompat.getColor(this, textColor))
+        label.typeface = ResourcesCompat.getFont(this, font)
     }
 
     companion object {

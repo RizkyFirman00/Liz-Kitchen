@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/nav_graph_user"
+    app:startDestination="@id/navigation_home">
+
+    <fragment
+        android:id="@+id/navigation_home"
+        android:name="com.dissy.lizkitchen.ui.home.HomeFragment"
+        android:label="Home"
+        tools:layout="@layout/fragment_home" />
+
+    <fragment
+        android:id="@+id/navigation_cart"
+        android:name="com.dissy.lizkitchen.ui.cart.CartFragment"
+        android:label="Keranjang"
+        tools:layout="@layout/fragment_cart" />
+
+    <fragment
+        android:id="@+id/navigation_history"
+        android:name="com.dissy.lizkitchen.ui.order.OrderFragment"
+        android:label="Pesanan"
+        tools:layout="@layout/fragment_order" />
+
+    <fragment
+        android:id="@+id/navigation_profile"
+        android:name="com.dissy.lizkitchen.ui.profile.ProfileFragment"
+        android:label="Profil"
+        tools:layout="@layout/fragment_profile" />
+
+    <fragment
+        android:id="@+id/navigation_cake_detail"
+        android:name="com.dissy.lizkitchen.ui.home.CakeDetailUserFragment"
+        android:label="Detail Kue"
+        tools:layout="@layout/fragment_cake_detail_user">
+        <argument
+            android:name="cakeId"
+            app:argType="string" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/navigation_detail_cart"
+        android:name="com.dissy.lizkitchen.ui.cart.DetailCartFragment"
+        android:label="Detail Keranjang"
+        tools:layout="@layout/fragment_detail_cart">
+        <argument
+            android:name="orderId"
+            app:argType="string" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/navigation_confirm"
+        android:name="com.dissy.lizkitchen.ui.konfirmasi.ConfirmFragment"
+        android:label="Konfirmasi Pembayaran"
+        tools:layout="@layout/fragment_confirm">
+        <argument
+            android:name="orderId"
+            app:argType="string" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/navigation_order_detail"
+        android:name="com.dissy.lizkitchen.ui.order.OrderDetailFragment"
+        android:label="Detail Pesanan"
+        tools:layout="@layout/fragment_order_detail">
+        <argument
+            android:name="orderId"
+            app:argType="string" />
+    </fragment>
+
+</navigation>

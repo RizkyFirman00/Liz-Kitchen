@@ -2,6 +2,9 @@
     <!-- Base application theme. -->
     <style name="Base.Theme.LizKitchen" parent="Theme.Material3.Light.NoActionBar">
         <item name="android:statusBarColor">@color/brown_old</item>
+        <item name="android:navigationBarColor">@color/brown_old</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
     </style>
 
     <style name="Theme.LizKitchen" parent="Base.Theme.LizKitchen" />

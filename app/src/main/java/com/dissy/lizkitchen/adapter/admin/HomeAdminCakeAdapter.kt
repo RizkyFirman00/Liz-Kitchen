@@ -10,6 +10,8 @@ import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.dissy.lizkitchen.databinding.RvCakeBinding
 import com.dissy.lizkitchen.model.Cake
+import com.dissy.lizkitchen.utility.displayUnit
+import com.dissy.lizkitchen.utility.primaryCategory
 import java.util.Locale
 import java.util.Locale.getDefault
 
@@ -48,10 +50,12 @@ class HomeAdminCakeAdapter(private val onItemClick: (String) -> Unit) :
     ) : RecyclerView.ViewHolder(binding.root) {
 
         fun bind(cake: Cake, onItemClick: (String) -> Unit) {
+            val primaryCategory = cake.primaryCategory()
             binding.apply {
                 tvCakeName.text = cake.namaKue
-                tvPrice.text = cake.harga
-                tvStok.text = cake.stok.toString()
+                tvPrice.text = primaryCategory.harga
+                tvUnit.text = "/${primaryCategory.displayUnit()}"
+                tvStok.text = primaryCategory.stok.toString()
                 Glide.with(itemView.context)
                     .load(cake.imageUrl)
                     .into(ivCakeBanner)

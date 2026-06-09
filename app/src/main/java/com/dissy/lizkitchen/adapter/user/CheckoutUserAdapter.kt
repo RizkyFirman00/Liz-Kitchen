@@ -9,6 +9,8 @@ import com.bumptech.glide.Glide
 import com.dissy.lizkitchen.adapter.admin.CartDetailUserAdapter
 import com.dissy.lizkitchen.databinding.RvCheckoutBinding
 import com.dissy.lizkitchen.model.Cart
+import com.dissy.lizkitchen.utility.displayNameWithCategory
+import com.dissy.lizkitchen.utility.displayUnit
 
 class CheckoutUserAdapter() :
     ListAdapter<Cart, CheckoutUserAdapter.CheckoutUserViewHolder>(
@@ -18,8 +20,9 @@ class CheckoutUserAdapter() :
         RecyclerView.ViewHolder(binding.root) {
         fun bind(cart: Cart) {
             binding.apply {
-                tvCakeName.text = cart.cake.namaKue
+                tvCakeName.text = cart.cake.displayNameWithCategory()
                 tvPrice.text = cart.cake.harga
+                tvUnit.text = "/${cart.cake.displayUnit()}"
                 tvJumlahPesanan.text = cart.jumlahPesanan.toString()
                 Glide.with(itemView.context)
                     .load(cart.cake.imageUrl)

@@ -15,10 +15,13 @@ import com.dissy.lizkitchen.model.Cart
 import com.dissy.lizkitchen.model.Order
 import com.dissy.lizkitchen.model.User
 import com.dissy.lizkitchen.ui.login.LoginActivity
-import com.dissy.lizkitchen.ui.profile.ProfileActivity
 import com.dissy.lizkitchen.utility.Preferences
+import com.dissy.lizkitchen.utility.cakeFromMap
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
+
+import androidx.navigation.fragment.findNavController
+import com.dissy.lizkitchen.R
 
 class OrderFragment : Fragment() {
     private var _binding: FragmentOrderBinding? = null
@@ -38,21 +41,28 @@ class OrderFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         orderAdapter = HomeOrderUserAdapter { orderId ->
-            val intent = Intent(requireContext(), OrderDetailActivity::class.java)
-            intent.putExtra("orderId", orderId)
-            startActivity(intent)
+            val bundle = Bundle().apply {
+                putString("orderId", orderId)
+            }
+            findNavController().navigate(R.id.navigation_order_detail, bundle)
         }
         binding.rvOrder.adapter = orderAdapter
         binding.rvOrder.layoutManager = LinearLayoutManager(requireContext())
 
-        binding.btnToProfile.setOnClickListener {
-            startActivity(Intent(requireContext(), ProfileActivity::class.java))
-        }
-
-        binding.btnToLogout.setOnClickListener {
-            Preferences.logout(requireContext())
-            startActivity(Intent(requireContext(), LoginActivity::class.java))
-            requireActivity().finish()
+        binding.topAppBar.setOnMenuItemClickListener { menuItem ->
+            when (menuItem.itemId) {
+                R.id.btn_toProfile -> {
+                    findNavController().navigate(R.id.navigation_profile)
+                    true
+                }
+                R.id.btn_toLogout -> {
+                    Preferences.logout(requireContext())
+                    startActivity(Intent(requireContext(), LoginActivity::class.java))
+                    requireActivity().finish()
+                    true
+                }
+                else -> false
+            }
         }
 
         fetchOrders()
@@ -69,14 +79,8 @@ class OrderFragment : Fragment() {
                     val cartItems = cartItemsArray?.map { map ->
                         val cakeMap = map["cake"] as? HashMap<*, *>
                         Cart(
-                            cakeId = cakeMap?.get("documentId") as? String ?: "",
-                            cake = Cake(
-                                documentId = cakeMap?.get("documentId") as? String ?: "",
-                                harga = cakeMap?.get("harga") as? String ?: "",
-                                imageUrl = cakeMap?.get("imageUrl") as? String ?: "",
-                                namaKue = cakeMap?.get("namaKue") as? String ?: "",
-                                stok = (cakeMap?.get("stok") as? Long) ?: 0
-                            ),
+                            cakeId = map["cakeId"] as? String ?: "",
+                            cake = cakeFromMap(cakeMap?.get("documentId")?.toString().orEmpty(), cakeMap ?: emptyMap<String, Any>()),
                             jumlahPesanan = map["jumlahPesanan"] as? Long ?: 0
                         )
                     } ?: listOf()

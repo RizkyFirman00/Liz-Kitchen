@@ -13,10 +13,13 @@ import com.dissy.lizkitchen.adapter.user.HomeUserAdapter
 import com.dissy.lizkitchen.databinding.FragmentHomeBinding
 import com.dissy.lizkitchen.model.Cake
 import com.dissy.lizkitchen.ui.login.LoginActivity
-import com.dissy.lizkitchen.ui.profile.ProfileActivity
 import com.dissy.lizkitchen.utility.Preferences
+import com.dissy.lizkitchen.utility.cakeFromMap
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
+
+import androidx.navigation.fragment.findNavController
+import com.dissy.lizkitchen.R
 
 class HomeFragment : Fragment() {
     private var _binding: FragmentHomeBinding? = null
@@ -43,18 +46,22 @@ class HomeFragment : Fragment() {
         binding.rvUser.layoutManager = LinearLayoutManager(requireContext())
         fetchDataAndUpdateRecyclerView()
 
-        binding.btnToProfile.setOnClickListener {
-            Intent(requireContext(), ProfileActivity::class.java).also {
-                startActivity(it)
-            }
-        }
-
-        binding.btnToLogout.setOnClickListener {
-            Preferences.logout(requireContext())
-            Intent(requireContext(), LoginActivity::class.java).also {
-                Toast.makeText(requireContext(), "Berhasil Logout", Toast.LENGTH_SHORT).show()
-                startActivity(it)
-                requireActivity().finish()
+        binding.topAppBar.setOnMenuItemClickListener { menuItem ->
+            when (menuItem.itemId) {
+                R.id.btn_toProfile -> {
+                    findNavController().navigate(R.id.navigation_profile)
+                    true
+                }
+                R.id.btn_toLogout -> {
+                    Preferences.logout(requireContext())
+                    Intent(requireContext(), LoginActivity::class.java).also {
+                        Toast.makeText(requireContext(), "Berhasil Logout", Toast.LENGTH_SHORT).show()
+                        startActivity(it)
+                        requireActivity().finish()
+                    }
+                    true
+                }
+                else -> false
             }
         }
     }
@@ -65,7 +72,7 @@ class HomeFragment : Fragment() {
             .addOnSuccessListener { result ->
                 val cakesList = mutableListOf<Cake>()
                 for (document in result) {
-                    val cakeData = document.toObject(Cake::class.java)
+                    val cakeData = cakeFromMap(document.id, document.data)
                     cakesList.add(cakeData)
                 }
                 if (cakesList.isEmpty()) {
@@ -83,9 +90,10 @@ class HomeFragment : Fragment() {
     }
 
     private fun navigateToDetailDataActivity(cakeId: String) {
-        val intent = Intent(requireContext(), CakeDetailUserActivity::class.java)
-        intent.putExtra("cakeId", cakeId)
-        startActivity(intent)
+        val bundle = Bundle().apply {
+            putString("cakeId", cakeId)
+        }
+        findNavController().navigate(R.id.navigation_cake_detail, bundle)
     }
 
     override fun onDestroyView() {

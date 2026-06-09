@@ -4,158 +4,188 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/white"
     tools:context=".ui.login.LoginActivity">
 
     <ImageView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="-160dp"
+        android:id="@+id/iv_top_wave"
+        android:layout_width="0dp"
+        android:layout_height="320dp"
+        android:scaleType="fitXY"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:srcCompat="@drawable/vector_atas_login"/>
+        app:srcCompat="@drawable/vector_atas1" />
 
     <ImageView
-        android:id="@+id/imageView5"
-        android:layout_width="340dp"
-        android:layout_height="207dp"
-        android:layout_marginTop="20dp"
+        android:id="@+id/iv_bottom_wave"
+        android:layout_width="0dp"
+        android:layout_height="180dp"
+        android:scaleType="fitXY"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:srcCompat="@drawable/vector_bawah_login" />
+
+    <ImageView
+        android:id="@+id/iv_hero"
+        android:layout_width="0dp"
+        android:layout_height="198dp"
+        android:layout_marginStart="28dp"
+        android:layout_marginTop="42dp"
+        android:layout_marginEnd="28dp"
+        android:adjustViewBounds="true"
+        android:scaleType="fitCenter"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:srcCompat="@drawable/vector_login_register" />
 
     <ImageView
-        android:layout_width="241dp"
-        android:layout_height="241dp"
-        android:layout_marginTop="-50dp"
+        android:id="@+id/iv_bottom_logo"
+        android:layout_width="220dp"
+        android:layout_height="220dp"
+        android:layout_marginBottom="42dp"
+        android:adjustViewBounds="true"
+        android:scaleType="fitCenter"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:srcCompat="@drawable/logo" />
 
-    <ImageView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="-100dp"
+    <ScrollView
+        android:id="@+id/login_scroll"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:clipToPadding="false"
+        android:fillViewport="false"
+        android:scrollbars="none"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:srcCompat="@drawable/vector_bawah_login" />
+        app:layout_constraintTop_toTopOf="parent">
 
-    <LinearLayout
-        android:id="@+id/linearLayout"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginHorizontal="25dp"
-        android:background="@drawable/login_register_box"
-        android:elevation="8dp"
-        android:layout_marginTop="140dp"
-        android:orientation="vertical"
-        android:outlineProvider="background"
-        android:paddingHorizontal="25dp"
-        android:paddingVertical="15dp"
-        app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintTop_toTopOf="@+id/imageView5">
-
-        <TextView
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:fontFamily="@font/poppins_bold"
-            android:letterSpacing="0.15"
-            android:text="LOGIN"
-            android:textAlignment="center"
-            android:textSize="32sp" />
+            android:gravity="center_horizontal"
+            android:orientation="vertical"
+            android:paddingStart="30dp"
+            android:paddingTop="232dp"
+            android:paddingEnd="30dp"
+            android:paddingBottom="36dp">
 
-        <com.google.android.material.textfield.TextInputLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
-            android:fontFamily="@font/poppins_regular"
-            android:hint="Username"
-            android:textSize="14sp"
-            app:boxCornerRadiusBottomEnd="15dp"
-            app:boxCornerRadiusBottomStart="15dp"
-            app:boxCornerRadiusTopEnd="15dp"
-            app:boxCornerRadiusTopStart="15dp"
-            app:boxStrokeColor="@color/brown_old"
-            app:endIconMode="clear_text">
-
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/et_username"
+            <androidx.cardview.widget.CardView
+                android:id="@+id/cv_login"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:fontFamily="@font/poppins_regular" />
+                app:cardBackgroundColor="@color/white"
+                app:cardCornerRadius="30dp"
+                app:cardElevation="10dp"
+                app:cardUseCompatPadding="true">
 
-        </com.google.android.material.textfield.TextInputLayout>
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:paddingStart="32dp"
+                    android:paddingTop="26dp"
+                    android:paddingEnd="32dp"
+                    android:paddingBottom="24dp">
 
-        <com.google.android.material.textfield.TextInputLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:fontFamily="@font/poppins_regular"
-            android:hint="Password"
-            android:textSize="14sp"
-            app:boxCornerRadiusBottomEnd="15dp"
-            app:boxCornerRadiusBottomStart="15dp"
-            app:boxCornerRadiusTopEnd="15dp"
-            app:boxCornerRadiusTopStart="15dp"
-            app:boxStrokeColor="@color/brown_old"
-            app:endIconMode="password_toggle">
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="@font/poppins_black"
+                        android:text="LOGIN"
+                        android:textAlignment="center"
+                        android:textColor="@color/black"
+                        android:textSize="30sp" />
 
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/et_password"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:fontFamily="@font/poppins_regular"
-                android:inputType="textPassword" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="34dp"
+                        android:fontFamily="@font/poppins_medium"
+                        android:text="Username"
+                        android:textColor="@color/black"
+                        android:textSize="16sp" />
 
-        </com.google.android.material.textfield.TextInputLayout>
+                    <androidx.appcompat.widget.AppCompatEditText
+                        android:id="@+id/et_username"
+                        android:layout_width="match_parent"
+                        android:layout_height="50dp"
+                        android:layout_marginTop="4dp"
+                        android:background="@drawable/shape_login_input"
+                        android:fontFamily="@font/poppins_regular"
+                        android:importantForAutofill="yes"
+                        android:inputType="text"
+                        android:paddingHorizontal="14dp"
+                        android:singleLine="true"
+                        android:textColor="@color/black"
+                        android:textSize="15sp" />
 
-        <androidx.appcompat.widget.AppCompatButton
-            android:id="@+id/btn_login"
-            style="@style/Button_Style_Brown"
-            android:layout_width="200dp"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:layout_marginTop="35dp"
-            android:layout_marginBottom="5dp"
-            android:fontFamily="@font/poppins_semibold"
-            android:paddingVertical="10dp"
-            android:text="Submit"
-            android:textAlignment="center"
-            android:textAllCaps="false"
-            android:textColor="@color/white"
-            android:textSize="16sp"
-            app:layout_constraintBottom_toTopOf="@+id/btn_toregister"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            tools:ignore="RtlCompat" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="24dp"
+                        android:fontFamily="@font/poppins_medium"
+                        android:text="Password"
+                        android:textColor="@color/black"
+                        android:textSize="16sp" />
 
-        <TextView
-            android:id="@+id/btn_toregister"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="5dp"
-            android:clickable="true"
-            android:fontFamily="@font/poppins_light"
-            android:text="Belum punya akun ?"
-            android:textAlignment="center"
-            android:textSize="14sp" />
+                    <androidx.appcompat.widget.AppCompatEditText
+                        android:id="@+id/et_password"
+                        android:layout_width="match_parent"
+                        android:layout_height="50dp"
+                        android:layout_marginTop="4dp"
+                        android:background="@drawable/shape_login_input"
+                        android:fontFamily="@font/poppins_regular"
+                        android:importantForAutofill="yes"
+                        android:inputType="textPassword"
+                        android:paddingHorizontal="14dp"
+                        android:singleLine="true"
+                        android:textColor="@color/black"
+                        android:textSize="15sp" />
 
-    </LinearLayout>
+                    <androidx.appcompat.widget.AppCompatButton
+                        android:id="@+id/btn_login"
+                        style="@style/Button_Style_Brown"
+                        android:layout_width="match_parent"
+                        android:layout_height="50dp"
+                        android:layout_marginHorizontal="38dp"
+                        android:layout_marginTop="56dp"
+                        android:fontFamily="@font/poppins_bold"
+                        android:text="Submit"
+                        android:textAllCaps="false"
+                        android:textColor="@color/white"
+                        android:textSize="16sp" />
+
+                    <TextView
+                        android:id="@+id/btn_toregister"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:fontFamily="@font/poppins_light"
+                        android:text="Belum punya akun ?"
+                        android:textAlignment="center"
+                        android:textColor="#757575"
+                        android:textSize="14sp" />
+
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+        </LinearLayout>
+    </ScrollView>
 
     <ProgressBar
         android:id="@+id/progressBar2"
         style="?android:attr/progressBarStyleLarge"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:indeterminate="true"
-        android:elevation="8dp"
+        android:elevation="12dp"
         android:indeterminateTint="@color/brown_young"
-        android:indeterminateTintMode="src_atop"
         android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"

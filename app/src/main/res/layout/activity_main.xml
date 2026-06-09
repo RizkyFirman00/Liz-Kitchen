@@ -7,27 +7,140 @@
     tools:context=".ui.home.MainActivity">
 
     <androidx.fragment.app.FragmentContainerView
-        android:id="@+id/fragmentContainerView"
+        android:id="@+id/nav_host_fragment"
+        android:name="androidx.navigation.fragment.NavHostFragment"
         android:layout_width="match_parent"
         android:layout_height="0dp"
+        app:defaultNavHost="true"
         app:layout_constraintBottom_toTopOf="@+id/bottomNavigationView"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent"
+        app:navGraph="@navigation/nav_graph_user" />
 
-    <com.google.android.material.bottomnavigation.BottomNavigationView
+    <LinearLayout
         android:id="@+id/bottomNavigationView"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="@dimen/bottom_nav_height"
         android:background="@drawable/shape_buttonnav_brown"
-        app:itemIconSize="24dp"
-        app:itemIconTint="@color/bottom_nav_color_selector"
-        app:itemTextColor="@color/bottom_nav_color_selector"
-        app:labelVisibilityMode="labeled"
+        android:clipToPadding="false"
+        android:elevation="10dp"
+        android:gravity="center"
+        android:minHeight="@dimen/bottom_nav_height"
+        android:orientation="horizontal"
+        android:paddingStart="18dp"
+        android:paddingTop="6dp"
+        android:paddingEnd="18dp"
+        android:paddingBottom="6dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:itemActiveIndicatorStyle="@style/App_Custom_Indicator"
-        app:menu="@menu/bottom_navigation_menu" />
+        app:layout_constraintStart_toStartOf="parent">
+
+        <LinearLayout
+            android:id="@+id/bottomNavHome"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="@drawable/bottom_nav_ripple"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <FrameLayout
+                android:id="@+id/bottomNavHomeIndicator"
+                android:layout_width="64dp"
+                android:layout_height="30dp"
+                android:background="@drawable/shape_bottom_nav_indicator">
+
+                <ImageView
+                    android:id="@+id/bottomNavHomeIcon"
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/baseline_home_24_white" />
+            </FrameLayout>
+
+            <TextView
+                android:id="@+id/bottomNavHomeLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:fontFamily="@font/poppins_bold"
+                android:text="Home"
+                android:textColor="@color/white"
+                android:textSize="11sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/bottomNavCart"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="@drawable/bottom_nav_ripple"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <FrameLayout
+                android:id="@+id/bottomNavCartIndicator"
+                android:layout_width="64dp"
+                android:layout_height="30dp">
+
+                <ImageView
+                    android:id="@+id/bottomNavCartIcon"
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/baseline_shopping_cart_24_white" />
+            </FrameLayout>
+
+            <TextView
+                android:id="@+id/bottomNavCartLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:fontFamily="@font/poppins_medium"
+                android:text="Keranjang"
+                android:textColor="@color/brown_nav_inactive"
+                android:textSize="11sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/bottomNavHistory"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="@drawable/bottom_nav_ripple"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <FrameLayout
+                android:id="@+id/bottomNavHistoryIndicator"
+                android:layout_width="64dp"
+                android:layout_height="30dp">
+
+                <ImageView
+                    android:id="@+id/bottomNavHistoryIcon"
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/baseline_assignment_24_white" />
+            </FrameLayout>
+
+            <TextView
+                android:id="@+id/bottomNavHistoryLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:fontFamily="@font/poppins_medium"
+                android:text="Pesanan"
+                android:textColor="@color/brown_nav_inactive"
+                android:textSize="11sp" />
+        </LinearLayout>
+    </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

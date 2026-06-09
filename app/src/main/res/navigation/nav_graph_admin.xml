@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/nav_graph_admin"
+    app:startDestination="@id/navigation_admin_home">
+
+    <fragment
+        android:id="@+id/navigation_admin_home"
+        android:name="com.dissy.lizkitchen.ui.admin.AdminHomeFragment"
+        android:label="Admin Home"
+        tools:layout="@layout/fragment_admin_home" />
+
+    <fragment
+        android:id="@+id/navigation_admin_cake"
+        android:name="com.dissy.lizkitchen.ui.admin.cake.AdminCakeFragment"
+        android:label="Admin Cakes"
+        tools:layout="@layout/fragment_admin_cake" />
+
+    <fragment
+        android:id="@+id/navigation_admin_add_cake"
+        android:name="com.dissy.lizkitchen.ui.admin.cake.AdminAddFragment"
+        android:label="Add Cake"
+        tools:layout="@layout/fragment_admin_add" />
+
+    <fragment
+        android:id="@+id/navigation_admin_cake_detail"
+        android:name="com.dissy.lizkitchen.ui.admin.cake.CakeDetailFragment"
+        android:label="Cake Detail"
+        tools:layout="@layout/fragment_cake_detail">
+        <argument
+            android:name="documentId"
+            app:argType="string" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/navigation_admin_user_order"
+        android:name="com.dissy.lizkitchen.ui.admin.user.AdminUserOrderFragment"
+        android:label="User Orders"
+        tools:layout="@layout/fragment_admin_user_order" />
+
+    <fragment
+        android:id="@+id/navigation_admin_user_order_detail"
+        android:name="com.dissy.lizkitchen.ui.admin.user.AdminUserOrderDetailFragment"
+        android:label="Order Detail"
+        tools:layout="@layout/fragment_admin_user_order_detail">
+        <argument
+            android:name="orderId"
+            app:argType="string" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/navigation_admin_report"
+        android:name="com.dissy.lizkitchen.ui.admin.report.ReportFragment"
+        android:label="Report"
+        tools:layout="@layout/fragment_report" />
+
+    <fragment
+        android:id="@+id/navigation_admin_report_detail"
+        android:name="com.dissy.lizkitchen.ui.admin.report.ReportDetailFragment"
+        android:label="Report Detail"
+        tools:layout="@layout/fragment_report_detail">
+        <argument
+            android:name="fromDate"
+            app:argType="string" />
+        <argument
+            android:name="toDate"
+            app:argType="string" />
+    </fragment>
+
+</navigation>

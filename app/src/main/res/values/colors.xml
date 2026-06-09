@@ -4,6 +4,8 @@
     <color name="white">#FFFFFFFF</color>
     <color name="brown_young">#F9AF80</color>
     <color name="brown_old">#9C6843</color>
+    <color name="brown_nav_inactive">#EBD9CD</color>
+    <color name="brown_nav_ripple">#26F9AF80</color>
     <color name="red">#D10826</color>
     <color name="gray">#D9D9D9</color>
     <color name="green">#0ACB12</color>

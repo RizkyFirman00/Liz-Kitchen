@@ -8,6 +8,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.dissy.lizkitchen.databinding.RvOrderDetailBinding
 import com.dissy.lizkitchen.model.Cart
+import com.dissy.lizkitchen.utility.displayNameWithCategory
 
 class CartDetailUserAdapter() :
     ListAdapter<Cart, CartDetailUserAdapter.CartDetailUserViewHolder>(
@@ -17,7 +18,7 @@ class CartDetailUserAdapter() :
         RecyclerView.ViewHolder(binding.root) {
         fun bind(cart: Cart) {
             binding.apply {
-                tvCakeName.text = cart.cake.namaKue
+                tvCakeName.text = cart.cake.displayNameWithCategory()
                 tvJumlahPesanan.text = cart.jumlahPesanan.toString()
                 Glide.with(itemView.context)
                     .load(cart.cake.imageUrl)

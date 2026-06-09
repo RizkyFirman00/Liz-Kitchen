@@ -6,7 +6,7 @@ import android.util.Log
 import android.widget.Toast
 import com.dissy.lizkitchen.databinding.ActivityLoginBinding
 import com.dissy.lizkitchen.model.User
-import com.dissy.lizkitchen.ui.admin.AdminHomeActivity
+import com.dissy.lizkitchen.ui.admin.AdminActivity
 import com.dissy.lizkitchen.ui.base.BaseActivity
 import com.dissy.lizkitchen.ui.home.MainActivity
 import com.dissy.lizkitchen.ui.register.RegisterActivity
@@ -32,7 +32,7 @@ class LoginActivity : BaseActivity() {
 
         val usernameCheck = Preferences.getUsername(this)
         if (Preferences.checkUsername(this) && usernameCheck == "admin") {
-            Intent(this, AdminHomeActivity::class.java).also {
+            Intent(this, AdminActivity::class.java).also {
                 startActivity(it)
                 finish()
             }
@@ -56,7 +56,7 @@ class LoginActivity : BaseActivity() {
 
             if (username == "admin" && password == "admin") {
                 Preferences.saveUsername(username, this)
-                Intent(this, AdminHomeActivity::class.java).also {
+                Intent(this, AdminActivity::class.java).also {
                     startActivity(it)
                     finish()
                 }
