@@ -1,19 +1,24 @@
 package com.dissy.lizkitchen.ui.profile
 
+import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
+import android.view.KeyEvent
+import android.view.inputmethod.InputMethodManager
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.inputmethod.EditorInfo
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.dissy.lizkitchen.databinding.FragmentProfileBinding
 import com.dissy.lizkitchen.ui.login.LoginActivity
 import com.dissy.lizkitchen.utility.Preferences
+import com.dissy.lizkitchen.utility.setFirebaseRequestLoading
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
-import android.content.Intent
 import com.dissy.lizkitchen.R
 
 class ProfileFragment : Fragment() {
@@ -45,6 +50,21 @@ class ProfileFragment : Fragment() {
 
         binding.topAppBar.menu.findItem(R.id.btn_toProfile)?.isVisible = false
 
+        binding.root.setOnClickListener { hideKeyboardAndClearFocus() }
+        binding.formContainer.setOnClickListener { hideKeyboardAndClearFocus() }
+        binding.etAlamat.setOnEditorActionListener { _, actionId, event ->
+            val isDoneAction = actionId == EditorInfo.IME_ACTION_DONE
+            val isEnterUp = event?.keyCode == KeyEvent.KEYCODE_ENTER &&
+                event.action == KeyEvent.ACTION_UP
+
+            if (isDoneAction || isEnterUp) {
+                hideKeyboardAndClearFocus()
+                true
+            } else {
+                false
+            }
+        }
+
         binding.topAppBar.setOnMenuItemClickListener { menuItem ->
             when (menuItem.itemId) {
                 R.id.btn_toLogout -> {
@@ -61,6 +81,8 @@ class ProfileFragment : Fragment() {
         }
 
         binding.btnUpdateData.setOnClickListener {
+            hideKeyboardAndClearFocus()
+
             val updatedEmail = binding.etEmail.text.toString()
             val updatedPhoneNumber = binding.etNotelp.text.toString()
             val updatedUsername = binding.etUsername.text.toString()
@@ -79,9 +101,12 @@ class ProfileFragment : Fragment() {
     }
 
     private fun getUserData(userId: String) {
+        setRequestLoading(true)
         usersCollection.document(userId)
             .get()
             .addOnSuccessListener { documentSnapshot ->
+                if (_binding == null) return@addOnSuccessListener
+                setRequestLoading(false)
                 if (documentSnapshot.exists()) {
                     val email = documentSnapshot.getString("email")
                     val phoneNumber = documentSnapshot.getString("phoneNumber")
@@ -92,12 +117,31 @@ class ProfileFragment : Fragment() {
                         etNotelp.setText(phoneNumber)
                         etUsername.setText(username)
                         etAlamat.setText(alamat)
+                        tvProfileName.text = username.orEmpty().ifBlank { "User Liz Kitchen" }
+                        tvProfileEmail.text = email.orEmpty().ifBlank { "Email belum diisi" }
+                        tvProfileInitial.text = username.orEmpty()
+                            .trim()
+                            .firstOrNull()
+                            ?.uppercaseChar()
+                            ?.toString()
+                            ?: "L"
                     }
                 }
             }
             .addOnFailureListener { exception ->
+                if (_binding != null) setRequestLoading(false)
                 Log.e("UserData", "Error getting document", exception)
             }
+    }
+
+    private fun hideKeyboardAndClearFocus() {
+        val inputMethodManager = requireContext()
+            .getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+        val focusedView = requireActivity().currentFocus ?: binding.root
+
+        inputMethodManager.hideSoftInputFromWindow(focusedView.windowToken, 0)
+        focusedView.clearFocus()
+        binding.root.requestFocus()
     }
 
     private fun updateUserData(
@@ -113,16 +157,24 @@ class ProfileFragment : Fragment() {
             "username" to newUsername,
             "alamat" to alamat
         )
+        setRequestLoading(true)
         usersCollection.document(userId)
             .update(updatedUserData as Map<String, Any>)
             .addOnSuccessListener {
+                setRequestLoading(false)
                 Toast.makeText(requireContext(), "Data pengguna berhasil diperbarui", Toast.LENGTH_SHORT).show()
                 findNavController().navigateUp()
             }
             .addOnFailureListener { exception ->
+                setRequestLoading(false)
                 Toast.makeText(requireContext(), "Gagal memperbarui data pengguna", Toast.LENGTH_SHORT).show()
                 Log.e("ProfileFragment", "Error updating user data", exception)
             }
+    }
+
+    private fun setRequestLoading(isLoading: Boolean) {
+        if (_binding == null) return
+        binding.root.setFirebaseRequestLoading(isLoading)
     }
 
     override fun onDestroyView() {

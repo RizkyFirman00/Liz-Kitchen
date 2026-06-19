@@ -9,8 +9,10 @@ import com.bumptech.glide.Glide
 import com.dissy.lizkitchen.databinding.RvOrderDetailBinding
 import com.dissy.lizkitchen.model.Cart
 import com.dissy.lizkitchen.utility.displayNameWithCategory
+import com.dissy.lizkitchen.utility.normalizeProductUnit
+import com.dissy.lizkitchen.utility.productPriceToLong
 
-class CartDetailUserAdapter() :
+class CartDetailUserAdapter :
     ListAdapter<Cart, CartDetailUserAdapter.CartDetailUserViewHolder>(
         DiffCallback()
     ) {
@@ -18,8 +20,12 @@ class CartDetailUserAdapter() :
         RecyclerView.ViewHolder(binding.root) {
         fun bind(cart: Cart) {
             binding.apply {
+                val unit = normalizeProductUnit(cart.cake.satuan)
+                val unitPrice = productPriceToLong(cart.cake.harga)
                 tvCakeName.text = cart.cake.displayNameWithCategory()
-                tvJumlahPesanan.text = cart.jumlahPesanan.toString()
+                tvItemPrice.text = "Rp ${formatCurrency(unitPrice)} / $unit"
+                tvJumlahPesanan.text = "${cart.jumlahPesanan} $unit"
+                tvSubtotal.text = "Subtotal Rp ${formatCurrency(unitPrice * cart.jumlahPesanan)}"
                 Glide.with(itemView.context)
                     .load(cart.cake.imageUrl)
                     .into(ivImageCake)
@@ -46,11 +52,21 @@ class CartDetailUserAdapter() :
 
     private class DiffCallback : DiffUtil.ItemCallback<Cart>() {
         override fun areItemsTheSame(oldItem: Cart, newItem: Cart): Boolean {
-            return oldItem.cake.namaKue == newItem.cake.namaKue
+            return oldItem.cakeId == newItem.cakeId && oldItem.cake.kategori == newItem.cake.kategori
         }
 
         override fun areContentsTheSame(oldItem: Cart, newItem: Cart): Boolean {
             return oldItem == newItem
         }
+    }
+
+    private fun formatCurrency(value: Long): String {
+        val formatted = StringBuilder(value.toString())
+        var index = formatted.length - 3
+        while (index > 0) {
+            formatted.insert(index, ".")
+            index -= 3
+        }
+        return formatted.toString()
     }
 }

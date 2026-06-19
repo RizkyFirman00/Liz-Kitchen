@@ -2,6 +2,7 @@ package com.dissy.lizkitchen.ui.home
 
 import android.os.Bundle
 import android.view.View
+import android.view.ViewTreeObserver
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.core.content.ContextCompat
@@ -15,6 +16,7 @@ import com.dissy.lizkitchen.ui.base.BaseActivity
 
 class MainActivity : BaseActivity() {
     private val binding by lazy { ActivityMainBinding.inflate(layoutInflater) }
+    private var pendingBottomNavShow: Runnable? = null
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -27,11 +29,11 @@ class MainActivity : BaseActivity() {
         navController.addOnDestinationChangedListener { _, destination, _ ->
             when (destination.id) {
                 R.id.navigation_home, R.id.navigation_cart, R.id.navigation_history -> {
-                    binding.bottomNavigationView.visibility = android.view.View.VISIBLE
                     updateBottomNavigation(destination.id)
+                    showBottomNavigationAfterContent()
                 }
                 else -> {
-                    binding.bottomNavigationView.visibility = android.view.View.GONE
+                    hideBottomNavigation()
                 }
             }
         }
@@ -55,6 +57,61 @@ class MainActivity : BaseActivity() {
             navigateTopLevel(navController, R.id.navigation_history)
         }
         updateBottomNavigation(navController.currentDestination?.id ?: R.id.navigation_home)
+    }
+
+    private fun showBottomNavigationAfterContent() {
+        removePendingBottomNavShow()
+
+        val shouldAnimate = binding.bottomNavigationView.visibility != View.VISIBLE ||
+            binding.bottomNavigationView.alpha < 1f
+
+        binding.bottomNavigationView.animate().cancel()
+        binding.bottomNavigationView.visibility = View.VISIBLE
+
+        if (!shouldAnimate) {
+            binding.bottomNavigationView.alpha = 1f
+            binding.bottomNavigationView.translationY = 0f
+            return
+        }
+
+        binding.bottomNavigationView.alpha = 0f
+        binding.bottomNavigationView.translationY = resources.getDimensionPixelSize(R.dimen.bottom_nav_height) * 0.25f
+
+        val showAction = Runnable {
+            pendingBottomNavShow = null
+            binding.bottomNavigationView.animate()
+                .alpha(1f)
+                .translationY(0f)
+                .setDuration(BOTTOM_NAV_ANIMATION_DURATION_MS)
+                .start()
+        }
+        pendingBottomNavShow = showAction
+
+        val navHost = binding.navHostFragment
+        navHost.viewTreeObserver.addOnPreDrawListener(object : ViewTreeObserver.OnPreDrawListener {
+            override fun onPreDraw(): Boolean {
+                if (navHost.viewTreeObserver.isAlive) {
+                    navHost.viewTreeObserver.removeOnPreDrawListener(this)
+                }
+                if (pendingBottomNavShow === showAction) {
+                    binding.bottomNavigationView.postDelayed(showAction, BOTTOM_NAV_SHOW_DELAY_MS)
+                }
+                return true
+            }
+        })
+    }
+
+    private fun hideBottomNavigation() {
+        removePendingBottomNavShow()
+        binding.bottomNavigationView.animate().cancel()
+        binding.bottomNavigationView.alpha = 0f
+        binding.bottomNavigationView.translationY = resources.getDimensionPixelSize(R.dimen.bottom_nav_height) * 0.25f
+        binding.bottomNavigationView.visibility = View.GONE
+    }
+
+    private fun removePendingBottomNavShow() {
+        pendingBottomNavShow?.let { binding.bottomNavigationView.removeCallbacks(it) }
+        pendingBottomNavShow = null
     }
 
     private fun navigateTopLevel(navController: NavController, destinationId: Int) {
@@ -112,5 +169,7 @@ class MainActivity : BaseActivity() {
     companion object {
         const val EXTRA_FRAGMENT_TO_LOAD = "fragment_to_load"
         const val FRAGMENT_CART = "cart"
+        private const val BOTTOM_NAV_SHOW_DELAY_MS = 48L
+        private const val BOTTOM_NAV_ANIMATION_DURATION_MS = 140L
     }
 }

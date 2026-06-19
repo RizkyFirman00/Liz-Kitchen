@@ -3,10 +3,15 @@ package com.dissy.lizkitchen.ui.register
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
+import android.view.MotionEvent
 import android.widget.Toast
+import androidx.activity.OnBackPressedCallback
 import com.dissy.lizkitchen.databinding.ActivityRegisterBinding
 import com.dissy.lizkitchen.ui.base.BaseActivity
 import com.dissy.lizkitchen.ui.login.LoginActivity
+import com.dissy.lizkitchen.utility.hideKeyboardWhenTouchOutsideInput
+import com.dissy.lizkitchen.utility.setFirebaseRequestLoading
+import com.dissy.lizkitchen.utility.setupPasswordVisibilityToggle
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 
@@ -17,12 +22,16 @@ class RegisterActivity : BaseActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
+        binding.etPassword.setupPasswordVisibilityToggle()
+
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                navigateToLogin()
+            }
+        })
 
         binding.btnTologin.setOnClickListener {
-            Intent(this, LoginActivity::class.java).also {
-                startActivity(it)
-                finish()
-            }
+            navigateToLogin()
         }
 
         binding.btnRegister.setOnClickListener {
@@ -38,6 +47,11 @@ class RegisterActivity : BaseActivity() {
                 registerUser(email, phoneNumber, username, password, alamat)
             }
         }
+    }
+
+    override fun dispatchTouchEvent(event: MotionEvent): Boolean {
+        hideKeyboardWhenTouchOutsideInput(event)
+        return super.dispatchTouchEvent(event)
     }
 
     private fun registerUser(
@@ -71,10 +85,7 @@ class RegisterActivity : BaseActivity() {
                         .addOnSuccessListener {
                             unLoadingProgress()
                             Toast.makeText(this, "Registrasi berhasil", Toast.LENGTH_SHORT).show()
-                            Intent(this, LoginActivity::class.java).also {
-                                startActivity(it)
-                                finish()
-                            }
+                            navigateToLogin()
                         }
                         .addOnFailureListener { e ->
                             unLoadingProgress()
@@ -92,25 +103,28 @@ class RegisterActivity : BaseActivity() {
 
     private fun loadingProgress() {
         binding.apply {
-            progressBar2.visibility = android.view.View.VISIBLE
+            root.setFirebaseRequestLoading(true, progressBar2)
             etEmail.isEnabled = false
             etNotelp.isEnabled = false
             etUsername.isEnabled = false
             etPassword.isEnabled = false
-            btnRegister.isEnabled = false
-            btnTologin.isEnabled = false
         }
     }
 
     private fun unLoadingProgress() {
         binding.apply {
-            progressBar2.visibility = android.view.View.GONE
+            root.setFirebaseRequestLoading(false, progressBar2)
             etEmail.isEnabled = true
             etNotelp.isEnabled = true
             etUsername.isEnabled = true
             etPassword.isEnabled = true
-            btnRegister.isEnabled = true
-            btnTologin.isEnabled = true
+        }
+    }
+
+    private fun navigateToLogin() {
+        Intent(this, LoginActivity::class.java).also {
+            startActivity(it)
+            finish()
         }
     }
 }

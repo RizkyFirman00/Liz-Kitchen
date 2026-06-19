@@ -22,6 +22,7 @@ import com.dissy.lizkitchen.utility.cakeFromMap
 import com.dissy.lizkitchen.utility.cartDocumentId
 import com.dissy.lizkitchen.utility.displayUnit
 import com.dissy.lizkitchen.utility.productPriceToLong
+import com.dissy.lizkitchen.utility.setFirebaseRequestLoading
 import com.google.android.material.chip.Chip
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
@@ -54,25 +55,30 @@ class CakeDetailUserFragment : Fragment() {
         val cakeId = arguments?.getString("cakeId")
 
         if (cakeId != null) {
-            binding.progressBar2.visibility = View.VISIBLE
+            setRequestLoading(true)
             db.collection("cakes")
                 .document(cakeId)
                 .addSnapshotListener { snapshot, error ->
                     if (error != null) {
+                        setRequestLoading(false)
                         Log.w("Firestore", "Listen failed.", error)
                         return@addSnapshotListener
                     }
                     if (_binding != null && snapshot != null && snapshot.exists()) {
-                        binding.progressBar2.visibility = View.GONE
+                        setRequestLoading(false)
                         val cake = cakeFromMap(snapshot.id, snapshot.data ?: emptyMap<String, Any>())
                         cakeIdDb = cake.documentId
                         namaKueDb = cake.namaKue
                         imageUrlDb = cake.imageUrl
                         binding.apply {
                             tvCakeName.text = cake.namaKue
+                            tvProductSummary.text = buildProductSummary(cake)
+                            tvVariantBadge.text = "${cake.availableCategories().size} varian"
                             tvJumlahPesanan.text = jumlahPesanan.toString()
                             Glide.with(this@CakeDetailUserFragment)
                                 .load(cake.imageUrl)
+                                .placeholder(R.drawable.null_image)
+                                .error(R.drawable.null_image)
                                 .into(ivImageBanner)
                         }
                         setupVariantPicker(cake)
@@ -96,19 +102,16 @@ class CakeDetailUserFragment : Fragment() {
 
         binding.btnAddCart.setOnClickListener {
             if (userId == null) return@setOnClickListener
-            binding.progressBar2.visibility = View.VISIBLE
-            binding.btnAddCart.isEnabled = false
+            setRequestLoading(true)
 
             if (jumlahPesanan <= 0) {
-                binding.progressBar2.visibility = View.GONE
-                binding.btnAddCart.isEnabled = true
+                setRequestLoading(false)
                 Toast.makeText(requireContext(), "Jumlah pesanan belum dipilih", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
 
             if (jumlahPesanan > stok) {
-                binding.progressBar2.visibility = View.GONE
-                binding.btnAddCart.isEnabled = true
+                setRequestLoading(false)
                 Toast.makeText(requireContext(), "Stok tidak mencukupi, Stok = $stok", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
@@ -120,14 +123,16 @@ class CakeDetailUserFragment : Fragment() {
                     val existingQuantity = documentSnapshot.getLong("jumlahPesanan") ?: 0
                     val newQuantity = existingQuantity + jumlahPesanan
                     if (newQuantity > stok) {
-                        binding.progressBar2.visibility = View.GONE
-                        binding.btnAddCart.isEnabled = true
+                        setRequestLoading(false)
                         Toast.makeText(requireContext(), "Stok tidak mencukupi, Stok = $stok", Toast.LENGTH_SHORT).show()
                         return@addOnSuccessListener
                     }
                     cartRef.update("jumlahPesanan", newQuantity)
                         .addOnSuccessListener {
                             onSuccessAddCart()
+                        }
+                        .addOnFailureListener { exception ->
+                            onFailedAddCart(exception.message)
                         }
                 } else {
                     cartRef.set(
@@ -146,8 +151,12 @@ class CakeDetailUserFragment : Fragment() {
                         )
                     ).addOnSuccessListener {
                         onSuccessAddCart()
+                    }.addOnFailureListener { exception ->
+                        onFailedAddCart(exception.message)
                     }
                 }
+            }.addOnFailureListener { exception ->
+                onFailedAddCart(exception.message)
             }
         }
     }
@@ -191,11 +200,15 @@ class CakeDetailUserFragment : Fragment() {
     private fun updateSelectedCategory() {
         hargaPerSatuan = productPriceToLong(selectedCategory.harga)
         stok = selectedCategory.stok.toInt()
-        val displayUnit = selectedCategory.displayUnit()
+        val displayUnit = selectedCategory.satuan.ifBlank { selectedCategory.displayUnit() }
         binding.tvPriceCake.text = selectedCategory.harga
-        binding.tvUnitCake.text = "/$displayUnit"
-        binding.tvUnitTotal.text = " /$displayUnit"
-        binding.tvVariantInfo.text = "Stok $stok | Rp. ${selectedCategory.harga} /$displayUnit"
+        binding.tvUnitCake.text = " / $displayUnit"
+        binding.tvUnitTotal.text = " / $displayUnit"
+        binding.tvStockBadge.text = if (stok > 0) "Stok $stok $displayUnit" else "Stok habis"
+        binding.tvStockBadge.setTextColor(
+            ContextCompat.getColor(requireContext(), if (stok > 0) R.color.green else R.color.red)
+        )
+        binding.tvVariantInfo.text = "Stok $stok $displayUnit | Rp ${selectedCategory.harga} / $displayUnit"
         if (stok <= 0) {
             jumlahPesanan = 0
         } else if (jumlahPesanan > stok) {
@@ -206,12 +219,28 @@ class CakeDetailUserFragment : Fragment() {
         updateQuantityAndPrice()
     }
 
+    private fun buildProductSummary(cake: Cake): String {
+        val categories = cake.availableCategories()
+        val totalStock = categories.sumOf { it.stok }
+        return "${categories.size} varian tersedia | total stok $totalStock"
+    }
+
     private fun onSuccessAddCart() {
         if (_binding == null) return
-        binding.progressBar2.visibility = View.GONE
-        binding.btnAddCart.isEnabled = true
+        setRequestLoading(false)
         Toast.makeText(requireContext(), "Berhasil menambahkan ke keranjang", Toast.LENGTH_SHORT).show()
         findNavController().navigateUp()
+    }
+
+    private fun onFailedAddCart(message: String?) {
+        if (_binding == null) return
+        setRequestLoading(false)
+        Toast.makeText(requireContext(), "Gagal menambahkan ke keranjang: ${message.orEmpty()}", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun setRequestLoading(isLoading: Boolean) {
+        if (_binding == null) return
+        binding.root.setFirebaseRequestLoading(isLoading, binding.progressBar2)
     }
 
     private fun increaseQuantity() {
@@ -234,6 +263,13 @@ class CakeDetailUserFragment : Fragment() {
         binding.tvJumlahPesanan.text = jumlahPesanan.toString()
         val totalHarga = hargaPerSatuan * jumlahPesanan
         binding.tvPriceSum.text = formatAndDisplayCurrency(totalHarga.toString())
+        val isAvailable = stok > 0
+
+        binding.btnAddCart.isEnabled = isAvailable
+        binding.btnAddCart.alpha = if (isAvailable) 1f else 0.55f
+        binding.btnAddCart.text = if (isAvailable) "Tambah ke Keranjang" else "Stok Habis"
+        binding.btnMinus.alpha = if (jumlahPesanan > 1) 1f else 0.45f
+        binding.btnPlus.alpha = if (isAvailable && jumlahPesanan < stok) 1f else 0.45f
     }
 
     private fun formatAndDisplayCurrency(value: String): String {

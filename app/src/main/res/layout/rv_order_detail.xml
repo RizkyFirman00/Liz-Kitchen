@@ -1,62 +1,78 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginBottom="5dp"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:layout_gravity="center"
-    android:orientation="horizontal">
+    android:layout_marginBottom="8dp"
+    android:background="@drawable/bg_order_panel"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:padding="10dp">
 
-    <androidx.cardview.widget.CardView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        app:cardCornerRadius="20dp">
+    <com.google.android.material.card.MaterialCardView
+        android:layout_width="58dp"
+        android:layout_height="58dp"
+        app:cardCornerRadius="8dp"
+        app:cardElevation="0dp">
 
         <androidx.appcompat.widget.AppCompatImageView
             android:id="@+id/iv_imageCake"
-            android:layout_width="50dp"
-            android:layout_height="50dp"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="centerCrop"
             tools:src="@tools:sample/avatars" />
-    </androidx.cardview.widget.CardView>
+    </com.google.android.material.card.MaterialCardView>
 
     <LinearLayout
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="10dp"
+        android:layout_weight="1"
         android:orientation="vertical">
 
         <TextView
             android:id="@+id/tv_cakeName"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:ellipsize="end"
             android:fontFamily="@font/poppins_semibold"
-            android:text="Nastar"
-            android:textSize="14sp" />
+            android:maxLines="1"
+            android:textColor="#3A2A20"
+            android:textSize="13sp"
+            tools:text="Kue Nastar - Original" />
 
-        <LinearLayout
+        <TextView
+            android:id="@+id/tv_itemPrice"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal">
+            android:layout_marginTop="2dp"
+            android:fontFamily="@font/poppins_regular"
+            android:textColor="#765945"
+            android:textSize="11sp"
+            tools:text="Rp 55.000 / pcs" />
 
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:fontFamily="@font/poppins_regular"
-                android:text="Jumlah Pesanan"
-                android:textSize="12sp" />
-
-            <TextView
-                android:id="@+id/tv_jumlahPesanan"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:textAlignment="textEnd"
-                android:layout_weight="1"
-                android:fontFamily="@font/poppins_semibold"
-                android:text="5"
-                android:textSize="14sp" />
-        </LinearLayout>
+        <TextView
+            android:id="@+id/tv_subtotal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:fontFamily="@font/poppins_semibold"
+            android:textColor="@color/brown_old"
+            android:textSize="12sp"
+            tools:text="Subtotal Rp 110.000" />
     </LinearLayout>
 
+    <TextView
+        android:id="@+id/tv_jumlahPesanan"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="10dp"
+        android:background="@drawable/bg_home_badge"
+        android:fontFamily="@font/poppins_semibold"
+        android:paddingHorizontal="10dp"
+        android:paddingVertical="6dp"
+        android:textColor="@color/brown_old"
+        android:textSize="12sp"
+        tools:text="2 pcs" />
 </LinearLayout>

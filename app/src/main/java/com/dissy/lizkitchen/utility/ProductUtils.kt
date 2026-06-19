@@ -67,8 +67,10 @@ fun ProductCategory.displayUnit(): String {
 }
 
 fun ProductCategory.toFirestoreMap(): Map<String, Any> {
+    val variantName = namaKategori.ifBlank { "Default" }
     return mapOf(
-        "namaKategori" to namaKategori.ifBlank { "Default" },
+        "namaVarian" to variantName,
+        "namaKategori" to variantName,
         "harga" to harga,
         "stok" to stok,
         "satuan" to normalizeProductUnit(satuan)
@@ -77,7 +79,8 @@ fun ProductCategory.toFirestoreMap(): Map<String, Any> {
 
 fun productCategoryFromMap(map: Map<*, *>): ProductCategory {
     return ProductCategory(
-        namaKategori = map["namaKategori"]?.toString().orEmpty().ifBlank { "Default" },
+        namaKategori = map["namaVarian"]?.toString()
+            ?: map["namaKategori"]?.toString().orEmpty().ifBlank { "Default" },
         harga = formatProductPrice(map["harga"]?.toString().orEmpty()),
         stok = (map["stok"] as? Number)?.toLong() ?: map["stok"]?.toString()?.toLongOrNull() ?: 0,
         satuan = normalizeProductUnit(map["satuan"]?.toString())
@@ -109,20 +112,10 @@ fun cakeFromMap(documentId: String, map: Map<*, *>): Cake {
     )
 }
 
-fun parseProductCategoryInput(
-    value: String,
-    fallbackPrice: String,
-    fallbackStock: Long,
-    fallbackUnit: String
-): List<ProductCategory> {
-    val defaultCategory = ProductCategory(
-        namaKategori = "Default",
-        harga = formatProductPrice(fallbackPrice),
-        stok = fallbackStock,
-        satuan = normalizeProductUnit(fallbackUnit)
-    )
-
-    if (value.isBlank()) return listOf(defaultCategory)
+fun parseProductCategoryInput(value: String): List<ProductCategory> {
+    if (value.isBlank()) {
+        throw IllegalArgumentException("Minimal isi 1 varian produk")
+    }
 
     return value.lines()
         .map { it.trim() }
@@ -130,12 +123,12 @@ fun parseProductCategoryInput(
         .mapIndexed { index, line ->
             val parts = line.split("|").map { it.trim() }
             val name = parts.getOrNull(0).orEmpty()
-            val price = formatProductPrice(parts.getOrNull(1).orEmpty().ifBlank { fallbackPrice })
-            val stock = parts.getOrNull(2)?.toLongOrNull() ?: fallbackStock
-            val unit = normalizeProductUnit(parts.getOrNull(3).orEmpty().ifBlank { fallbackUnit })
+            val stock = parts.getOrNull(1)?.toLongOrNull()
+            val unit = normalizeProductUnit(parts.getOrNull(2))
+            val price = formatProductPrice(parts.getOrNull(3).orEmpty())
 
-            if (name.isBlank() || price.isBlank()) {
-                throw IllegalArgumentException("Format kategori baris ${index + 1} belum lengkap")
+            if (name.isBlank() || stock == null || price.isBlank()) {
+                throw IllegalArgumentException("Format varian baris ${index + 1} belum lengkap")
             }
 
             ProductCategory(name, price, stock, unit)
@@ -144,7 +137,7 @@ fun parseProductCategoryInput(
 
 fun productCategoriesToInput(categories: List<ProductCategory>): String {
     return categories.joinToString("\n") { category ->
-        "${category.namaKategori} | ${category.harga} | ${category.stok} | ${normalizeProductUnit(category.satuan)}"
+        "${category.namaKategori} | ${category.stok} | ${normalizeProductUnit(category.satuan)} | ${category.harga}"
     }
 }
 

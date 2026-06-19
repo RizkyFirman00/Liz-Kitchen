@@ -3,7 +3,8 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="#FFF9F5">
 
     <com.google.android.material.appbar.AppBarLayout
         android:id="@+id/topAppBar2"
@@ -19,153 +20,229 @@
         <com.google.android.material.appbar.MaterialToolbar
             android:id="@+id/topAppBar"
             android:layout_width="match_parent"
-            android:layout_height="?attr/actionBarSize"
+            android:layout_height="64dp"
             android:background="@color/brown_old"
             app:menu="@menu/top_app_bar_menu">
 
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical">
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
 
                 <ImageView
-                    android:layout_width="40dp"
-                    android:layout_height="40dp"
+                    android:layout_width="38dp"
+                    android:layout_height="38dp"
+                    android:background="@drawable/bg_toolbar_logo"
+                    android:contentDescription="@null"
+                    android:padding="5dp"
                     android:src="@drawable/logo" />
 
                 <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="10dp"
+                    android:layout_marginStart="9dp"
                     android:orientation="vertical">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:fontFamily="@font/poppins_light"
-                        android:text="Liz"
+                        android:fontFamily="@font/poppins_bold"
+                        android:includeFontPadding="false"
+                        android:text="Keranjang"
                         android:textColor="@color/white"
-                        android:textSize="12sp" />
+                        android:textSize="15sp" />
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:fontFamily="@font/poppins_bold"
-                        android:text="Kitchen"
-                        android:textColor="@color/white"
-                        android:textSize="16sp"
-                        android:layout_marginTop="-4dp"/>
+                        android:layout_marginTop="1dp"
+                        android:fontFamily="@font/poppins_regular"
+                        android:includeFontPadding="false"
+                        android:text="Cek ulang pesananmu"
+                        android:textColor="#F7E6DA"
+                        android:textSize="11sp" />
                 </LinearLayout>
             </LinearLayout>
-
         </com.google.android.material.appbar.MaterialToolbar>
     </com.google.android.material.appbar.AppBarLayout>
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rvCart"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:paddingTop="10dp"
-        app:layout_constraintBottom_toTopOf="@+id/linearLayout1"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/topAppBar2"
-        tools:listitem="@layout/rv_cart" />
-
     <LinearLayout
-        android:id="@+id/emptyCart"
-        android:layout_width="match_parent"
+        android:id="@+id/cartHeader"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:layout_marginHorizontal="20dp"
+        android:layout_marginTop="20dp"
+        android:background="@drawable/bg_cart_panel"
         android:orientation="vertical"
-        android:visibility="gone"
-        app:layout_constraintBottom_toBottomOf="parent"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="14dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/topAppBar2">
 
         <TextView
+            android:id="@+id/tvCartTitle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:fontFamily="@font/poppins_black"
-            android:text="KERANJANG"
-            android:textAlignment="center"
-            android:textColor="@color/brown_old"
-            android:textSize="40sp" />
+            android:fontFamily="@font/poppins_bold"
+            android:text="Keranjang"
+            android:textColor="#3A2A20"
+            android:textSize="20sp" />
+
+        <TextView
+            android:id="@+id/tvCartSummary"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:fontFamily="@font/poppins_regular"
+            android:textColor="#765945"
+            android:textSize="13sp"
+            tools:text="2 jenis produk | 4 item siap checkout" />
+    </LinearLayout>
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvCart"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:clipToPadding="false"
+        android:paddingHorizontal="20dp"
+        android:paddingTop="14dp"
+        android:paddingBottom="20dp"
+        app:layout_constraintBottom_toTopOf="@+id/linearLayout1"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/cartHeader"
+        tools:listitem="@layout/rv_cart" />
+
+    <LinearLayout
+        android:id="@+id/emptyCart"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="28dp"
+        android:background="@drawable/bg_cart_card"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:paddingHorizontal="24dp"
+        android:paddingVertical="28dp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/cartHeader">
+
+        <ImageView
+            android:layout_width="72dp"
+            android:layout_height="72dp"
+            android:contentDescription="@null"
+            android:src="@drawable/cart_filled" />
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:fontFamily="@font/poppins_black"
-            android:text="KOSONG"
+            android:layout_marginTop="14dp"
+            android:fontFamily="@font/poppins_bold"
+            android:text="Keranjang masih kosong"
             android:textAlignment="center"
             android:textColor="@color/brown_old"
-            android:textSize="40sp" />
+            android:textSize="22sp" />
 
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:fontFamily="@font/poppins_regular"
+            android:text="Tambahkan kue favoritmu dulu sebelum checkout."
+            android:textAlignment="center"
+            android:textColor="#765945"
+            android:textSize="13sp" />
     </LinearLayout>
 
     <LinearLayout
         android:id="@+id/linearLayout1"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:background="@color/white"
         android:elevation="8dp"
         android:orientation="vertical"
+        android:paddingHorizontal="20dp"
+        android:paddingTop="14dp"
+        android:paddingBottom="18dp"
         android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent">
 
-        <RelativeLayout
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:paddingHorizontal="20dp"
-            android:paddingTop="20dp">
+            android:background="@drawable/bg_cart_subtotal"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="14dp"
+            android:paddingVertical="12dp">
 
-            <TextView
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_alignParentStart="true"
-                android:fontFamily="@font/poppins_semibold"
-                android:text="Total Harga"
-                android:textSize="15sp" />
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/poppins_semibold"
+                    android:text="Total Belanja"
+                    android:textColor="#3A2A20"
+                    android:textSize="14sp" />
+
+                <TextView
+                    android:id="@+id/tvCheckoutSummary"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="1dp"
+                    android:fontFamily="@font/poppins_regular"
+                    android:textColor="#765945"
+                    android:textSize="12sp"
+                    tools:text="2 jenis produk | 4 item" />
+            </LinearLayout>
 
             <LinearLayout
                 android:id="@+id/price"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_alignParentEnd="true"
+                android:gravity="end"
                 android:orientation="horizontal">
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:fontFamily="@font/poppins_semibold"
-                    android:text="Rp. "
-                    android:textSize="15sp" />
+                    android:fontFamily="@font/poppins_bold"
+                    android:text="Rp "
+                    android:textColor="@color/brown_old"
+                    android:textSize="18sp" />
 
                 <TextView
                     android:id="@+id/tvPriceSum"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:fontFamily="@font/poppins_semibold"
-                    android:textSize="15sp"
+                    android:fontFamily="@font/poppins_bold"
+                    android:textColor="@color/brown_old"
+                    android:textSize="18sp"
                     tools:text="0" />
             </LinearLayout>
-
-        </RelativeLayout>
+        </LinearLayout>
 
         <androidx.appcompat.widget.AppCompatButton
             android:id="@+id/btn_checkout"
             style="@style/Button_Style_Brown"
             android:layout_width="match_parent"
-            android:layout_height="30dp"
-            android:layout_marginHorizontal="20dp"
-            android:layout_marginBottom="20dp"
+            android:layout_height="46dp"
+            android:layout_marginTop="12dp"
             android:fontFamily="@font/poppins_semibold"
             android:text="Checkout"
             android:textAllCaps="false"
             android:textSize="15sp" />
-
     </LinearLayout>
 
     <ProgressBar
@@ -173,7 +250,6 @@
         style="?android:attr/progressBarStyleLarge"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="center"
         android:indeterminate="true"
         android:indeterminateTint="@color/brown_young"
         android:indeterminateTintMode="src_atop"

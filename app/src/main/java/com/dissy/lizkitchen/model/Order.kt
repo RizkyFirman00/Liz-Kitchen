@@ -5,8 +5,13 @@ data class Order (
     val orderId: String = "",
     val status: String = "",
     val metodePengambilan: String = "",
+    val pickupBranchId: String = "",
+    val pickupBranchName: String = "",
+    val pickupBranchAddress: String = "",
     val tanggalOrder: String = "",
     val jamOrder: String = "",
+    val createdAtMillis: Long = 0,
+    val paymentDeadlineMillis: Long = 0,
     val totalPrice: Long = 0,
     val user: User = User(),
 )

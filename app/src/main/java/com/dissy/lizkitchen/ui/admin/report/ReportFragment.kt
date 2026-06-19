@@ -10,6 +10,7 @@ import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.dissy.lizkitchen.R
 import com.dissy.lizkitchen.databinding.FragmentReportBinding
+import com.dissy.lizkitchen.utility.clearFocusWhenTouchOutsideInput
 import com.google.android.material.textfield.TextInputEditText
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -29,6 +30,7 @@ class ReportFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        binding.root.clearFocusWhenTouchOutsideInput()
 
         binding.btnToHome.setOnClickListener {
             findNavController().navigateUp()
@@ -54,6 +56,8 @@ class ReportFragment : Fragment() {
 
         binding.etFromDate.setOnClickListener { showDatePickerDialog(binding.etFromDate) }
         binding.etToDate.setOnClickListener { showDatePickerDialog(binding.etToDate) }
+        binding.etLayoutFromDate.setEndIconOnClickListener { showDatePickerDialog(binding.etFromDate) }
+        binding.etLayoutToDate.setEndIconOnClickListener { showDatePickerDialog(binding.etToDate) }
     }
 
     private fun showDatePickerDialog(editText: TextInputEditText) {

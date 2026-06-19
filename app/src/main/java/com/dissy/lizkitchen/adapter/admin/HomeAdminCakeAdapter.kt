@@ -10,6 +10,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.dissy.lizkitchen.databinding.RvCakeBinding
 import com.dissy.lizkitchen.model.Cake
+import com.dissy.lizkitchen.utility.availableCategories
 import com.dissy.lizkitchen.utility.displayUnit
 import com.dissy.lizkitchen.utility.primaryCategory
 import java.util.Locale
@@ -50,12 +51,15 @@ class HomeAdminCakeAdapter(private val onItemClick: (String) -> Unit) :
     ) : RecyclerView.ViewHolder(binding.root) {
 
         fun bind(cake: Cake, onItemClick: (String) -> Unit) {
+            val categories = cake.availableCategories()
             val primaryCategory = cake.primaryCategory()
             binding.apply {
                 tvCakeName.text = cake.namaKue
-                tvPrice.text = primaryCategory.harga
-                tvUnit.text = "/${primaryCategory.displayUnit()}"
-                tvStok.text = primaryCategory.stok.toString()
+                tvVariantCount.text = "${categories.size} Varian"
+                tvVariantSummary.text = categories.joinToString { it.namaKategori }
+                tvPrice.text = "Rp ${primaryCategory.harga}"
+                tvUnit.text = "per ${primaryCategory.satuan.ifBlank { primaryCategory.displayUnit() }}"
+                tvStok.text = "Stok ${categories.sumOf { it.stok }} item"
                 Glide.with(itemView.context)
                     .load(cake.imageUrl)
                     .into(ivCakeBanner)
@@ -88,8 +92,13 @@ class HomeAdminCakeAdapter(private val onItemClick: (String) -> Unit) :
                     originalCakeList
                 } else {
                     originalCakeList.filter { cake ->
+                        val variantMatches = cake.availableCategories().any { category ->
+                            category.namaKategori.lowercase().contains(filterPattern) ||
+                                    category.satuan.lowercase().contains(filterPattern)
+                        }
                         cake.namaKue.lowercase().contains(filterPattern) ||
-                                cake.documentId.lowercase().contains(filterPattern)
+                                cake.documentId.lowercase().contains(filterPattern) ||
+                                variantMatches
                     }
                 }
 

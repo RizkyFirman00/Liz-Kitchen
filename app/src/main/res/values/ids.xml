@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="tag_button_previous_enabled_state" type="id" />
+    <item name="tag_button_previous_alpha" type="id" />
+</resources>

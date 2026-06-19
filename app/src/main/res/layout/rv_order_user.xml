@@ -1,136 +1,191 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginBottom="20dp"
-    app:cardCornerRadius="20dp">
+    android:layout_marginBottom="12dp"
+    android:clickable="true"
+    android:focusable="true"
+    android:foreground="?attr/selectableItemBackground"
+    app:cardBackgroundColor="@color/white"
+    app:cardCornerRadius="8dp"
+    app:cardElevation="2dp"
+    app:strokeColor="#EED8C8"
+    app:strokeWidth="1dp">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:paddingHorizontal="15dp"
-        android:paddingVertical="10dp">
+        android:padding="14dp">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:gravity="center_vertical"
             android:orientation="horizontal">
 
-            <TextView
-                android:id="@+id/tv_metodePengambilan"
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:fontFamily="@font/poppins_regular"
-                android:text="Metode Pengambilan"
-                android:textSize="15sp" />
+                android:orientation="vertical">
 
-            <TextView
-                android:id="@+id/tv_tanggalOrder"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:fontFamily="@font/poppins_regular"
-                android:text="20 Des 2023"
-                android:textAlignment="textEnd"
-                android:textSize="15sp" />
+                <TextView
+                    android:id="@+id/tv_tanggalOrder"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/poppins_semibold"
+                    android:textColor="#3A2A20"
+                    android:textSize="14sp"
+                    tools:text="20 Des 2023" />
 
-        </LinearLayout>
-
-        <FrameLayout
-            android:id="@+id/frameLayout3"
-            android:layout_width="match_parent"
-            android:layout_height="4dp"
-            android:layout_marginVertical="5dp"
-            android:background="@drawable/shape_button_gray_rec"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/ll_alamat" />
-
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/rvOrderCakeUser"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            tools:listitem="@layout/rv_order_cake_user" />
-
-        <FrameLayout
-            android:id="@+id/frameLayout4"
-            android:layout_width="match_parent"
-            android:layout_height="4dp"
-            android:layout_marginVertical="5dp"
-            android:background="@drawable/shape_button_gray_rec"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/ll_alamat" />
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:fontFamily="@font/poppins_regular"
-                android:text="Status Pesanan"
-                android:textSize="15sp" />
+                <TextView
+                    android:id="@+id/tv_orderId"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="1dp"
+                    android:fontFamily="@font/poppins_regular"
+                    android:textColor="#8B6A55"
+                    android:textSize="11sp"
+                    tools:text="ORDER-1701361239593" />
+            </LinearLayout>
 
             <TextView
                 android:id="@+id/tvStatusPesanan"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:fontFamily="@font/poppins_regular"
-                android:text="Menunggu Pembayaran"
-                android:textAlignment="textEnd"
-                android:textSize="15sp" />
+                android:fontFamily="@font/poppins_semibold"
+                android:includeFontPadding="false"
+                android:maxLines="1"
+                android:paddingHorizontal="10dp"
+                android:paddingVertical="6dp"
+                android:textSize="11sp"
+                tools:text="Sedang Diproses" />
+        </LinearLayout>
 
+        <TextView
+            android:id="@+id/tv_itemSummary"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:fontFamily="@font/poppins_semibold"
+            android:textColor="#3A2A20"
+            android:textSize="13sp"
+            tools:text="2 jenis produk | 4 item" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvOrderCakeUser"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:nestedScrollingEnabled="false"
+            tools:itemCount="2"
+            tools:listitem="@layout/rv_order_cake_user" />
+
+        <TextView
+            android:id="@+id/tv_moreItems"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:fontFamily="@font/poppins_regular"
+            android:textColor="@color/brown_old"
+            android:textSize="12sp"
+            android:visibility="gone"
+            tools:text="+2 produk lainnya"
+            tools:visibility="visible" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginVertical="12dp"
+            android:background="@drawable/bg_order_divider" />
+
+        <LinearLayout
+            android:id="@+id/orderMeta"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_order_panel"
+            android:orientation="vertical"
+            android:paddingHorizontal="12dp"
+            android:paddingVertical="10dp">
+
+            <TextView
+                android:id="@+id/tv_metodePengambilan"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fontFamily="@font/poppins_semibold"
+                android:textColor="@color/brown_old"
+                android:textSize="13sp"
+                tools:text="Pesan Antar" />
+
+            <TextView
+                android:id="@+id/tv_orderAddress"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:ellipsize="end"
+                android:fontFamily="@font/poppins_regular"
+                android:maxLines="2"
+                android:textColor="#765945"
+                android:textSize="12sp"
+                tools:text="Jl. Kebon Sirih Barat I No.24, Menteng" />
         </LinearLayout>
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:gravity="center_vertical"
             android:orientation="horizontal">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:fontFamily="@font/poppins_regular"
-                android:text="Total Harga"
-                android:textSize="15sp" />
-
             <LinearLayout
-                android:layout_width="match_parent"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:gravity="end"
-                android:orientation="horizontal">
+                android:orientation="vertical">
 
                 <TextView
-                    android:layout_width="wrap_content"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:fontFamily="@font/poppins_semibold"
-                    android:text="Rp. "
-                    android:textAlignment="textEnd"
-                    android:textSize="15sp" />
+                    android:fontFamily="@font/poppins_regular"
+                    android:text="Total Harga"
+                    android:textColor="#765945"
+                    android:textSize="12sp" />
 
-                <TextView
-                    android:id="@+id/tvTotalHarga"
-                    android:layout_width="wrap_content"
+                <LinearLayout
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:fontFamily="@font/poppins_semibold"
-                    android:text="350.000"
-                    android:textAlignment="textEnd"
-                    android:textSize="15sp" />
+                    android:orientation="horizontal">
 
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="@font/poppins_bold"
+                        android:text="Rp "
+                        android:textColor="#3A2A20"
+                        android:textSize="16sp" />
+
+                    <TextView
+                        android:id="@+id/tvTotalHarga"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="@font/poppins_bold"
+                        android:textColor="#3A2A20"
+                        android:textSize="16sp"
+                        tools:text="350.000" />
+                </LinearLayout>
             </LinearLayout>
 
+            <TextView
+                android:id="@+id/tv_actionHint"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="@font/poppins_semibold"
+                android:text="Lihat Detail"
+                android:textColor="@color/brown_old"
+                android:textSize="13sp" />
         </LinearLayout>
-
     </LinearLayout>
-
-</androidx.cardview.widget.CardView>
+</com.google.android.material.card.MaterialCardView>

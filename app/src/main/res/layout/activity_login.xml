@@ -71,111 +71,130 @@
             android:gravity="center_horizontal"
             android:orientation="vertical"
             android:paddingStart="30dp"
-            android:paddingTop="232dp"
+            android:paddingTop="248dp"
             android:paddingEnd="30dp"
             android:paddingBottom="36dp">
 
-            <androidx.cardview.widget.CardView
+            <com.google.android.material.card.MaterialCardView
                 android:id="@+id/cv_login"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 app:cardBackgroundColor="@color/white"
-                app:cardCornerRadius="30dp"
-                app:cardElevation="10dp"
-                app:cardUseCompatPadding="true">
+                app:cardCornerRadius="8dp"
+                app:cardElevation="6dp"
+                app:cardUseCompatPadding="true"
+                app:strokeColor="#EED8C8"
+                app:strokeWidth="1dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:paddingStart="32dp"
-                    android:paddingTop="26dp"
-                    android:paddingEnd="32dp"
-                    android:paddingBottom="24dp">
+                    android:paddingStart="22dp"
+                    android:paddingTop="24dp"
+                    android:paddingEnd="22dp"
+                    android:paddingBottom="22dp">
 
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:fontFamily="@font/poppins_black"
-                        android:text="LOGIN"
+                        android:fontFamily="@font/poppins_bold"
+                        android:includeFontPadding="false"
+                        android:text="Masuk Akun"
                         android:textAlignment="center"
-                        android:textColor="@color/black"
-                        android:textSize="30sp" />
+                        android:textColor="#3A2A20"
+                        android:textSize="22sp" />
 
                     <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="34dp"
-                        android:fontFamily="@font/poppins_medium"
-                        android:text="Username"
-                        android:textColor="@color/black"
-                        android:textSize="16sp" />
-
-                    <androidx.appcompat.widget.AppCompatEditText
-                        android:id="@+id/et_username"
                         android:layout_width="match_parent"
-                        android:layout_height="50dp"
-                        android:layout_marginTop="4dp"
-                        android:background="@drawable/shape_login_input"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
                         android:fontFamily="@font/poppins_regular"
-                        android:importantForAutofill="yes"
-                        android:inputType="text"
-                        android:paddingHorizontal="14dp"
-                        android:singleLine="true"
-                        android:textColor="@color/black"
-                        android:textSize="15sp" />
+                        android:lineSpacingExtra="2dp"
+                        android:text="Lanjutkan pesanan dan cek status kue favoritmu."
+                        android:textAlignment="center"
+                        android:textColor="#765945"
+                        android:textSize="12sp" />
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="24dp"
-                        android:fontFamily="@font/poppins_medium"
+                        android:fontFamily="@font/poppins_semibold"
+                        android:text="Username"
+                        android:textColor="#3A2A20"
+                        android:textSize="13sp" />
+
+                    <androidx.appcompat.widget.AppCompatEditText
+                        android:id="@+id/et_username"
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:layout_marginTop="2dp"
+                        android:background="@drawable/bg_auth_input"
+                        android:fontFamily="@font/poppins_regular"
+                        android:hint="Masukkan username"
+                        android:importantForAutofill="yes"
+                        android:inputType="text"
+                        android:paddingHorizontal="14dp"
+                        android:singleLine="true"
+                        android:textColor="#3A2A20"
+                        android:textColorHint="#A68B78"
+                        android:textSize="14sp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:fontFamily="@font/poppins_semibold"
                         android:text="Password"
-                        android:textColor="@color/black"
-                        android:textSize="16sp" />
+                        android:textColor="#3A2A20"
+                        android:textSize="13sp" />
 
                     <androidx.appcompat.widget.AppCompatEditText
                         android:id="@+id/et_password"
                         android:layout_width="match_parent"
-                        android:layout_height="50dp"
-                        android:layout_marginTop="4dp"
-                        android:background="@drawable/shape_login_input"
+                        android:layout_height="48dp"
+                        android:layout_marginTop="2dp"
+                        android:background="@drawable/bg_auth_input"
                         android:fontFamily="@font/poppins_regular"
+                        android:hint="Masukkan password"
                         android:importantForAutofill="yes"
                         android:inputType="textPassword"
                         android:paddingHorizontal="14dp"
                         android:singleLine="true"
-                        android:textColor="@color/black"
-                        android:textSize="15sp" />
+                        android:textColor="#3A2A20"
+                        android:textColorHint="#A68B78"
+                        android:textSize="14sp" />
 
                     <androidx.appcompat.widget.AppCompatButton
                         android:id="@+id/btn_login"
-                        style="@style/Button_Style_Brown"
                         android:layout_width="match_parent"
                         android:layout_height="50dp"
-                        android:layout_marginHorizontal="38dp"
-                        android:layout_marginTop="56dp"
+                        android:layout_marginTop="24dp"
+                        android:background="@drawable/bg_auth_primary_button"
                         android:fontFamily="@font/poppins_bold"
-                        android:text="Submit"
+                        android:text="Masuk"
                         android:textAllCaps="false"
                         android:textColor="@color/white"
-                        android:textSize="16sp" />
+                        android:textSize="15sp" />
 
                     <TextView
                         android:id="@+id/btn_toregister"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="10dp"
+                        android:layout_marginTop="14dp"
                         android:clickable="true"
                         android:focusable="true"
-                        android:fontFamily="@font/poppins_light"
-                        android:text="Belum punya akun ?"
+                        android:fontFamily="@font/poppins_semibold"
+                        android:minHeight="32dp"
+                        android:gravity="center"
+                        android:text="Belum punya akun? Daftar sekarang"
                         android:textAlignment="center"
-                        android:textColor="#757575"
-                        android:textSize="14sp" />
+                        android:textColor="@color/brown_old"
+                        android:textSize="12sp" />
 
                 </LinearLayout>
-            </androidx.cardview.widget.CardView>
+            </com.google.android.material.card.MaterialCardView>
         </LinearLayout>
     </ScrollView>
 

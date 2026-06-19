@@ -5,9 +5,12 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import com.bumptech.glide.Glide
+import com.dissy.lizkitchen.R
 import com.dissy.lizkitchen.databinding.RvOrderCakeUserBinding
 import com.dissy.lizkitchen.model.Cart
 import com.dissy.lizkitchen.utility.displayNameWithCategory
+import com.dissy.lizkitchen.utility.normalizeProductUnit
 
 class HomeOrderUserCakeAdapter : ListAdapter<Cart, HomeOrderUserCakeAdapter.HomeOrderUserCakeViewHolder>(
     DiffCallback()
@@ -19,8 +22,15 @@ class HomeOrderUserCakeAdapter : ListAdapter<Cart, HomeOrderUserCakeAdapter.Home
 
             fun bind(cart: Cart) {
                 binding.apply {
+                    val unit = normalizeProductUnit(cart.cake.satuan)
                     tvCakeName.text = cart.cake.displayNameWithCategory()
-                    tvJumlahPesanan.text = cart.jumlahPesanan.toString()
+                    tvItemPrice.text = "Rp ${formatCurrency(cart.cake.harga)} / $unit"
+                    tvJumlahPesanan.text = "x${cart.jumlahPesanan}"
+                    Glide.with(itemView.context)
+                        .load(cart.cake.imageUrl)
+                        .placeholder(R.drawable.null_image)
+                        .error(R.drawable.null_image)
+                        .into(ivImageCake)
                 }
             }
     }
@@ -51,4 +61,16 @@ class HomeOrderUserCakeAdapter : ListAdapter<Cart, HomeOrderUserCakeAdapter.Home
         }
     }
 
+    private fun formatCurrency(value: String): String {
+        val digits = value.filter { it.isDigit() }
+        if (digits.isBlank()) return value.ifBlank { "0" }
+
+        val stringBuilder = StringBuilder(digits)
+        var i = stringBuilder.length - 3
+        while (i > 0) {
+            stringBuilder.insert(i, ".")
+            i -= 3
+        }
+        return stringBuilder.toString()
+    }
 }

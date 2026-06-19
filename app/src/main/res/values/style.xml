@@ -9,6 +9,16 @@
         <item name="android:textColor">@color/white</item>
     </style>
 
+    <style name="Button_Style_Light_Brown" parent="Widget.AppCompat.Button">
+        <item name="android:background">@drawable/shape_button_light_brown</item>
+        <item name="android:textColor">@color/white</item>
+    </style>
+
+    <style name="Button_Style_Green" parent="Widget.AppCompat.Button">
+        <item name="android:background">@drawable/shape_button_green</item>
+        <item name="android:textColor">@color/white</item>
+    </style>
+
     <style name="Button_Style_Red" parent="Widget.AppCompat.Button">
         <item name="android:background">@drawable/shape_button_red</item>
         <item name="android:textColor">@color/white</item>

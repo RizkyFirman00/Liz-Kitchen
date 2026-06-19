@@ -18,11 +18,18 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.dissy.lizkitchen.R
 import com.dissy.lizkitchen.adapter.admin.ReportAdminAdapter
 import com.dissy.lizkitchen.databinding.FragmentReportDetailBinding
-import com.dissy.lizkitchen.model.Cake
-import com.dissy.lizkitchen.model.Cart
 import com.dissy.lizkitchen.model.Order
-import com.dissy.lizkitchen.model.User
-import com.dissy.lizkitchen.utility.cakeFromMap
+import com.dissy.lizkitchen.utility.ORDER_STATUS_CANCELED
+import com.dissy.lizkitchen.utility.ORDER_STATUS_CONFIRMED
+import com.dissy.lizkitchen.utility.ORDER_STATUS_DONE
+import com.dissy.lizkitchen.utility.ORDER_STATUS_EXPIRED
+import com.dissy.lizkitchen.utility.ORDER_STATUS_PENDING_PAYMENT
+import com.dissy.lizkitchen.utility.ORDER_STATUS_PROCESSING
+import com.dissy.lizkitchen.utility.ORDER_STATUS_READY_PICKUP
+import com.dissy.lizkitchen.utility.ORDER_STATUS_SHIPPING
+import com.dissy.lizkitchen.utility.orderFromDocument
+import com.dissy.lizkitchen.utility.setFirebaseRequestLoading
+import com.dissy.lizkitchen.utility.validateOrderExpiryOnRead
 import com.google.firebase.Firebase
 import com.google.firebase.firestore.firestore
 
@@ -31,6 +38,7 @@ class ReportDetailFragment : Fragment() {
     private val binding get() = _binding!!
     private lateinit var reportAdminAdapter: ReportAdminAdapter
     private var orderList = mutableListOf<Order>()
+    private var currentReportList: List<Order> = emptyList()
     private val db = Firebase.firestore
     private var banyakData: String = "0"
 
@@ -59,12 +67,14 @@ class ReportDetailFragment : Fragment() {
         popupMenu.setOnMenuItemClickListener { menuItem ->
             when (menuItem.itemId) {
                 R.id.menu_semua -> updateStatusFilter("Semua")
-                R.id.menu_selesai -> updateStatusFilter("Selesai")
-                R.id.menu_dibatalkan -> updateStatusFilter("Dibatalkan")
-                R.id.menu_menungguPembayaran -> updateStatusFilter("Menunggu Pembayaran")
-                R.id.menu_sedangDikirim -> updateStatusFilter("Sedang Dikirim")
-                R.id.menu_sudahDikonfirmasi -> updateStatusFilter("Sudah Dikonfirmasi")
-                R.id.menu_sedangDiproses -> updateStatusFilter("Sedang Diproses")
+                R.id.menu_selesai -> updateStatusFilter(ORDER_STATUS_DONE)
+                R.id.menu_dibatalkan -> updateStatusFilter(ORDER_STATUS_CANCELED)
+                R.id.menu_expired -> updateStatusFilter(ORDER_STATUS_EXPIRED)
+                R.id.menu_menungguPembayaran -> updateStatusFilter(ORDER_STATUS_PENDING_PAYMENT)
+                R.id.menu_sedangDikirim -> updateStatusFilter(ORDER_STATUS_SHIPPING)
+                R.id.menu_siapDiambil -> updateStatusFilter(ORDER_STATUS_READY_PICKUP)
+                R.id.menu_sudahDikonfirmasi -> updateStatusFilter(ORDER_STATUS_CONFIRMED)
+                R.id.menu_sedangDiproses -> updateStatusFilter(ORDER_STATUS_PROCESSING)
                 R.id.menu_ambilSendiri -> updateStatusFilter("Ambil Sendiri")
                 R.id.menu_pesanAntar -> updateStatusFilter("Pesan Antar")
                 else -> false
@@ -87,6 +97,7 @@ class ReportDetailFragment : Fragment() {
     }
 
     private fun fetchReportData(fromDate: String?, toDate: String?) {
+        setRequestLoading(true)
         db.collection("orders")
             .whereGreaterThanOrEqualTo("tanggalOrder", fromDate ?: "")
             .whereLessThanOrEqualTo("tanggalOrder", toDate ?: "")
@@ -95,51 +106,43 @@ class ReportDetailFragment : Fragment() {
                 if (_binding == null) return@addOnSuccessListener
                 orderList.clear()
                 for (document in result) {
-                    val cartItemsArray = document.get("cart") as? ArrayList<HashMap<String, Any>>
-                    val cartItems = cartItemsArray?.map { map ->
-                        val cakeMap = map["cake"] as? HashMap<*, *>
-                        Cart(
-                            cakeId = map["cakeId"] as? String ?: "",
-                            cake = cakeFromMap(cakeMap?.get("documentId")?.toString().orEmpty(), cakeMap ?: emptyMap<String, Any>()),
-                            jumlahPesanan = (map["jumlahPesanan"] as? Long) ?: 0
-                        )
-                    } ?: listOf()
-                    val userInfo = document.get("user") as? HashMap<String, Any>
-                    val order = Order(
-                        cart = cartItems,
-                        orderId = document.getString("orderId") ?: "",
-                        status = document.getString("status") ?: "",
-                        totalPrice = document.getLong("totalPrice") ?: 0,
-                        tanggalOrder = document.getString("tanggalOrder") ?: "",
-                        user = userInfo?.let {
-                            User(
-                                userId = it["userId"] as? String ?: "",
-                                username = it["username"] as? String ?: "",
-                                email = it["email"] as? String ?: "",
-                                phoneNumber = it["phoneNumber"] as? String ?: "",
-                                alamat = it["alamat"] as? String ?: ""
-                            )
-                        } ?: User()
-                    )
-                    orderList.add(order)
+                    orderList.add(validateOrderExpiryOnRead(db, orderFromDocument(document)))
                 }
-                reportAdminAdapter.submitList(orderList)
-                banyakData = orderList.size.toString()
-                binding.tvBanyakData.text = banyakData
+                currentReportList = orderList.toList()
+                reportAdminAdapter.submitList(currentReportList)
+                updateReportSummary(currentReportList, "Semua")
+                setRequestLoading(false)
+            }
+            .addOnFailureListener { exception ->
+                if (_binding != null) {
+                    setRequestLoading(false)
+                    Toast.makeText(requireContext(), "Gagal memuat laporan: ${exception.message}", Toast.LENGTH_SHORT).show()
+                }
             }
     }
 
     private fun updateStatusFilter(status: String) {
-        val filteredList = if (status == "Semua") orderList else orderList.filter { it.status == status }
-        reportAdminAdapter.submitList(filteredList)
-        binding.tvBanyakData.text = filteredList.size.toString()
+        val filteredList = when (status) {
+            "Semua" -> orderList
+            "Ambil Sendiri", "Pesan Antar" -> orderList.filter { it.metodePengambilan == status }
+            else -> orderList.filter { it.status == status }
+        }
+        currentReportList = filteredList
+        reportAdminAdapter.submitList(currentReportList)
+        updateReportSummary(currentReportList, status)
+    }
+
+    private fun updateReportSummary(list: List<Order>, status: String) {
+        banyakData = list.size.toString()
+        binding.tvBanyakData.text = banyakData
+        binding.tvTotalOmzet.text = formatAndDisplayCurrency(list.sumOf { it.totalPrice }.toString())
         binding.tvStatusPesanan.text = status
     }
 
     private fun createPdfFromWebView(webView: WebView) {
         webView.loadDataWithBaseURL(
             null, generateOrderHtml(
-                orderList,
+                currentReportList,
                 binding.tvFromDate.text.toString(),
                 binding.tvToDate.text.toString(),
                 banyakData,
@@ -193,6 +196,11 @@ class ReportDetailFragment : Fragment() {
         var i = sb.length - 3
         while (i > 0) { sb.insert(i, "."); i -= 3 }
         return if (isNegative) "-Rp. $sb" else "Rp. $sb"
+    }
+
+    private fun setRequestLoading(isLoading: Boolean) {
+        if (_binding == null) return
+        binding.root.setFirebaseRequestLoading(isLoading)
     }
 
     override fun onDestroyView() {

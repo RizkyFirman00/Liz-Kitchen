@@ -3,6 +3,7 @@ package com.dissy.lizkitchen.ui.login
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
+import android.view.MotionEvent
 import android.widget.Toast
 import com.dissy.lizkitchen.databinding.ActivityLoginBinding
 import com.dissy.lizkitchen.model.User
@@ -11,6 +12,9 @@ import com.dissy.lizkitchen.ui.base.BaseActivity
 import com.dissy.lizkitchen.ui.home.MainActivity
 import com.dissy.lizkitchen.ui.register.RegisterActivity
 import com.dissy.lizkitchen.utility.Preferences
+import com.dissy.lizkitchen.utility.hideKeyboardWhenTouchOutsideInput
+import com.dissy.lizkitchen.utility.setFirebaseRequestLoading
+import com.dissy.lizkitchen.utility.setupPasswordVisibilityToggle
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.CoroutineScope
@@ -25,6 +29,7 @@ class LoginActivity : BaseActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
+        binding.etPassword.setupPasswordVisibilityToggle()
 
         Preferences.getUserInfo(this)?.let {
             Log.d("User Info Login", "$it")
@@ -67,6 +72,11 @@ class LoginActivity : BaseActivity() {
                 }
             }
         }
+    }
+
+    override fun dispatchTouchEvent(event: MotionEvent): Boolean {
+        hideKeyboardWhenTouchOutsideInput(event)
+        return super.dispatchTouchEvent(event)
     }
 
     private fun handleLoginResult(result: Pair<Boolean, String?>) {
@@ -132,21 +142,17 @@ class LoginActivity : BaseActivity() {
 
     private fun loadingProgress() {
         binding.apply {
-            progressBar2.visibility = android.view.View.VISIBLE
+            root.setFirebaseRequestLoading(true, progressBar2)
             etUsername.isEnabled = false
             etPassword.isEnabled = false
-            btnLogin.isEnabled = false
-            btnToregister.isEnabled = false
         }
     }
 
     private fun unLoadingProgress() {
         binding.apply {
-            progressBar2.visibility = android.view.View.GONE
+            root.setFirebaseRequestLoading(false, progressBar2)
             etUsername.isEnabled = true
             etPassword.isEnabled = true
-            btnLogin.isEnabled = true
-            btnToregister.isEnabled = true
         }
     }
 

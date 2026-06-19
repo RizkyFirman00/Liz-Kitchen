@@ -6,11 +6,12 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
-import com.dissy.lizkitchen.adapter.admin.CartDetailUserAdapter
+import com.dissy.lizkitchen.R
 import com.dissy.lizkitchen.databinding.RvCheckoutBinding
 import com.dissy.lizkitchen.model.Cart
 import com.dissy.lizkitchen.utility.displayNameWithCategory
-import com.dissy.lizkitchen.utility.displayUnit
+import com.dissy.lizkitchen.utility.normalizeProductUnit
+import com.dissy.lizkitchen.utility.productPriceToLong
 
 class CheckoutUserAdapter() :
     ListAdapter<Cart, CheckoutUserAdapter.CheckoutUserViewHolder>(
@@ -20,12 +21,17 @@ class CheckoutUserAdapter() :
         RecyclerView.ViewHolder(binding.root) {
         fun bind(cart: Cart) {
             binding.apply {
+                val unitPrice = productPriceToLong(cart.cake.harga)
+                val unit = normalizeProductUnit(cart.cake.satuan)
                 tvCakeName.text = cart.cake.displayNameWithCategory()
                 tvPrice.text = cart.cake.harga
-                tvUnit.text = "/${cart.cake.displayUnit()}"
-                tvJumlahPesanan.text = cart.jumlahPesanan.toString()
+                tvUnit.text = " / $unit"
+                tvJumlahPesanan.text = "x${cart.jumlahPesanan}"
+                tvSubtotal.text = "Subtotal Rp ${formatCurrency(unitPrice * cart.jumlahPesanan)}"
                 Glide.with(itemView.context)
                     .load(cart.cake.imageUrl)
+                    .placeholder(R.drawable.null_image)
+                    .error(R.drawable.null_image)
                     .into(ivCakeImage)
             }
         }
@@ -55,4 +61,13 @@ class CheckoutUserAdapter() :
         }
     }
 
+    private fun formatCurrency(value: Long): String {
+        val stringBuilder = StringBuilder(value.toString())
+        var i = stringBuilder.length - 3
+        while (i > 0) {
+            stringBuilder.insert(i, ".")
+            i -= 3
+        }
+        return stringBuilder.toString()
+    }
 }

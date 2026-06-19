@@ -2,45 +2,122 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@color/white"
+    android:orientation="vertical"
+    android:paddingHorizontal="20dp"
+    android:paddingTop="18dp"
+    android:paddingBottom="22dp"
     tools:context=".ui.cart.MetodeAmbilFragment">
 
-    <FrameLayout
+    <TextView
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_gravity="bottom"
-        android:background="@drawable/shape_buttonnav_brown">
+        android:layout_height="wrap_content"
+        android:fontFamily="@font/poppins_bold"
+        android:text="Pilih Metode"
+        android:textColor="#3A2A20"
+        android:textSize="18sp" />
 
-        <LinearLayout
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:fontFamily="@font/poppins_regular"
+        android:text="Mau dikirim atau ambil sendiri?"
+        android:textColor="#765945"
+        android:textSize="12sp" />
+
+    <TextView
+        android:id="@+id/tvDeliveryNotice"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:fontFamily="@font/poppins_medium"
+        android:lineSpacingExtra="2dp"
+        android:textColor="#765945"
+        android:textSize="12sp"
+        tools:text="Alamat dalam jangkauan delivery. Kamu juga bisa pickup." />
+
+    <androidx.appcompat.widget.AppCompatButton
+        android:id="@+id/btnAntar"
+        android:layout_width="match_parent"
+        android:layout_height="46dp"
+        android:layout_marginTop="12dp"
+        android:background="@drawable/shape_button_choice_default"
+        android:fontFamily="@font/poppins_semibold"
+        android:text="Pesan Antar"
+        android:textAllCaps="false"
+        android:textColor="#3A2A20"
+        android:textSize="14sp" />
+
+    <androidx.appcompat.widget.AppCompatButton
+        android:id="@+id/btnPickup"
+        android:layout_width="match_parent"
+        android:layout_height="46dp"
+        android:layout_marginTop="10dp"
+        android:background="@drawable/shape_button_choice_default"
+        android:fontFamily="@font/poppins_semibold"
+        android:text="Ambil di Cabang"
+        android:textAllCaps="false"
+        android:textColor="#3A2A20"
+        android:textSize="14sp" />
+
+    <LinearLayout
+        android:id="@+id/branchOptionsContainer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:visibility="gone"
+        tools:visibility="visible">
+
+        <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="18dp"
+            android:fontFamily="@font/poppins_semibold"
+            android:text="Pilih Cabang"
+            android:textColor="#3A2A20"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/tvRecommendedBranch"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:fontFamily="@font/poppins_medium"
+            android:lineSpacingExtra="2dp"
+            android:textColor="@color/brown_old"
+            android:textSize="12sp"
+            android:visibility="gone"
+            tools:text="Terdekat: Cabang Cengkareng - 1,2 km"
+            tools:visibility="visible" />
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btnPickupMenteng"
+            android:layout_width="match_parent"
+            android:layout_height="58dp"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/shape_button_choice_default"
+            android:fontFamily="@font/poppins_semibold"
             android:gravity="center"
-            android:orientation="horizontal"
-            android:padding="20dp">
+            android:lineSpacingExtra="2dp"
+            android:textAllCaps="false"
+            android:textColor="#3A2A20"
+            android:textSize="13sp"
+            tools:text="Cabang Menteng\nJl. Kebon Sirih Barat I No.24" />
 
-            <androidx.appcompat.widget.AppCompatButton
-                android:id="@+id/btnPickup"
-                android:layout_width="180dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:background="@drawable/shape_button_white"
-                android:fontFamily="@font/poppins_semibold"
-                android:text="Pickup"
-                android:textAllCaps="false"
-                android:textSize="16sp" />
-
-            <androidx.appcompat.widget.AppCompatButton
-                android:id="@+id/btnAntar"
-                android:layout_width="180dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="15dp"
-                android:layout_weight="1"
-                android:background="@drawable/shape_button_white"
-                android:fontFamily="@font/poppins_semibold"
-                android:text="Pesan Antar"
-                android:textAllCaps="false"
-                android:textSize="16sp" />
-        </LinearLayout>
-    </FrameLayout>
-
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btnPickupCengkareng"
+            android:layout_width="match_parent"
+            android:layout_height="58dp"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/shape_button_choice_default"
+            android:fontFamily="@font/poppins_semibold"
+            android:gravity="center"
+            android:lineSpacingExtra="2dp"
+            android:textAllCaps="false"
+            android:textColor="#3A2A20"
+            android:textSize="13sp"
+            tools:text="Cabang Cengkareng\nThe City Resort Malibu" />
+    </LinearLayout>
 </LinearLayout>

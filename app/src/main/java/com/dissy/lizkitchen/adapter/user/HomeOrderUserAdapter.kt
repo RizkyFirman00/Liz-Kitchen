@@ -1,6 +1,7 @@
 package com.dissy.lizkitchen.adapter.user
 
-import android.util.Log
+import android.graphics.Color
+import android.graphics.drawable.GradientDrawable
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -10,6 +11,16 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.dissy.lizkitchen.databinding.RvOrderUserBinding
 import com.dissy.lizkitchen.model.Order
+import com.dissy.lizkitchen.utility.ORDER_STATUS_CANCELED
+import com.dissy.lizkitchen.utility.ORDER_STATUS_CONFIRMED
+import com.dissy.lizkitchen.utility.ORDER_STATUS_DONE
+import com.dissy.lizkitchen.utility.ORDER_STATUS_EXPIRED
+import com.dissy.lizkitchen.utility.ORDER_STATUS_PENDING_PAYMENT
+import com.dissy.lizkitchen.utility.ORDER_STATUS_PROCESSING
+import com.dissy.lizkitchen.utility.ORDER_STATUS_READY_PICKUP
+import com.dissy.lizkitchen.utility.ORDER_STATUS_SHIPPING
+import com.dissy.lizkitchen.utility.metodePengambilanDisplayForOrder
+import com.dissy.lizkitchen.utility.pickupBranchNameForOrder
 
 class HomeOrderUserAdapter(private val onItemClick: (String) -> Unit) : ListAdapter<Order, HomeOrderUserAdapter.HomeUserViewHolder>(
     DiffCallback()
@@ -20,39 +31,73 @@ class HomeOrderUserAdapter(private val onItemClick: (String) -> Unit) : ListAdap
 
         fun bind(order: Order) {
             binding.apply {
-                tvStatusPesanan.text = order.status
-                when (order.status) {
-                    "Selesai" -> {
-                        binding.tvStatusPesanan.setTextColor(android.graphics.Color.parseColor("#0ACB12"))
-                    }
-                    "Dibatalkan" -> {
-                        binding.tvStatusPesanan.setTextColor(android.graphics.Color.parseColor("#D10826"))
-                    }
-                    "Menunggu Pembayaran" -> {
-                        binding.tvStatusPesanan.setTextColor(android.graphics.Color.parseColor("#D10826"))
-                    }
-                    "Sedang Dikirim", "Sudah Dikonfirmasi" -> {
-                        binding.tvStatusPesanan.setTextColor(android.graphics.Color.parseColor("#0ACB12"))
-                    }
-                    "Sedang Diproses" -> {
-                        binding.tvStatusPesanan.setTextColor(android.graphics.Color.parseColor("#9C6843"))
-                    }
-                }
+                val statusText = order.status.ifBlank { "Status belum tersedia" }
+                tvStatusPesanan.text = statusText
+                applyStatusStyle(statusText)
 
                 val formatedPrice = formatAndDisplayCurrency(order.totalPrice.toString())
                 tvTotalHarga.text = formatedPrice
-                tvMetodePengambilan.text = order.metodePengambilan
-                tvTanggalOrder.text = order.tanggalOrder
+                tvMetodePengambilan.text = metodePengambilanDisplayForOrder(order).ifBlank { "Metode belum dipilih" }
+                tvTanggalOrder.text = buildDateText(order.tanggalOrder, order.jamOrder)
+                tvOrderId.text = order.orderId.ifBlank { "-" }
+                tvItemSummary.text = buildItemSummary(order)
+                tvOrderAddress.text = buildAddressText(order)
+
                 val orderCakeAdapter = HomeOrderUserCakeAdapter()
                 rvOrderCakeUser.adapter = orderCakeAdapter
                 rvOrderCakeUser.layoutManager = LinearLayoutManager(itemView.context)
+                rvOrderCakeUser.isNestedScrollingEnabled = false
 
-                orderCakeAdapter.submitList(order.cart)
+                val previewItems = order.cart.take(2)
+                orderCakeAdapter.submitList(previewItems)
+                val remainingItems = order.cart.size - previewItems.size
+                tvMoreItems.visibility = if (remainingItems > 0) View.VISIBLE else View.GONE
+                tvMoreItems.text = "+$remainingItems produk lainnya"
 
                 root.setOnClickListener {
                     onItemClick.invoke(order.orderId)
                 }
             }
+        }
+    }
+
+    private fun RvOrderUserBinding.applyStatusStyle(status: String) {
+        val (textColor, backgroundColor) = when (status) {
+            ORDER_STATUS_DONE -> "#128A35" to "#E8F7EC"
+            ORDER_STATUS_CANCELED, ORDER_STATUS_EXPIRED -> "#C62828" to "#FDECEC"
+            ORDER_STATUS_PENDING_PAYMENT -> "#C46A16" to "#FFF0DE"
+            ORDER_STATUS_SHIPPING, ORDER_STATUS_CONFIRMED, ORDER_STATUS_READY_PICKUP -> "#128A35" to "#E8F7EC"
+            ORDER_STATUS_PROCESSING -> "#9C6843" to "#F7E6DA"
+            else -> "#9C6843" to "#F7E6DA"
+        }
+        val badgeBackground = GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = tvStatusPesanan.resources.displayMetrics.density * 20
+            setColor(Color.parseColor(backgroundColor))
+        }
+
+        tvStatusPesanan.setTextColor(Color.parseColor(textColor))
+        tvStatusPesanan.background = badgeBackground
+    }
+
+    private fun buildDateText(date: String, time: String): String {
+        val cleanDate = date.ifBlank { "-" }
+        return if (time.isBlank()) cleanDate else "$cleanDate, $time"
+    }
+
+    private fun buildItemSummary(order: Order): String {
+        val itemTypeCount = order.cart.size
+        val quantityCount = order.cart.sumOf { it.jumlahPesanan }
+        return "$itemTypeCount jenis produk | $quantityCount item"
+    }
+
+    private fun buildAddressText(order: Order): String {
+        val method = order.metodePengambilan.ifBlank { "Pesanan" }
+        val address = order.user.alamat.orEmpty().ifBlank { "Alamat belum tersedia" }
+        return if (method.contains("ambil", ignoreCase = true)) {
+            "Diambil di ${pickupBranchNameForOrder(order)}"
+        } else {
+            address
         }
     }
 

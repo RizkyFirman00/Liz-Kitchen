@@ -9,11 +9,17 @@
         android:id="@+id/menu_dibatalkan"
         android:title="Dibatalkan" />
     <item
+        android:id="@+id/menu_expired"
+        android:title="Expired" />
+    <item
         android:id="@+id/menu_menungguPembayaran"
         android:title="Menunggu Pembayaran" />
     <item
         android:id="@+id/menu_sedangDikirim"
         android:title="Sedang Dikirim" />
+    <item
+        android:id="@+id/menu_siapDiambil"
+        android:title="Siap Diambil" />
     <item
         android:id="@+id/menu_sudahDikonfirmasi"
         android:title="Sudah Dikonfirmasi" />

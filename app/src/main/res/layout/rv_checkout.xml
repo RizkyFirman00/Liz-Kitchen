@@ -3,97 +3,97 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:layout_gravity="center"
-    android:layout_marginBottom="10dp"
-    android:orientation="horizontal">
+    android:layout_marginBottom="8dp"
+    android:background="@drawable/bg_order_list_item"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:padding="8dp">
 
-    <androidx.cardview.widget.CardView
-        android:layout_width="wrap_content"
+    <ImageView
+        android:id="@+id/ivCakeImage"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:background="@drawable/bg_cart_panel"
+        android:contentDescription="@null"
+        android:scaleType="centerCrop"
+        tools:src="@drawable/null_image" />
+
+    <LinearLayout
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        app:cardCornerRadius="20dp">
-
-        <androidx.appcompat.widget.AppCompatImageView
-            android:id="@+id/ivCakeImage"
-            android:layout_width="80dp"
-            android:layout_height="80dp"
-            tools:src="@tools:sample/avatars" />
-
-    </androidx.cardview.widget.CardView>
-
-    <androidx.constraintlayout.widget.ConstraintLayout
-        android:layout_width="match_parent"
         android:layout_marginStart="10dp"
-        android:layout_height="70dp"
-        android:layout_gravity="center"
+        android:layout_weight="1"
         android:orientation="vertical">
 
         <TextView
             android:id="@+id/tvCakeName"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            android:text="Nastar"
+            android:ellipsize="end"
             android:fontFamily="@font/poppins_semibold"
-            android:textSize="14sp"/>
+            android:maxLines="2"
+            android:textColor="#3A2A20"
+            android:textSize="13sp"
+            tools:text="Nastar Premium - Original" />
 
         <LinearLayout
             android:id="@+id/price"
-            app:layout_constraintTop_toBottomOf="@id/tvCakeName"
-            app:layout_constraintStart_toStartOf="parent"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
             android:orientation="horizontal">
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:fontFamily="@font/poppins_regular"
-                android:text="Rp. "
-                android:textSize="14sp" />
+                android:text="Rp "
+                android:textColor="#765945"
+                android:textSize="12sp" />
 
             <TextView
                 android:id="@+id/tvPrice"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:fontFamily="@font/poppins_regular"
-                android:text="20.000"
-                android:textSize="14sp" />
+                android:textColor="#765945"
+                android:textSize="12sp"
+                tools:text="55.000" />
 
             <TextView
                 android:id="@+id/tvUnit"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:fontFamily="@font/poppins_regular"
-                android:text="/pcs"
-                android:textSize="14sp" />
+                android:textColor="#765945"
+                android:textSize="12sp"
+                tools:text=" / pcs" />
         </LinearLayout>
 
-        <LinearLayout
-            android:id="@+id/pesanan"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent"
+        <TextView
+            android:id="@+id/tvSubtotal"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:fontFamily="@font/poppins_semibold"
+            android:textColor="@color/brown_old"
+            android:textSize="12sp"
+            tools:text="Subtotal Rp 110.000" />
+    </LinearLayout>
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:fontFamily="@font/poppins_regular"
-                android:text="Jumlah pesanan"
-                android:textSize="14sp" />
-
-            <TextView
-                android:id="@+id/tv_jumlahPesanan"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="end"
-                android:fontFamily="@font/poppins_semibold"
-                android:text="2"
-                android:textSize="14sp" />
-        </LinearLayout>
-
-    </androidx.constraintlayout.widget.ConstraintLayout>
-
+    <TextView
+        android:id="@+id/tv_jumlahPesanan"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:background="@drawable/bg_cart_subtotal"
+        android:fontFamily="@font/poppins_semibold"
+        android:includeFontPadding="false"
+        android:minWidth="44dp"
+        android:paddingHorizontal="9dp"
+        android:paddingVertical="7dp"
+        android:textAlignment="center"
+        android:textColor="#3A2A20"
+        android:textSize="12sp"
+        tools:text="x2" />
 </LinearLayout>

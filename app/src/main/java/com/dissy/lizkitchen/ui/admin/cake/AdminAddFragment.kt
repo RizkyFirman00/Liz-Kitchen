@@ -7,20 +7,24 @@ import android.app.AlertDialog
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.BitmapFactory
+import android.graphics.Color
+import android.graphics.Typeface
 import android.graphics.drawable.ColorDrawable
+import android.graphics.drawable.GradientDrawable
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.MediaStore
-import android.text.Editable
-import android.text.TextWatcher
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
-import android.widget.EditText
+import android.widget.LinearLayout
+import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.widget.AppCompatButton
+import androidx.core.view.setMargins
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
@@ -29,10 +33,13 @@ import androidx.navigation.fragment.findNavController
 import com.bumptech.glide.Glide
 import com.dissy.lizkitchen.R
 import com.dissy.lizkitchen.databinding.FragmentAdminAddBinding
-import com.dissy.lizkitchen.utility.normalizeProductUnit
-import com.dissy.lizkitchen.utility.parseProductCategoryInput
-import com.dissy.lizkitchen.utility.toFirestoreMap
+import com.dissy.lizkitchen.model.ProductCategory
+import com.dissy.lizkitchen.utility.clearFocusWhenTouchOutsideInput
 import com.dissy.lizkitchen.utility.createCustomTempFile
+import com.dissy.lizkitchen.utility.formatProductPrice
+import com.dissy.lizkitchen.utility.normalizeProductUnit
+import com.dissy.lizkitchen.utility.setFirebaseRequestLoading
+import com.dissy.lizkitchen.utility.toFirestoreMap
 import com.dissy.lizkitchen.utility.uriToFile
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
@@ -46,208 +53,269 @@ class AdminAddFragment : Fragment() {
     private lateinit var photoPath: String
     private val storage = Firebase.storage
     private var file: File? = null
+    private val variants = mutableListOf<ProductCategory>()
+    private var editingVariantIndex: Int? = null
 
     private val requestCameraPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted: Boolean ->
-            if (isGranted) {
-                openCamera()
-            } else {
-                Toast.makeText(requireContext(), getString(R.string.permission_camera_denied), Toast.LENGTH_SHORT).show()
-            }
+            if (isGranted) openCamera()
+            else Toast.makeText(requireContext(), getString(R.string.permission_camera_denied), Toast.LENGTH_SHORT).show()
         }
 
     private val requestGalleryPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted: Boolean ->
-            if (isGranted) {
-                openGallery()
-            } else {
-                Toast.makeText(requireContext(), getString(R.string.permission_gallery_denied), Toast.LENGTH_SHORT).show()
-            }
+            if (isGranted) openGallery()
+            else Toast.makeText(requireContext(), getString(R.string.permission_gallery_denied), Toast.LENGTH_SHORT).show()
         }
 
-    override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View {
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentAdminAddBinding.inflate(inflater, container, false)
         return binding.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        binding.etSatuan.setText("pcs")
-
-        // Logika Currency Formatter
-        val etHargaKue: EditText = binding.etHarga
-        etHargaKue.addTextChangedListener(object : TextWatcher {
-            private var isUpdating = false
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
-            override fun afterTextChanged(s: Editable) {
-                if (isUpdating) return
-                isUpdating = true
-                val cleanText = s.toString().replace(".", "")
-                val formattedText = formatCurrency(cleanText)
-                etHargaKue.setText(formattedText)
-                etHargaKue.setSelection(formattedText.length)
-                isUpdating = false
+        binding.root.clearFocusWhenTouchOutsideInput()
+        binding.ivBanner.setOnClickListener { showImagePickerDialog() }
+        binding.btnToHome.setOnClickListener { findNavController().navigateUp() }
+        binding.btnAddVarian.setOnClickListener { saveVariantFromInput() }
+        binding.btnUpdateData.setOnClickListener {
+            val namaKue = binding.etNamaKue.text.toString().trim()
+            val gambar = file
+            if (gambar == null || namaKue.isEmpty() || variants.isEmpty()) {
+                Toast.makeText(requireContext(), "Foto, nama kue, dan minimal 1 varian wajib diisi", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
             }
+            uploadImageAndGetUrl(namaKue, variants.map { it.toFirestoreMap() }, gambar)
+        }
+    }
 
-            private fun formatCurrency(value: String): String {
-                var isNegative = false
-                var cleanValue = value
-                if (cleanValue.startsWith("-")) {
-                    isNegative = true
-                    cleanValue = cleanValue.substring(1)
-                }
-                val stringBuilder = StringBuilder(cleanValue)
-                var i = stringBuilder.length - 3
-                while (i > 0) {
-                    stringBuilder.insert(i, ".")
-                    i -= 3
-                }
-                if (isNegative) stringBuilder.insert(0, "-")
-                return stringBuilder.toString()
+    private fun saveVariantFromInput() {
+        val name = binding.etNamaVarian.text.toString().trim()
+        val stock = binding.etStokVarian.text.toString().toLongOrNull()
+        val unit = normalizeProductUnit(binding.etSatuanVarian.text.toString())
+        val price = formatProductPrice(binding.etHargaVarian.text.toString())
+        if (name.isEmpty() || stock == null || price.isEmpty()) {
+            Toast.makeText(requireContext(), "Nama varian, stok, dan harga wajib diisi", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val variant = ProductCategory(name, price, stock, unit)
+        val editIndex = editingVariantIndex
+        if (editIndex == null) variants.add(variant) else variants[editIndex] = variant
+        editingVariantIndex = null
+        binding.btnAddVarian.text = "Tambah Varian"
+        clearVariantInput()
+        renderVariants()
+    }
+
+    private fun editVariant(index: Int) {
+        val variant = variants[index]
+        editingVariantIndex = index
+        binding.etNamaVarian.setText(variant.namaKategori)
+        binding.etStokVarian.setText(variant.stok.toString())
+        binding.etSatuanVarian.setText(variant.satuan)
+        binding.etHargaVarian.setText(variant.harga)
+        binding.btnAddVarian.text = "Simpan Perubahan Varian"
+    }
+
+    private fun clearVariantInput() {
+        binding.etNamaVarian.text?.clear()
+        binding.etStokVarian.text?.clear()
+        binding.etSatuanVarian.text?.clear()
+        binding.etHargaVarian.text?.clear()
+    }
+
+    private fun renderVariants() {
+        binding.variantListContainer.removeAllViews()
+        variants.forEachIndexed { index, variant ->
+            binding.variantListContainer.addView(createVariantRow(index, variant))
+        }
+    }
+
+    private fun createVariantRow(index: Int, variant: ProductCategory): View {
+        val dp = resources.displayMetrics.density
+        val card = LinearLayout(requireContext()).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding((14 * dp).toInt(), (12 * dp).toInt(), (14 * dp).toInt(), (12 * dp).toInt())
+            background = GradientDrawable().apply {
+                setColor(Color.WHITE)
+                setStroke((1 * dp).toInt(), Color.parseColor("#EED8C8"))
+                cornerRadius = 8 * dp
             }
+            elevation = 2 * dp
+            layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            ).apply { setMargins(0, 0, 0, (10 * dp).toInt()) }
+        }
+
+        val header = LinearLayout(requireContext()).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = android.view.Gravity.CENTER_VERTICAL
+        }
+        val badgeSize = (36 * dp).toInt()
+        val numberBadge = TextView(requireContext()).apply {
+            text = (index + 1).toString()
+            textSize = 12f
+            setTypeface(typeface, Typeface.BOLD)
+            setTextColor(Color.WHITE)
+            gravity = android.view.Gravity.CENTER
+            background = GradientDrawable().apply {
+                setColor(Color.parseColor("#9C6843"))
+                shape = GradientDrawable.OVAL
+            }
+            layoutParams = LinearLayout.LayoutParams(badgeSize, badgeSize).apply {
+                setMargins(0, 0, (12 * dp).toInt(), 0)
+            }
+        }
+        val title = TextView(requireContext()).apply {
+            text = variant.namaKategori
+            textSize = 15f
+            setTypeface(typeface, Typeface.BOLD)
+            setTextColor(Color.parseColor("#4A2F1D"))
+            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+        }
+        header.addView(numberBadge)
+        header.addView(title)
+
+        val stats = LinearLayout(requireContext()).apply {
+            orientation = LinearLayout.HORIZONTAL
+            isBaselineAligned = false
+            setPadding(0, (10 * dp).toInt(), 0, (10 * dp).toInt())
+        }
+        listOf(
+            "Stok" to variant.stok.toString(),
+            "Satuan" to variant.satuan,
+            "Harga/satuan" to "Rp. ${variant.harga}"
+        ).forEach { (label, value) -> stats.addView(createInfoPill(label, value, dp)) }
+
+        val actions = LinearLayout(requireContext()).apply {
+            orientation = LinearLayout.HORIZONTAL
+            layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            )
+        }
+        actions.addView(createActionButton("Edit", "#9C6843", dp) { editVariant(index) })
+        actions.addView(createActionButton("Hapus", "#D10826", dp) {
+            variants.removeAt(index)
+            if (editingVariantIndex == index) {
+                editingVariantIndex = null
+                binding.btnAddVarian.text = "Tambah Varian"
+                clearVariantInput()
+            }
+            renderVariants()
         })
 
-        binding.ivBanner.setOnClickListener {
-            showImagePickerDialog()
-        }
+        card.addView(header)
+        card.addView(stats)
+        card.addView(actions)
+        return card
+    }
 
-        binding.btnToHome.setOnClickListener {
-            findNavController().navigateUp()
+    private fun createInfoPill(label: String, value: String, dp: Float): View {
+        val pill = LinearLayout(requireContext()).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding((12 * dp).toInt(), (10 * dp).toInt(), (12 * dp).toInt(), (10 * dp).toInt())
+            background = GradientDrawable().apply {
+                setColor(Color.parseColor("#FFF6EF"))
+                cornerRadius = 8 * dp
+            }
+            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply {
+                setMargins((4 * dp).toInt())
+            }
         }
+        pill.addView(TextView(requireContext()).apply {
+            text = label
+            textSize = 10f
+            typeface = Typeface.DEFAULT_BOLD
+            setTextColor(Color.parseColor("#8A7567"))
+        })
+        pill.addView(TextView(requireContext()).apply {
+            text = value
+            textSize = 12f
+            setTypeface(typeface, Typeface.BOLD)
+            setTextColor(Color.parseColor("#5D3A24"))
+        })
+        return pill
+    }
 
-        binding.btnUpdateData.setOnClickListener {
-            val namaKue = binding.etNamaKue.text.toString()
-            val harga = binding.etHarga.text.toString()
-            val stok = binding.etStok.text.toString()
-            val satuan = normalizeProductUnit(binding.etSatuan.text.toString())
-            val gambar = file
-            if (gambar != null && namaKue.isNotEmpty() && harga.isNotEmpty() && stok.isNotEmpty()) {
-                try {
-                    val categories = parseProductCategoryInput(
-                        binding.etKategoriProduk.text.toString(),
-                        harga,
-                        stok.toLong(),
-                        satuan
-                    )
-                    uploadImageAndGetUrl(namaKue, categories.first().harga, categories.first().stok, categories.first().satuan, categories.map { it.toFirestoreMap() }, gambar)
-                } catch (exception: IllegalArgumentException) {
-                    Toast.makeText(requireContext(), exception.message, Toast.LENGTH_SHORT).show()
-                }
-            } else {
-                Toast.makeText(requireContext(), "Data tidak boleh kosong", Toast.LENGTH_SHORT).show()
+    private fun createActionButton(label: String, color: String, dp: Float, onClick: () -> Unit): AppCompatButton {
+        return AppCompatButton(requireContext()).apply {
+            text = label
+            textSize = 13f
+            isAllCaps = false
+            setTextColor(Color.WHITE)
+            setPadding((12 * dp).toInt(), 0, (12 * dp).toInt(), 0)
+            minHeight = 0
+            minimumHeight = 0
+            background = GradientDrawable().apply {
+                setColor(Color.parseColor(color))
+                cornerRadius = 8 * dp
+            }
+            setOnClickListener { onClick() }
+            layoutParams = LinearLayout.LayoutParams(0, (40 * dp).toInt(), 1f).apply {
+                setMargins((4 * dp).toInt())
             }
         }
     }
 
     private fun showImagePickerDialog() {
         val dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_image_picker, null)
-        val dialog = AlertDialog.Builder(requireContext())
-            .setView(dialogView)
-            .create()
-
+        val dialog = AlertDialog.Builder(requireContext()).setView(dialogView).create()
         dialog.window?.setBackgroundDrawable(ColorDrawable(android.graphics.Color.TRANSPARENT))
-
-        dialogView.findViewById<Button>(R.id.btn_dialog_camera).setOnClickListener {
-            startCameraWithPermissionCheck()
-            dialog.dismiss()
-        }
-
-        dialogView.findViewById<Button>(R.id.btn_dialog_gallery).setOnClickListener {
-            startGalleryWithPermissionCheck()
-            dialog.dismiss()
-        }
-
+        dialogView.findViewById<Button>(R.id.btn_dialog_camera).setOnClickListener { startCameraWithPermissionCheck(); dialog.dismiss() }
+        dialogView.findViewById<Button>(R.id.btn_dialog_gallery).setOnClickListener { startGalleryWithPermissionCheck(); dialog.dismiss() }
         dialog.show()
     }
 
-    private fun uploadImageAndGetUrl(
-        namaKue: String,
-        harga: String,
-        stok: Long,
-        satuan: String,
-        kategoriProduk: List<Map<String, Any>>,
-        gambar: File
-    ) {
-        binding.apply {
-            progressBar2.visibility = View.VISIBLE
-            etNamaKue.isEnabled = false
-            etHarga.isEnabled = false
-            etStok.isEnabled = false
-            etSatuan.isEnabled = false
-            etKategoriProduk.isEnabled = false
-        }
-        val storageRef = storage.reference
-        val imageRef = storageRef.child("images/${namaKue}")
-        val uploadTask = imageRef.putFile(Uri.fromFile(gambar))
-
-        uploadTask.addOnSuccessListener {
+    private fun uploadImageAndGetUrl(namaKue: String, kategoriProduk: List<Map<String, Any>>, gambar: File) {
+        setRequestLoading(true)
+        val imageRef = storage.reference.child("images/$namaKue")
+        imageRef.putFile(Uri.fromFile(gambar)).addOnSuccessListener {
             imageRef.downloadUrl.addOnSuccessListener { uri ->
-                val url = uri.toString()
-                val data = hashMapOf(
-                    "namaKue" to namaKue,
-                    "harga" to harga,
-                    "stok" to stok,
-                    "satuan" to satuan,
-                    "kategori" to (kategoriProduk.firstOrNull()?.get("namaKategori") ?: "Default"),
-                    "kategoriProduk" to kategoriProduk,
-                    "imageUrl" to url
-                )
-                db.collection("cakes")
-                    .add(data)
-                    .addOnSuccessListener { documentReference ->
-                        val generatedDocumentId = documentReference.id
-                        db.collection("cakes").document(generatedDocumentId)
-                            .update("documentId", generatedDocumentId)
-                            .addOnSuccessListener {
-                                if (_binding != null) {
-                                    binding.apply {
-                                        progressBar2.visibility = View.GONE
-                                        etNamaKue.isEnabled = true
-                                        etHarga.isEnabled = true
-                                        etStok.isEnabled = true
-                                        etSatuan.isEnabled = true
-                                        etKategoriProduk.isEnabled = true
-                                    }
-                                }
-                                Toast.makeText(requireContext(), "Data berhasil ditambahkan", Toast.LENGTH_SHORT).show()
-                                findNavController().navigateUp()
-                            }
+                val data = hashMapOf("namaKue" to namaKue, "kategoriProduk" to kategoriProduk, "imageUrl" to uri.toString())
+                db.collection("cakes").add(data).addOnSuccessListener { documentReference ->
+                    db.collection("cakes").document(documentReference.id).update("documentId", documentReference.id).addOnSuccessListener {
+                        if (_binding != null) setRequestLoading(false)
+                        Toast.makeText(requireContext(), "Data berhasil ditambahkan", Toast.LENGTH_SHORT).show()
+                        findNavController().navigateUp()
+                    }.addOnFailureListener { exception ->
+                        handleUploadFailure(exception)
                     }
+                }.addOnFailureListener { exception ->
+                    handleUploadFailure(exception)
+                }
+            }.addOnFailureListener { exception ->
+                handleUploadFailure(exception)
             }
+        }.addOnFailureListener { exception ->
+            handleUploadFailure(exception)
         }
     }
 
-    private fun startCameraWithPermissionCheck() {
-        if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
-            openCamera()
-        } else {
-            requestCameraPermissionLauncher.launch(Manifest.permission.CAMERA)
-        }
+    private fun handleUploadFailure(exception: Exception) {
+        Log.e("AdminAddFragment", "Error uploading cake data", exception)
+        if (_binding != null) setRequestLoading(false)
+        Toast.makeText(requireContext(), "Gagal menyimpan data kue", Toast.LENGTH_SHORT).show()
     }
 
+    private fun setRequestLoading(isLoading: Boolean) {
+        if (_binding == null) return
+        binding.root.setFirebaseRequestLoading(isLoading, binding.progressBar2)
+    }
+
+    private fun startCameraWithPermissionCheck() { if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) openCamera() else requestCameraPermissionLauncher.launch(Manifest.permission.CAMERA) }
     private fun startGalleryWithPermissionCheck() {
-        val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            Manifest.permission.READ_MEDIA_IMAGES
-        } else {
-            Manifest.permission.READ_EXTERNAL_STORAGE
-        }
-
-        if (ContextCompat.checkSelfPermission(requireContext(), permission) == PackageManager.PERMISSION_GRANTED) {
-            openGallery()
-        } else {
-            requestGalleryPermissionLauncher.launch(permission)
-        }
+        val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) Manifest.permission.READ_MEDIA_IMAGES else Manifest.permission.READ_EXTERNAL_STORAGE
+        if (ContextCompat.checkSelfPermission(requireContext(), permission) == PackageManager.PERMISSION_GRANTED) openGallery() else requestGalleryPermissionLauncher.launch(permission)
     }
 
     @SuppressLint("QueryPermissionsNeeded")
     private fun openCamera() {
         val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
         createCustomTempFile(requireActivity().application).also {
-            val photoURI: Uri = FileProvider.getUriForFile(requireContext(), "com.dissy.lizkitchen", it)
+            val photoURI = FileProvider.getUriForFile(requireContext(), "com.dissy.lizkitchen", it)
             photoPath = it.absolutePath
             intent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI)
             launcherIntentCamera.launch(intent)
@@ -265,20 +333,16 @@ class AdminAddFragment : Fragment() {
     private fun openGallery() {
         val intent = Intent(Intent.ACTION_GET_CONTENT)
         intent.type = "image/*"
-        val chooser = Intent.createChooser(intent, "Choose a Picture")
-        launcherIntentGallery.launch(chooser)
+        launcherIntentGallery.launch(Intent.createChooser(intent, "Choose a Picture"))
     }
 
     private val launcherIntentGallery = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
         if (it.resultCode == Activity.RESULT_OK) {
-            val selectedImg: Uri = it.data?.data ?: return@registerForActivityResult
+            val selectedImg = it.data?.data ?: return@registerForActivityResult
             file = uriToFile(selectedImg, requireContext())
             Glide.with(this).load(selectedImg).into(binding.ivBanner)
         }
     }
 
-    override fun onDestroyView() {
-        super.onDestroyView()
-        _binding = null
-    }
+    override fun onDestroyView() { super.onDestroyView(); _binding = null }
 }

@@ -2,7 +2,6 @@ package com.dissy.lizkitchen.ui.order
 
 import android.content.Intent
 import android.os.Bundle
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -10,13 +9,11 @@ import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.dissy.lizkitchen.adapter.user.HomeOrderUserAdapter
 import com.dissy.lizkitchen.databinding.FragmentOrderBinding
-import com.dissy.lizkitchen.model.Cake
-import com.dissy.lizkitchen.model.Cart
-import com.dissy.lizkitchen.model.Order
-import com.dissy.lizkitchen.model.User
 import com.dissy.lizkitchen.ui.login.LoginActivity
 import com.dissy.lizkitchen.utility.Preferences
-import com.dissy.lizkitchen.utility.cakeFromMap
+import com.dissy.lizkitchen.utility.orderFromDocument
+import com.dissy.lizkitchen.utility.setFirebaseRequestLoading
+import com.dissy.lizkitchen.utility.validateOrderExpiryOnRead
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 
@@ -48,6 +45,7 @@ class OrderFragment : Fragment() {
         }
         binding.rvOrder.adapter = orderAdapter
         binding.rvOrder.layoutManager = LinearLayoutManager(requireContext())
+        binding.tvOrderCount.text = "Memuat pesanan..."
 
         binding.topAppBar.setOnMenuItemClickListener { menuItem ->
             when (menuItem.itemId) {
@@ -69,37 +67,38 @@ class OrderFragment : Fragment() {
     }
 
     private fun fetchOrders() {
-        val userId = Preferences.getUserId(requireContext()) ?: return
-        binding.progressBar2.visibility = View.VISIBLE
+        val userId = Preferences.getUserId(requireContext())
+        if (userId == null) {
+            binding.tvOrderCount.text = "0 pesanan"
+            binding.emptyCart.visibility = View.VISIBLE
+            return
+        }
+
+        binding.root.setFirebaseRequestLoading(true, binding.progressBar2)
         db.collection("users").document(userId).collection("orders").get()
             .addOnSuccessListener { result ->
-                val orderList = mutableListOf<Order>()
-                for (document in result) {
-                    val cartItemsArray = document.get("cart") as? ArrayList<HashMap<String, Any>>
-                    val cartItems = cartItemsArray?.map { map ->
-                        val cakeMap = map["cake"] as? HashMap<*, *>
-                        Cart(
-                            cakeId = map["cakeId"] as? String ?: "",
-                            cake = cakeFromMap(cakeMap?.get("documentId")?.toString().orEmpty(), cakeMap ?: emptyMap<String, Any>()),
-                            jumlahPesanan = map["jumlahPesanan"] as? Long ?: 0
-                        )
-                    } ?: listOf()
-                    
-                    val order = Order(
-                        cart = cartItems,
-                        orderId = document.getString("orderId") ?: "",
-                        status = document.getString("status") ?: "",
-                        totalPrice = document.getLong("totalPrice") ?: 0,
-                        tanggalOrder = document.getString("tanggalOrder") ?: "",
-                        metodePengambilan = document.getString("metodePengambilan") ?: "",
-                        user = User() // Map basic user if needed
-                    )
-                    orderList.add(order)
-                }
+                if (_binding == null) return@addOnSuccessListener
+                val orderList = result.map { validateOrderExpiryOnRead(db, orderFromDocument(it)) }
+                    .sortedByDescending { order -> order.orderId.removePrefix("ORDER-").toLongOrNull() ?: 0 }
                 orderAdapter.submitList(orderList)
-                binding.progressBar2.visibility = View.GONE
+                binding.tvOrderCount.text = buildOrderCountText(orderList.size)
+                binding.root.setFirebaseRequestLoading(false, binding.progressBar2)
                 binding.emptyCart.visibility = if (orderList.isEmpty()) View.VISIBLE else View.GONE
             }
+            .addOnFailureListener {
+                if (_binding == null) return@addOnFailureListener
+                binding.tvOrderCount.text = "0 pesanan"
+                binding.root.setFirebaseRequestLoading(false, binding.progressBar2)
+                binding.emptyCart.visibility = View.VISIBLE
+            }
+    }
+
+    private fun buildOrderCountText(orderCount: Int): String {
+        return if (orderCount == 0) {
+            "Belum ada pesanan aktif atau riwayat."
+        } else {
+            "$orderCount pesanan aktif dan riwayat."
+        }
     }
 
     override fun onDestroyView() {

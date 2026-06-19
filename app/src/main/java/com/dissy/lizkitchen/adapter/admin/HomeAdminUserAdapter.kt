@@ -1,10 +1,22 @@
 package com.dissy.lizkitchen.adapter.admin
 
+import android.graphics.Color
+import android.graphics.drawable.GradientDrawable
 import android.view.ViewGroup
 import android.widget.Filter
 import android.widget.Filterable
+import android.widget.TextView
 import androidx.recyclerview.widget.ListAdapter
 import com.dissy.lizkitchen.model.Order
+import com.dissy.lizkitchen.utility.ORDER_STATUS_CANCELED
+import com.dissy.lizkitchen.utility.ORDER_STATUS_CONFIRMED
+import com.dissy.lizkitchen.utility.ORDER_STATUS_DONE
+import com.dissy.lizkitchen.utility.ORDER_STATUS_EXPIRED
+import com.dissy.lizkitchen.utility.ORDER_STATUS_PENDING_PAYMENT
+import com.dissy.lizkitchen.utility.ORDER_STATUS_PROCESSING
+import com.dissy.lizkitchen.utility.ORDER_STATUS_READY_PICKUP
+import com.dissy.lizkitchen.utility.ORDER_STATUS_SHIPPING
+import com.dissy.lizkitchen.utility.metodePengambilanDisplayForOrder
 
 class HomeAdminUserAdapter(private val onItemClick: (String) -> Unit) :
     ListAdapter<Order, HomeAdminUserAdapter.HomeAdminViewHolder>(
@@ -43,30 +55,61 @@ class HomeAdminUserAdapter(private val onItemClick: (String) -> Unit) :
         androidx.recyclerview.widget.RecyclerView.ViewHolder(binding.root) {
 
         fun bind(order: Order, onItemClick: (String) -> Unit) {
-            if (order.status == "Selesai") {
-                binding.tvOrderStatus.setTextColor(android.graphics.Color.parseColor("#0ACB12"))
-            } else if (order.status == "Dibatalkan") {
-                binding.tvOrderStatus.setTextColor(android.graphics.Color.parseColor("#D10826"))
-            } else if (order.status == "Menunggu Pembayaran") {
-                binding.tvOrderStatus.setTextColor(android.graphics.Color.parseColor("#D10826"))
-            } else if (order.status == "Sedang Dikirim") {
-                binding.tvOrderStatus.setTextColor(android.graphics.Color.parseColor("#0ACB12"))
-            } else if (order.status == "Sedang Diproses") {
-                binding.tvOrderStatus.setTextColor(android.graphics.Color.parseColor("#9C6843"))
-            } else if (order.status == "Sudah Dikonfirmasi") {
-                binding.tvOrderStatus.setTextColor(android.graphics.Color.parseColor("#0ACB12"))
-            }
-
             binding.apply {
-                tvOrderId.text = order.orderId
-                tvOrderStatus.text = order.status
-                tvUsername.text = order.user.username
-                tvPhoneNumber.text = order.user.phoneNumber
+                val statusText = order.status.ifBlank { "Status belum tersedia" }
+                tvOrderId.text = order.orderId.ifBlank { "-" }
+                tvOrderStatus.text = statusText
+                applyStatusStyle(tvOrderStatus, statusText)
+                tvUsername.text = order.user.username.orEmpty().ifBlank { "Pelanggan" }
+                tvPhoneNumber.text = order.user.phoneNumber.orEmpty().ifBlank { "Nomor HP belum tersedia" }
+                tvMetodePengambilan.text = metodePengambilanDisplayForOrder(order).ifBlank { "Metode belum dipilih" }
+                tvTanggalOrder.text = buildDateText(order.tanggalOrder, order.jamOrder)
+                tvItemSummary.text = buildItemSummary(order)
+                tvTotalHarga.text = formatCurrency(order.totalPrice)
                 root.setOnClickListener {
                     onItemClick.invoke(order.orderId)
                 }
             }
         }
+    }
+
+    private fun applyStatusStyle(textView: TextView, status: String) {
+        val (textColor, backgroundColor) = when (status) {
+            ORDER_STATUS_DONE -> "#128A35" to "#E8F7EC"
+            ORDER_STATUS_CANCELED, ORDER_STATUS_EXPIRED -> "#C62828" to "#FDECEC"
+            ORDER_STATUS_PENDING_PAYMENT -> "#C46A16" to "#FFF0DE"
+            ORDER_STATUS_SHIPPING, ORDER_STATUS_CONFIRMED, ORDER_STATUS_READY_PICKUP -> "#128A35" to "#E8F7EC"
+            ORDER_STATUS_PROCESSING -> "#9C6843" to "#F7E6DA"
+            else -> "#9C6843" to "#F7E6DA"
+        }
+
+        textView.setTextColor(Color.parseColor(textColor))
+        textView.background = GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = textView.resources.displayMetrics.density * 20
+            setColor(Color.parseColor(backgroundColor))
+        }
+    }
+
+    private fun buildDateText(date: String, time: String): String {
+        val cleanDate = date.ifBlank { "Tanggal belum tersedia" }
+        return if (time.isBlank()) cleanDate else "$cleanDate, $time"
+    }
+
+    private fun buildItemSummary(order: Order): String {
+        val itemTypeCount = order.cart.size
+        val quantityCount = order.cart.sumOf { it.jumlahPesanan }
+        return "$itemTypeCount jenis produk | $quantityCount item"
+    }
+
+    private fun formatCurrency(value: Long): String {
+        val formatted = StringBuilder(value.toString())
+        var index = formatted.length - 3
+        while (index > 0) {
+            formatted.insert(index, ".")
+            index -= 3
+        }
+        return "Rp $formatted"
     }
 
     private class DiffCallback : androidx.recyclerview.widget.DiffUtil.ItemCallback<Order>() {

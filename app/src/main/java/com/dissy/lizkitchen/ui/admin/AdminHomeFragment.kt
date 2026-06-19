@@ -35,6 +35,10 @@ class AdminHomeFragment : Fragment() {
             findNavController().navigate(R.id.navigation_admin_user_order)
         }
 
+        binding.btnToReport.setOnClickListener {
+            findNavController().navigate(R.id.navigation_admin_report)
+        }
+
         binding.topAppBar.menu.findItem(R.id.btn_toProfile)?.isVisible = false
 
         binding.topAppBar.setOnMenuItemClickListener { menuItem ->

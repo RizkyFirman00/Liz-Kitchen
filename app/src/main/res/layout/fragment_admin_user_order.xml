@@ -4,13 +4,16 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="#FFF9F5"
     tools:context=".ui.admin.user.AdminUserOrderFragment">
 
     <com.google.android.material.appbar.AppBarLayout
         android:id="@+id/topAppBar2"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:background="@color/brown_old"
         android:elevation="0dp"
+        android:fitsSystemWindows="true"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
@@ -18,121 +21,230 @@
         <com.google.android.material.appbar.MaterialToolbar
             android:id="@+id/topAppBar"
             android:layout_width="match_parent"
-            android:layout_height="?attr/actionBarSize"
+            android:layout_height="56dp"
             android:background="@color/brown_old"
             android:elevation="0dp" />
     </com.google.android.material.appbar.AppBarLayout>
 
-    <RelativeLayout
+    <LinearLayout
         android:id="@+id/logo"
-        android:layout_width="match_parent"
-        android:layout_height="?attr/actionBarSize"
-        android:clickable="true"
+        android:layout_width="0dp"
+        android:layout_height="56dp"
+        android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingHorizontal="15dp"
-        android:paddingVertical="10dp"
+        android:paddingStart="12dp"
+        android:paddingEnd="10dp"
         app:layout_constraintBottom_toBottomOf="@id/topAppBar2"
-        app:layout_constraintStart_toStartOf="@id/topAppBar2"
-        app:layout_constraintTop_toTopOf="@id/topAppBar2">
+        app:layout_constraintEnd_toEndOf="@id/topAppBar2"
+        app:layout_constraintStart_toStartOf="@id/topAppBar2">
 
         <androidx.appcompat.widget.AppCompatImageButton
             android:id="@+id/btn_toHome"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:layout_alignParentStart="true"
-            android:layout_alignParentTop="true"
-            android:layout_alignParentBottom="true"
-            android:layout_gravity="center"
-            android:layout_marginEnd="15dp"
-            android:background="@color/brown_old"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@null"
+            android:padding="8dp"
             android:src="@drawable/baseline_arrow_back_24_white" />
 
+        <ImageView
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_marginStart="6dp"
+            android:background="@drawable/bg_toolbar_logo"
+            android:contentDescription="@null"
+            android:padding="5dp"
+            android:src="@drawable/logo" />
+
         <LinearLayout
-            android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:layout_alignParentTop="true"
-            android:layout_alignParentBottom="true"
-            android:layout_toEndOf="@id/btn_toHome"
-            android:orientation="horizontal">
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
 
-            <ImageView
-                android:layout_width="50dp"
-                android:layout_height="50dp"
-                android:layout_gravity="center"
-                android:src="@drawable/logo" />
-
-            <LinearLayout
+            <TextView
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:orientation="vertical">
+                android:layout_height="wrap_content"
+                android:fontFamily="@font/poppins_bold"
+                android:includeFontPadding="false"
+                android:text="Pesanan Pelanggan"
+                android:textColor="@color/white"
+                android:textSize="14sp" />
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:fontFamily="@font/poppins_light"
-                    android:text="Liz"
-                    android:textAlignment="textStart"
-                    android:textColor="@color/white"
-                    android:textSize="13sp" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:fontFamily="@font/poppins_bold"
-                    android:text="Kitchen"
-                    android:textColor="@color/white"
-                    android:textSize="14sp" />
-            </LinearLayout>
-
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="1dp"
+                android:fontFamily="@font/poppins_regular"
+                android:includeFontPadding="false"
+                android:text="Kelola transaksi masuk"
+                android:textColor="#F7E6DA"
+                android:textSize="10sp" />
         </LinearLayout>
 
         <androidx.appcompat.widget.AppCompatImageButton
             android:id="@+id/btn_toMutasi"
-            android:layout_width="50dp"
-            android:layout_height="50dp"
-            android:layout_alignParentTop="true"
-            android:layout_alignParentBottom="true"
-            android:layout_marginEnd="20dp"
-            android:layout_toStartOf="@id/btn_toLogout"
-            android:background="@color/brown_old"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@null"
+            android:padding="8dp"
             android:src="@drawable/baseline_assignment_24_white" />
 
         <androidx.appcompat.widget.AppCompatImageButton
             android:id="@+id/btn_toLogout"
-            android:layout_width="30dp"
-            android:layout_height="30dp"
-            android:layout_alignParentTop="true"
-            android:layout_alignParentEnd="true"
-            android:layout_alignParentBottom="true"
-            android:background="@color/brown_old"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@null"
+            android:padding="8dp"
             android:src="@drawable/baseline_logout_24_whit" />
+    </LinearLayout>
 
-    </RelativeLayout>
-
-    <androidx.appcompat.widget.SearchView
-        android:id="@+id/searhView"
-        android:layout_width="match_parent"
+    <LinearLayout
+        android:id="@+id/filterPanel"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginHorizontal="20dp"
-        android:layout_marginTop="15dp"
-        android:background="@drawable/login_register_box"
-        android:elevation="8dp"
-        android:queryHint="Cari Order ID"
-        app:iconifiedByDefault="false"
+        android:background="@color/brown_old"
+        android:orientation="vertical"
+        android:paddingHorizontal="14dp"
+        android:paddingBottom="10dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/topAppBar2" />
+        app:layout_constraintTop_toBottomOf="@id/topAppBar2">
+
+        <LinearLayout
+            android:id="@+id/orderHeader"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_home_header"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="12dp"
+            android:paddingVertical="7dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="@font/poppins_bold"
+                android:includeFontPadding="false"
+                android:text="Daftar"
+                android:textColor="#3A2A20"
+                android:textSize="13sp" />
+
+            <TextView
+                android:id="@+id/tv_orderSummary"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
+                android:ellipsize="end"
+                android:fontFamily="@font/poppins_regular"
+                android:gravity="end"
+                android:includeFontPadding="false"
+                android:maxLines="1"
+                android:text="Memuat pesanan..."
+                android:textColor="#765945"
+                android:textSize="11sp" />
+        </LinearLayout>
+
+        <androidx.appcompat.widget.SearchView
+            android:id="@+id/searhView"
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/bg_home_search"
+            android:paddingStart="2dp"
+            android:paddingEnd="8dp"
+            app:iconifiedByDefault="false"
+            app:queryBackground="@android:color/transparent"
+            app:queryHint="Cari order, nama, atau nomor HP..." />
+
+        <com.google.android.material.tabs.TabLayout
+            android:id="@+id/tabFilterStatus"
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/bg_home_search"
+            app:tabGravity="start"
+            app:tabIndicatorColor="@color/brown_old"
+            app:tabIndicatorFullWidth="false"
+            app:tabIndicatorHeight="2dp"
+            app:tabMode="scrollable"
+            app:tabPaddingEnd="12dp"
+            app:tabPaddingStart="12dp"
+            app:tabRippleColor="@android:color/transparent"
+            app:tabSelectedTextColor="@color/brown_old"
+            app:tabTextAppearance="@style/TextAppearance.MaterialComponents.Body2"
+            app:tabTextColor="#765945" />
+
+        <LinearLayout
+            android:id="@+id/filterSortContainer"
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/bg_home_search"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="12dp"
+            android:paddingEnd="4dp">
+
+            <androidx.appcompat.widget.AppCompatSpinner
+                android:id="@+id/spinnerSortOrder"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@android:color/transparent"
+                android:paddingEnd="2dp" />
+        </LinearLayout>
+    </LinearLayout>
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rv_user"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="0dp"
-        android:layout_marginHorizontal="20dp"
-        android:layout_marginTop="15dp"
+        android:clipToPadding="false"
+        android:paddingHorizontal="14dp"
+        android:paddingTop="10dp"
+        android:paddingBottom="18dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/searhView"
+        app:layout_constraintTop_toBottomOf="@id/filterPanel"
+        tools:itemCount="4"
         tools:listitem="@layout/rv_user" />
+
+    <TextView
+        android:id="@+id/tv_empty_data"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="28dp"
+        android:background="@drawable/bg_home_header"
+        android:fontFamily="@font/poppins_semibold"
+        android:paddingHorizontal="20dp"
+        android:paddingVertical="18dp"
+        android:text="Pesanan tidak ditemukan"
+        android:textAlignment="center"
+        android:textColor="@color/brown_old"
+        android:textSize="14sp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="@+id/rv_user"
+        app:layout_constraintEnd_toEndOf="@+id/rv_user"
+        app:layout_constraintStart_toStartOf="@+id/rv_user"
+        app:layout_constraintTop_toTopOf="@+id/rv_user" />
+
+    <ProgressBar
+        android:id="@+id/progressBar2"
+        style="?android:attr/progressBarStyleLarge"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:indeterminate="true"
+        android:indeterminateTint="@color/brown_young"
+        android:indeterminateTintMode="src_atop"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/topAppBar2" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
