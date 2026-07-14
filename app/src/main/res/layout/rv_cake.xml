@@ -17,11 +17,12 @@
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:padding="12dp"
         android:minHeight="132dp">
 
-        <androidx.appcompat.widget.AppCompatImageView
+        <com.google.android.material.imageview.ShapeableImageView
             android:id="@+id/ivCakeBanner"
-            android:layout_width="112dp"
+            android:layout_width="118dp"
             android:layout_height="0dp"
             android:background="#FFF6EF"
             android:scaleType="centerCrop"
@@ -29,6 +30,7 @@
             app:layout_constraintDimensionRatio="1:1"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
+            app:shapeAppearanceOverlay="@style/LizKitchenRoundedImage"
             tools:src="@drawable/null_image" />
 
         <LinearLayout
@@ -38,6 +40,7 @@
             android:orientation="vertical"
             android:paddingHorizontal="12dp"
             android:paddingVertical="12dp"
+            android:layout_marginStart="8dp"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toEndOf="@id/ivCakeBanner"

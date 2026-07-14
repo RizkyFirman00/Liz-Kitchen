@@ -36,4 +36,9 @@
         <item name="android:textSize">11sp</item>
     </style>
 
+    <style name="LizKitchenRoundedImage">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">8dp</item>
+    </style>
+
 </resources>

@@ -87,13 +87,14 @@
                 app:strokeColor="#EED8C8"
                 app:strokeWidth="1dp">
 
-                <androidx.appcompat.widget.AppCompatImageView
+                <com.google.android.material.imageview.ShapeableImageView
                     android:id="@+id/ivImageBanner"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:background="#F7E6DA"
                     android:contentDescription="@null"
                     android:scaleType="centerCrop"
+                    app:shapeAppearanceOverlay="@style/LizKitchenRoundedImage"
                     tools:src="@drawable/null_image" />
             </com.google.android.material.card.MaterialCardView>
 

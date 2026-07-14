@@ -23,14 +23,14 @@
             android:gravity="top"
             android:orientation="horizontal">
 
-            <ImageView
+            <com.google.android.material.imageview.ShapeableImageView
                 android:id="@+id/ivCakeBanner"
                 android:layout_width="92dp"
                 android:layout_height="92dp"
                 android:background="@drawable/bg_cart_panel"
-                android:clipToOutline="true"
                 android:contentDescription="@null"
                 android:scaleType="centerCrop"
+                app:shapeAppearanceOverlay="@style/LizKitchenRoundedImage"
                 tools:src="@drawable/null_image" />
 
             <LinearLayout

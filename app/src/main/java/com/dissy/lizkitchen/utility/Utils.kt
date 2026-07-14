@@ -18,13 +18,17 @@ fun uriToFile(selectedImg: Uri, context: Context): File {
     val contentResolver: ContentResolver = context.contentResolver
     val myFile = createCustomTempFile(context)
 
-    val inputStream = contentResolver.openInputStream(selectedImg) as InputStream
-    val outputStream: OutputStream = FileOutputStream(myFile)
-    val buf = ByteArray(1024)
-    var len: Int
-    while (inputStream.read(buf).also { len = it } > 0) outputStream.write(buf, 0, len)
-    outputStream.close()
-    inputStream.close()
+    val inputStream = contentResolver.openInputStream(selectedImg)
+        ?: throw IllegalArgumentException("Cannot open selected image")
+    inputStream.use { input: InputStream ->
+        FileOutputStream(myFile).use { output: OutputStream ->
+            val buf = ByteArray(1024)
+            var len: Int
+            while (input.read(buf).also { len = it } > 0) {
+                output.write(buf, 0, len)
+            }
+        }
+    }
 
     return myFile
 }

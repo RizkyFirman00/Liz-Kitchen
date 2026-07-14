@@ -143,13 +143,14 @@
                         android:layout_marginTop="10dp"
                         android:background="@drawable/bg_order_panel">
 
-                        <androidx.appcompat.widget.AppCompatImageView
+                        <com.google.android.material.imageview.ShapeableImageView
                             android:id="@+id/ivBanner"
                             android:layout_width="match_parent"
                             android:layout_height="match_parent"
                             android:contentDescription="Foto kue"
                             android:scaleType="centerCrop"
-                            android:src="@drawable/null_image" />
+                            android:src="@drawable/null_image"
+                            app:shapeAppearanceOverlay="@style/LizKitchenRoundedImage" />
                     </FrameLayout>
 
                     <LinearLayout

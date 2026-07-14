@@ -12,7 +12,6 @@ import android.graphics.Typeface
 import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.GradientDrawable
 import android.net.Uri
-import android.os.Build
 import android.os.Bundle
 import android.provider.MediaStore
 import android.util.Log
@@ -60,12 +59,6 @@ class AdminAddFragment : Fragment() {
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted: Boolean ->
             if (isGranted) openCamera()
             else Toast.makeText(requireContext(), getString(R.string.permission_camera_denied), Toast.LENGTH_SHORT).show()
-        }
-
-    private val requestGalleryPermissionLauncher =
-        registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted: Boolean ->
-            if (isGranted) openGallery()
-            else Toast.makeText(requireContext(), getString(R.string.permission_gallery_denied), Toast.LENGTH_SHORT).show()
         }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
@@ -306,10 +299,7 @@ class AdminAddFragment : Fragment() {
     }
 
     private fun startCameraWithPermissionCheck() { if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) openCamera() else requestCameraPermissionLauncher.launch(Manifest.permission.CAMERA) }
-    private fun startGalleryWithPermissionCheck() {
-        val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) Manifest.permission.READ_MEDIA_IMAGES else Manifest.permission.READ_EXTERNAL_STORAGE
-        if (ContextCompat.checkSelfPermission(requireContext(), permission) == PackageManager.PERMISSION_GRANTED) openGallery() else requestGalleryPermissionLauncher.launch(permission)
-    }
+    private fun startGalleryWithPermissionCheck() = openGallery()
 
     @SuppressLint("QueryPermissionsNeeded")
     private fun openCamera() {
@@ -331,16 +321,24 @@ class AdminAddFragment : Fragment() {
     }
 
     private fun openGallery() {
-        val intent = Intent(Intent.ACTION_GET_CONTENT)
-        intent.type = "image/*"
+        val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
+            type = "image/*"
+            addCategory(Intent.CATEGORY_OPENABLE)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
         launcherIntentGallery.launch(Intent.createChooser(intent, "Choose a Picture"))
     }
 
     private val launcherIntentGallery = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
         if (it.resultCode == Activity.RESULT_OK) {
             val selectedImg = it.data?.data ?: return@registerForActivityResult
-            file = uriToFile(selectedImg, requireContext())
-            Glide.with(this).load(selectedImg).into(binding.ivBanner)
+            runCatching {
+                file = uriToFile(selectedImg, requireContext())
+                Glide.with(this).load(selectedImg).into(binding.ivBanner)
+            }.onFailure { exception ->
+                Log.e("AdminAddFragment", "Error selecting gallery image", exception)
+                Toast.makeText(requireContext(), "Gagal memuat foto dari galeri", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
