@@ -67,22 +67,26 @@ class LoginActivity : BaseActivity() {
                 Toast.makeText(this, "Email dan password wajib diisi", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
-            if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-                binding.etEmail.error = "Format email tidak valid"
-                return@setOnClickListener
-            }
 
-            if (email == Preferences.ADMIN_EMAIL && password == "admin") {
+            val isAdminLogin = (email == "admin" || email == Preferences.ADMIN_EMAIL) &&
+                password == "admin"
+            if (isAdminLogin) {
                 Preferences.saveAdminSession(this)
                 Intent(this, AdminActivity::class.java).also {
                     startActivity(it)
                     finish()
                 }
-            } else {
-                lifecycleScope.launch {
-                    val loginResult = loginUser(email, password)
-                    handleLoginResult(loginResult)
-                }
+                return@setOnClickListener
+            }
+
+            if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+                binding.etEmail.error = "Format email tidak valid"
+                return@setOnClickListener
+            }
+
+            lifecycleScope.launch {
+                val loginResult = loginUser(email, password)
+                handleLoginResult(loginResult)
             }
         }
     }
