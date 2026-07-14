@@ -60,7 +60,7 @@ class HomeAdminUserAdapter(private val onItemClick: (String) -> Unit) :
                 tvOrderId.text = order.orderId.ifBlank { "-" }
                 tvOrderStatus.text = statusText
                 applyStatusStyle(tvOrderStatus, statusText)
-                tvUsername.text = order.user.username.orEmpty().ifBlank { "Pelanggan" }
+                tvName.text = order.user.name.orEmpty().ifBlank { "Pelanggan" }
                 tvPhoneNumber.text = order.user.phoneNumber.orEmpty().ifBlank { "Nomor HP belum tersedia" }
                 tvMetodePengambilan.text = metodePengambilanDisplayForOrder(order).ifBlank { "Metode belum dipilih" }
                 tvTanggalOrder.text = buildDateText(order.tanggalOrder, order.jamOrder)
@@ -133,7 +133,7 @@ class HomeAdminUserAdapter(private val onItemClick: (String) -> Unit) :
                     val filterPattern = constraint.toString().trim()
 
                     for (order in orderListFull) {
-                        if (order.user.username?.contains(filterPattern) == true
+                        if (order.user.name?.contains(filterPattern, ignoreCase = true) == true
                             || order.orderId.contains(filterPattern)
                         ) {
                             filteredList.add(order)

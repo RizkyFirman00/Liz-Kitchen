@@ -6,13 +6,11 @@ import android.os.Parcelable
 data class User(
     val alamat: String? = "Belum diisi",
     val email: String? = "",
-    val password: String? = "",
+    val name: String? = "",
     val phoneNumber: String? = "",
     val userId: String? = "",
-    val username: String? = "",
 ) : Parcelable {
     constructor(parcel: Parcel) : this(
-        parcel.readString(),
         parcel.readString(),
         parcel.readString(),
         parcel.readString(),
@@ -24,10 +22,9 @@ data class User(
     override fun writeToParcel(parcel: Parcel, flags: Int) {
         parcel.writeString(alamat)
         parcel.writeString(email)
-        parcel.writeString(password)
+        parcel.writeString(name)
         parcel.writeString(phoneNumber)
         parcel.writeString(userId)
-        parcel.writeString(username)
     }
 
     override fun describeContents(): Int {

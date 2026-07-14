@@ -3,20 +3,31 @@ package com.dissy.lizkitchen.ui.register
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
+import android.util.Patterns
 import android.view.MotionEvent
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
+import androidx.lifecycle.lifecycleScope
 import com.dissy.lizkitchen.databinding.ActivityRegisterBinding
 import com.dissy.lizkitchen.ui.base.BaseActivity
 import com.dissy.lizkitchen.ui.login.LoginActivity
+import com.dissy.lizkitchen.utility.Preferences
 import com.dissy.lizkitchen.utility.hideKeyboardWhenTouchOutsideInput
 import com.dissy.lizkitchen.utility.setFirebaseRequestLoading
 import com.dissy.lizkitchen.utility.setupPasswordVisibilityToggle
+import com.google.firebase.FirebaseNetworkException
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
+import com.google.firebase.auth.FirebaseAuthUserCollisionException
+import com.google.firebase.auth.FirebaseAuthWeakPasswordException
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 class RegisterActivity : BaseActivity() {
     private val binding by lazy { ActivityRegisterBinding.inflate(layoutInflater) }
+    private val auth by lazy { FirebaseAuth.getInstance() }
     private val db = Firebase.firestore
     private val usersCollection = db.collection("users")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -35,22 +46,24 @@ class RegisterActivity : BaseActivity() {
         }
 
         binding.btnRegister.setOnClickListener {
-            val email = binding.etEmail.text.toString()
-            val phoneNumber = binding.etNotelp.text.toString()
-            val username = binding.etUsername.text.toString()
+            val email = binding.etEmail.text.toString().trim().lowercase()
+            val name = binding.etName.text.toString().trim()
+            val phoneNumber = binding.etNotelp.text.toString().trim()
             val password = binding.etPassword.text.toString()
             val alamat = "Belum diisi"
 
-            if (email.isEmpty() || phoneNumber.isEmpty() || username.isEmpty() || password.isEmpty()) {
+            if (email.isEmpty() || name.isEmpty() || phoneNumber.isEmpty() || password.isEmpty()) {
                 Toast.makeText(this, "Harap isi semua kolom", Toast.LENGTH_SHORT).show()
+            } else if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+                binding.etEmail.error = "Format email tidak valid"
             } else {
-                val passwordError = validatePassword(password, username)
+                val passwordError = validatePassword(password, email)
                 if (passwordError != null) {
                     binding.etPassword.error = passwordError
                     Toast.makeText(this, passwordError, Toast.LENGTH_LONG).show()
                     return@setOnClickListener
                 }
-                registerUser(email, phoneNumber, username, password, alamat)
+                registerUser(email, name, phoneNumber, password, alamat)
             }
         }
     }
@@ -62,57 +75,84 @@ class RegisterActivity : BaseActivity() {
 
     private fun registerUser(
         email: String,
+        name: String,
         phoneNumber: String,
-        username: String,
         password: String,
         alamat: String
     ) {
-        loadingProgress()
+        if (email == Preferences.ADMIN_EMAIL) {
+            Toast.makeText(this, "Email sudah terdaftar", Toast.LENGTH_SHORT).show()
+            return
+        }
 
-        usersCollection.whereEqualTo("username", username).get()
-            .addOnSuccessListener { querySnapshot ->
-                if (!querySnapshot.isEmpty) {
-                    // Username already exists
-                    unLoadingProgress()
-                    Toast.makeText(this, "Username sudah dipakai", Toast.LENGTH_SHORT).show()
-                } else {
-                    // Username is available, proceed with registration
-                    val newUserId = usersCollection.document().id
-                    val user = hashMapOf(
-                        "userId" to newUserId,
-                        "email" to email,
-                        "phoneNumber" to phoneNumber,
-                        "username" to username,
-                        "password" to password,
-                        "alamat" to alamat
-                    )
+        lifecycleScope.launch {
+            loadingProgress()
+            try {
+                auth.useAppLanguage()
+                val firebaseUser = auth.createUserWithEmailAndPassword(email, password)
+                    .await()
+                    .user
+                    ?: error("Firebase tidak mengembalikan data pengguna")
 
-                    usersCollection.document(newUserId).set(user)
-                        .addOnSuccessListener {
-                            unLoadingProgress()
-                            Toast.makeText(this, "Registrasi berhasil", Toast.LENGTH_SHORT).show()
-                            navigateToLogin()
-                        }
-                        .addOnFailureListener { e ->
-                            unLoadingProgress()
-                            Toast.makeText(this, "Registrasi gagal: ${e.message}", Toast.LENGTH_LONG).show()
-                            Log.e("RegisterActivity", "Error writing new user", e)
-                        }
+                val userData = mapOf(
+                    "userId" to firebaseUser.uid,
+                    "email" to email,
+                    "name" to name,
+                    "phoneNumber" to phoneNumber,
+                    "alamat" to alamat
+                )
+
+                try {
+                    usersCollection.document(firebaseUser.uid).set(userData).await()
+                } catch (exception: Exception) {
+                    runCatching { firebaseUser.delete().await() }
+                    throw exception
                 }
-            }
-            .addOnFailureListener { e ->
+
+                val verificationSent = runCatching {
+                    firebaseUser.sendEmailVerification().await()
+                }.onFailure {
+                    Log.e("RegisterActivity", "Gagal mengirim email verifikasi", it)
+                }.isSuccess
+
+                auth.signOut()
+                val message = if (verificationSent) {
+                    "Registrasi berhasil. Cek email untuk verifikasi akun"
+                } else {
+                    "Akun berhasil dibuat. Masuk untuk mengirim ulang verifikasi"
+                }
+                Toast.makeText(this@RegisterActivity, message, Toast.LENGTH_LONG).show()
+                navigateToLogin()
+            } catch (exception: Exception) {
+                auth.signOut()
+                Log.e("RegisterActivity", "Registrasi Firebase Auth gagal", exception)
+                Toast.makeText(
+                    this@RegisterActivity,
+                    registrationErrorMessage(exception),
+                    Toast.LENGTH_LONG
+                ).show()
+            } finally {
                 unLoadingProgress()
-                Toast.makeText(this, "Gagal memeriksa username: ${e.message}", Toast.LENGTH_LONG).show()
-                Log.e("RegisterActivity", "Error checking existing user", e)
             }
+        }
+    }
+
+    private fun registrationErrorMessage(exception: Exception): String {
+        return when (exception) {
+            is FirebaseAuthUserCollisionException -> "Email sudah terdaftar"
+            is FirebaseAuthWeakPasswordException -> "Password belum memenuhi ketentuan keamanan"
+            is FirebaseAuthInvalidCredentialsException -> "Format email tidak valid"
+            is FirebaseNetworkException -> "Koneksi bermasalah. Coba lagi"
+            else -> "Registrasi gagal. Silakan coba lagi"
+        }
     }
 
     private fun loadingProgress() {
         binding.apply {
             root.setFirebaseRequestLoading(true, progressBar2)
             etEmail.isEnabled = false
+            etName.isEnabled = false
             etNotelp.isEnabled = false
-            etUsername.isEnabled = false
             etPassword.isEnabled = false
         }
     }
@@ -121,15 +161,15 @@ class RegisterActivity : BaseActivity() {
         binding.apply {
             root.setFirebaseRequestLoading(false, progressBar2)
             etEmail.isEnabled = true
+            etName.isEnabled = true
             etNotelp.isEnabled = true
-            etUsername.isEnabled = true
             etPassword.isEnabled = true
         }
     }
 
-    private fun validatePassword(password: String, username: String): String? {
+    private fun validatePassword(password: String, email: String): String? {
         val normalizedPassword = password.lowercase()
-        val normalizedUsername = username.trim().lowercase()
+        val normalizedEmail = email.trim().lowercase()
         val weakPasswords = setOf(
             "password",
             "password123",
@@ -146,8 +186,8 @@ class RegisterActivity : BaseActivity() {
             password.none { it.isLowerCase() } -> "Password wajib punya huruf kecil"
             password.none { it.isDigit() } -> "Password wajib punya angka"
             password.none { !it.isLetterOrDigit() } -> "Password wajib punya simbol"
-            normalizedUsername.isNotBlank() && normalizedPassword.contains(normalizedUsername) ->
-                "Password tidak boleh mengandung username"
+            normalizedEmail.isNotBlank() && normalizedPassword.contains(normalizedEmail) ->
+                "Password tidak boleh mengandung Email"
             normalizedPassword in weakPasswords -> "Password terlalu mudah ditebak"
             else -> null
         }

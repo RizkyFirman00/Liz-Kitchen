@@ -139,7 +139,7 @@ class CartFragment : Fragment(),
                 val userInfo = Preferences.getUserInfo(requireContext())
                 val user = User(
                     userId = userId,
-                    username = userInfo?.username ?: "User",
+                    name = userInfo?.name ?: "Pelanggan",
                     email = userInfo?.email ?: "Email",
                     phoneNumber = userInfo?.phoneNumber ?: "Phone",
                     alamat = address

@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
+import android.util.Patterns
 import android.view.KeyEvent
 import android.view.inputmethod.InputMethodManager
 import android.view.LayoutInflater
@@ -12,18 +13,29 @@ import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
 import android.widget.Toast
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import com.dissy.lizkitchen.databinding.FragmentProfileBinding
+import com.dissy.lizkitchen.model.User
 import com.dissy.lizkitchen.ui.login.LoginActivity
 import com.dissy.lizkitchen.utility.Preferences
 import com.dissy.lizkitchen.utility.setFirebaseRequestLoading
+import com.google.firebase.FirebaseNetworkException
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
+import com.google.firebase.auth.FirebaseAuthRecentLoginRequiredException
+import com.google.firebase.auth.FirebaseAuthUserCollisionException
 import com.google.firebase.firestore.ktx.firestore
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.ktx.Firebase
 import com.dissy.lizkitchen.R
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 class ProfileFragment : Fragment() {
     private var _binding: FragmentProfileBinding? = null
     private val binding get() = _binding!!
+    private val auth by lazy { FirebaseAuth.getInstance() }
     private val db = Firebase.firestore
     private val usersCollection = db.collection("users")
 
@@ -83,17 +95,26 @@ class ProfileFragment : Fragment() {
         binding.btnUpdateData.setOnClickListener {
             hideKeyboardAndClearFocus()
 
-            val updatedEmail = binding.etEmail.text.toString()
-            val updatedPhoneNumber = binding.etNotelp.text.toString()
-            val updatedUsername = binding.etUsername.text.toString()
-            val updatedAlamat = binding.etAlamat.text.toString()
+            val updatedEmail = binding.etEmail.text.toString().trim().lowercase()
+            val updatedPhoneNumber = binding.etNotelp.text.toString().trim()
+            val updatedName = binding.etName.text.toString().trim()
+            val updatedAlamat = binding.etAlamat.text.toString().trim()
+
+            if (updatedEmail.isBlank() || updatedName.isBlank() || updatedPhoneNumber.isBlank()) {
+                Toast.makeText(requireContext(), "Email, nama, dan nomor telepon wajib diisi", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            if (!Patterns.EMAIL_ADDRESS.matcher(updatedEmail).matches()) {
+                binding.etEmail.error = "Format email tidak valid"
+                return@setOnClickListener
+            }
 
             if (userId != null) {
                 updateUserData(
                     userId,
                     updatedEmail,
                     updatedPhoneNumber,
-                    updatedUsername,
+                    updatedName,
                     updatedAlamat
                 )
             }
@@ -101,37 +122,60 @@ class ProfileFragment : Fragment() {
     }
 
     private fun getUserData(userId: String) {
-        setRequestLoading(true)
-        usersCollection.document(userId)
-            .get()
-            .addOnSuccessListener { documentSnapshot ->
-                if (_binding == null) return@addOnSuccessListener
-                setRequestLoading(false)
+        viewLifecycleOwner.lifecycleScope.launch {
+            setRequestLoading(true)
+            try {
+                auth.currentUser?.reload()?.await()
+                val documentSnapshot = usersCollection.document(userId).get().await()
                 if (documentSnapshot.exists()) {
-                    val email = documentSnapshot.getString("email")
+                    val storedEmail = documentSnapshot.getString("email").orEmpty()
+                    val email = auth.currentUser?.email.orEmpty().ifBlank { storedEmail }
                     val phoneNumber = documentSnapshot.getString("phoneNumber")
-                    val username = documentSnapshot.getString("username")
+                    val name = documentSnapshot.getString("name").orEmpty()
+                        .ifBlank { documentSnapshot.getString("username").orEmpty() }
                     val alamat = documentSnapshot.getString("alamat")
                     binding.apply {
                         etEmail.setText(email)
                         etNotelp.setText(phoneNumber)
-                        etUsername.setText(username)
+                        etName.setText(name)
                         etAlamat.setText(alamat)
-                        tvProfileName.text = username.orEmpty().ifBlank { "User Liz Kitchen" }
+                        tvProfileName.text = name.ifBlank { "Pelanggan Liz Kitchen" }
                         tvProfileEmail.text = email.orEmpty().ifBlank { "Email belum diisi" }
-                        tvProfileInitial.text = username.orEmpty()
+                        tvProfileInitial.text = name
                             .trim()
                             .firstOrNull()
                             ?.uppercaseChar()
                             ?.toString()
                             ?: "L"
                     }
+                    val syncedUserData = mutableMapOf<String, Any>(
+                        "email" to email,
+                        "name" to name,
+                        "password" to FieldValue.delete(),
+                        "username" to FieldValue.delete()
+                    )
+                    if (email != storedEmail) {
+                        syncedUserData["pendingEmail"] = FieldValue.delete()
+                    }
+                    documentSnapshot.reference.update(syncedUserData).await()
+                    val currentUser = Preferences.getUserInfo(requireContext())
+                    Preferences.saveUserInfo(
+                        (currentUser ?: User(userId = userId)).copy(
+                            email = email,
+                            name = name,
+                            phoneNumber = phoneNumber.orEmpty(),
+                            alamat = alamat ?: "Belum diisi"
+                        ),
+                        requireContext()
+                    )
                 }
-            }
-            .addOnFailureListener { exception ->
-                if (_binding != null) setRequestLoading(false)
+            } catch (exception: Exception) {
                 Log.e("UserData", "Error getting document", exception)
+                Toast.makeText(requireContext(), "Gagal memuat profil", Toast.LENGTH_SHORT).show()
+            } finally {
+                if (_binding != null) setRequestLoading(false)
             }
+        }
     }
 
     private fun hideKeyboardAndClearFocus() {
@@ -148,28 +192,76 @@ class ProfileFragment : Fragment() {
         userId: String,
         email: String,
         phoneNumber: String,
-        newUsername: String,
+        name: String,
         alamat: String
     ) {
-        val updatedUserData = hashMapOf(
-            "email" to email,
-            "phoneNumber" to phoneNumber,
-            "username" to newUsername,
-            "alamat" to alamat
-        )
-        setRequestLoading(true)
-        usersCollection.document(userId)
-            .update(updatedUserData as Map<String, Any>)
-            .addOnSuccessListener {
-                setRequestLoading(false)
-                Toast.makeText(requireContext(), "Data pengguna berhasil diperbarui", Toast.LENGTH_SHORT).show()
+        viewLifecycleOwner.lifecycleScope.launch {
+            setRequestLoading(true)
+            try {
+                val authUser = auth.currentUser
+                    ?: throw IllegalStateException("Sesi Firebase Auth tidak tersedia")
+                val currentEmail = authUser.email.orEmpty().trim().lowercase()
+                val emailChanged = email != currentEmail
+
+                if (emailChanged) {
+                    auth.useAppLanguage()
+                    authUser.verifyBeforeUpdateEmail(email).await()
+                }
+
+                val updatedUserData = mutableMapOf<String, Any>(
+                    "email" to currentEmail,
+                    "name" to name,
+                    "phoneNumber" to phoneNumber,
+                    "alamat" to alamat,
+                    "password" to FieldValue.delete(),
+                    "username" to FieldValue.delete()
+                )
+                updatedUserData["pendingEmail"] = if (emailChanged) {
+                    email
+                } else {
+                    FieldValue.delete()
+                }
+                usersCollection.document(userId).update(updatedUserData).await()
+
+                val currentUser = Preferences.getUserInfo(requireContext())
+                Preferences.saveUserInfo(
+                    (currentUser ?: User(userId = userId)).copy(
+                        email = currentEmail,
+                        name = name,
+                        phoneNumber = phoneNumber,
+                        alamat = alamat
+                    ),
+                    requireContext()
+                )
+                val message = if (emailChanged) {
+                    "Data disimpan. Cek email baru untuk menyelesaikan perubahan email"
+                } else {
+                    "Data pengguna berhasil diperbarui"
+                }
+                Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show()
                 findNavController().navigateUp()
+            } catch (exception: Exception) {
+                Log.e("ProfileFragment", "Gagal memperbarui profil", exception)
+                Toast.makeText(
+                    requireContext(),
+                    profileUpdateErrorMessage(exception),
+                    Toast.LENGTH_LONG
+                ).show()
+            } finally {
+                if (_binding != null) setRequestLoading(false)
             }
-            .addOnFailureListener { exception ->
-                setRequestLoading(false)
-                Toast.makeText(requireContext(), "Gagal memperbarui data pengguna", Toast.LENGTH_SHORT).show()
-                Log.e("ProfileFragment", "Error updating user data", exception)
-            }
+        }
+    }
+
+    private fun profileUpdateErrorMessage(exception: Exception): String {
+        return when (exception) {
+            is FirebaseAuthUserCollisionException -> "Email sudah digunakan akun lain"
+            is FirebaseAuthInvalidCredentialsException -> "Format email tidak valid"
+            is FirebaseAuthRecentLoginRequiredException ->
+                "Untuk mengganti email, silakan logout lalu masuk kembali"
+            is FirebaseNetworkException -> "Koneksi bermasalah. Coba lagi"
+            else -> "Gagal memperbarui data pengguna"
+        }
     }
 
     private fun setRequestLoading(isLoading: Boolean) {

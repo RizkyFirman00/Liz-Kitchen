@@ -148,7 +148,7 @@ class AdminUserOrderFragment : Fragment() {
         val filteredOrders = orderList.filter { order ->
             val matchesQuery = query.isEmpty() ||
                     order.orderId.contains(query, ignoreCase = true) ||
-                    order.user.username.orEmpty().contains(query, ignoreCase = true) ||
+                    order.user.name.orEmpty().contains(query, ignoreCase = true) ||
                     order.user.phoneNumber.orEmpty().contains(query, ignoreCase = true)
             val matchesStatus = selectedStatus == STATUS_ALL || order.status == selectedStatus
 
@@ -157,8 +157,8 @@ class AdminUserOrderFragment : Fragment() {
 
         val sortedOrders = when (selectedSort) {
             SORT_OLDEST -> filteredOrders.sortedBy { orderTimestamp(it) }
-            SORT_NAME_ASC -> filteredOrders.sortedBy { it.user.username.orEmpty().lowercase() }
-            SORT_NAME_DESC -> filteredOrders.sortedByDescending { it.user.username.orEmpty().lowercase() }
+            SORT_NAME_ASC -> filteredOrders.sortedBy { it.user.name.orEmpty().lowercase() }
+            SORT_NAME_DESC -> filteredOrders.sortedByDescending { it.user.name.orEmpty().lowercase() }
             SORT_STATUS_ASC -> filteredOrders.sortedBy { it.status.lowercase() }
             else -> filteredOrders.sortedByDescending { orderTimestamp(it) }
         }

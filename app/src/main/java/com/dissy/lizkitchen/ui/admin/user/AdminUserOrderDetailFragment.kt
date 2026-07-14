@@ -170,7 +170,7 @@ class AdminUserOrderDetailFragment : Fragment() {
             applyStatusStyle(tvStatus, statusText)
             tvStatusDescription.text = buildStatusDescription(statusText)
             tvItemCount.text = buildItemSummary(order)
-            tvCustomerName.text = order.user.username.orEmpty().ifBlank { "Pelanggan" }
+            tvCustomerName.text = order.user.name.orEmpty().ifBlank { "Pelanggan" }
             tvCustomerPhone.text = order.user.phoneNumber.orEmpty().ifBlank { "Nomor HP belum tersedia" }
             tvCustomerEmail.text = order.user.email.orEmpty().ifBlank { "Email belum tersedia" }
             tvOrderDate.text = order.tanggalOrder.ifBlank { "-" }

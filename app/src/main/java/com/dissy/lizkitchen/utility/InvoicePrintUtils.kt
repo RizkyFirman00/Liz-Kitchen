@@ -192,7 +192,7 @@ private fun buildInvoiceHtml(order: Order): String {
                         <div class="grid">
                             <div class="box">
                                 <div class="label">Pelanggan</div>
-                                <div class="value">${html(order.user.username.orEmpty().ifBlank { "Pelanggan" })}</div>
+                                <div class="value">${html(order.user.name.orEmpty().ifBlank { "Pelanggan" })}</div>
                                 <div class="muted">${html(order.user.phoneNumber.orEmpty().ifBlank { "-" })}</div>
                                 <div class="muted">${html(order.user.email.orEmpty().ifBlank { "-" })}</div>
                             </div>

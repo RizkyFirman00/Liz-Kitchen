@@ -173,7 +173,7 @@ class ReportDetailFragment : Fragment() {
                 <table>
                     <thead>
                         <tr>
-                            <th>Tanggal</th><th>Order ID</th><th>Username</th><th>Status</th><th>Total</th>
+                            <th>Tanggal</th><th>Order ID</th><th>Nama</th><th>Status</th><th>Total</th>
                         </tr>
                     </thead>
                     <tbody>${generateOrderItemsHtml(orders)}</tbody>
@@ -185,7 +185,7 @@ class ReportDetailFragment : Fragment() {
 
     private fun generateOrderItemsHtml(order: List<Order>): String {
         return order.joinToString("") { item ->
-            "<tr><td>${item.tanggalOrder}</td><td>${item.orderId}</td><td>${item.user.username}</td><td>${item.status}</td><td>${formatAndDisplayCurrency(item.totalPrice.toString())}</td></tr>"
+            "<tr><td>${item.tanggalOrder}</td><td>${item.orderId}</td><td>${item.user.name}</td><td>${item.status}</td><td>${formatAndDisplayCurrency(item.totalPrice.toString())}</td></tr>"
         }
     }
 

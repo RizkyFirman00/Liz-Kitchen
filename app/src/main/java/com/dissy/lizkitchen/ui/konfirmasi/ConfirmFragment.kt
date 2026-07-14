@@ -84,7 +84,7 @@ class ConfirmFragment : Fragment() {
                     val formattedText = formatAndDisplayCurrency(order.totalPrice.toString())
 
                     binding.apply {
-                        tvOrderUsername.text = order.user.username.orEmpty()
+                        tvOrderName.text = order.user.name.orEmpty().ifBlank { "Pelanggan" }
                         tvOrderTotal.text = formattedText
                         tvOrderId.text = orderId
                         if (order.status == ORDER_STATUS_EXPIRED) {
@@ -253,7 +253,7 @@ class ConfirmFragment : Fragment() {
         } else {
             "Rp $orderTotal"
         }
-        val customerName = order.user.username.orEmpty().ifBlank { "Pelanggan" }
+        val customerName = order.user.name.orEmpty().ifBlank { "Pelanggan" }
         val customerPhone = order.user.phoneNumber.orEmpty().ifBlank { "-" }
         val displayOrderId = order.orderId.ifBlank { orderId.orEmpty() }
         val isPickup = order.metodePengambilan.contains("ambil", ignoreCase = true)

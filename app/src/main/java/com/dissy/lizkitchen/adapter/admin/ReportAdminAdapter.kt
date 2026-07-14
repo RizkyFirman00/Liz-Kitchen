@@ -27,7 +27,7 @@ class ReportAdminAdapter(): ListAdapter<Order, ReportAdminHolder>(
                 tvNohpOrder.text = order.user.phoneNumber
                 tvStatusOrder.text = order.status
                 tvTanggalOrder.text = order.tanggalOrder
-                tvUserOrder.text = order.user.username
+                tvUserOrder.text = order.user.name
                 tvTotalHargaOrder.text = formatAndDisplayCurrency(order.totalPrice.toString())
             }
         }

@@ -198,9 +198,10 @@ fun userFromAny(value: Any?): User {
     return User(
         alamat = map?.get("alamat")?.toString().orEmpty(),
         email = map?.get("email")?.toString().orEmpty(),
+        name = map?.get("name")?.toString().orEmpty()
+            .ifBlank { map?.get("username")?.toString().orEmpty() },
         phoneNumber = map?.get("phoneNumber")?.toString().orEmpty(),
-        userId = map?.get("userId")?.toString().orEmpty(),
-        username = map?.get("username")?.toString().orEmpty()
+        userId = map?.get("userId")?.toString().orEmpty()
     )
 }
 
@@ -208,9 +209,9 @@ fun userToFirestoreMap(user: User): Map<String, Any> {
     return mapOf(
         "alamat" to user.alamat.orEmpty(),
         "email" to user.email.orEmpty(),
+        "name" to user.name.orEmpty(),
         "phoneNumber" to user.phoneNumber.orEmpty(),
-        "userId" to user.userId.orEmpty(),
-        "username" to user.username.orEmpty()
+        "userId" to user.userId.orEmpty()
     )
 }
 
