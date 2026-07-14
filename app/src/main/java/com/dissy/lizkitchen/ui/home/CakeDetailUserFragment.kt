@@ -20,7 +20,7 @@ import com.dissy.lizkitchen.utility.Preferences
 import com.dissy.lizkitchen.utility.availableCategories
 import com.dissy.lizkitchen.utility.cakeFromMap
 import com.dissy.lizkitchen.utility.cartDocumentId
-import com.dissy.lizkitchen.utility.displayUnit
+import com.dissy.lizkitchen.utility.normalizeProductUnit
 import com.dissy.lizkitchen.utility.productPriceToLong
 import com.dissy.lizkitchen.utility.setFirebaseRequestLoading
 import com.google.android.material.chip.Chip
@@ -38,6 +38,7 @@ class CakeDetailUserFragment : Fragment() {
     private lateinit var imageUrlDb: String
     private var cakeIdDb: String = ""
     private var namaKueDb: String = ""
+    private var productUnit: String = "pcs"
     private var selectedCategory = ProductCategory()
 
     override fun onCreateView(
@@ -70,6 +71,7 @@ class CakeDetailUserFragment : Fragment() {
                         cakeIdDb = cake.documentId
                         namaKueDb = cake.namaKue
                         imageUrlDb = cake.imageUrl
+                        productUnit = normalizeProductUnit(cake.satuan)
                         binding.apply {
                             tvCakeName.text = cake.namaKue
                             tvProductSummary.text = buildProductSummary(cake)
@@ -144,7 +146,7 @@ class CakeDetailUserFragment : Fragment() {
                                 imageUrl = imageUrlDb,
                                 namaKue = namaKueDb,
                                 stok = selectedCategory.stok,
-                                satuan = selectedCategory.satuan,
+                                satuan = productUnit,
                                 kategori = selectedCategory.namaKategori
                             ),
                             "jumlahPesanan" to jumlahPesanan,
@@ -164,8 +166,7 @@ class CakeDetailUserFragment : Fragment() {
     private fun setupVariantPicker(cake: Cake) {
         val categories = cake.availableCategories()
         val shouldShowVariants = categories.size > 1 ||
-            categories.firstOrNull()?.namaKategori?.equals("Default", ignoreCase = true) == false ||
-            categories.firstOrNull()?.satuan != "pcs"
+            categories.firstOrNull()?.namaKategori?.equals("Default", ignoreCase = true) == false
 
         binding.categoryContainer.visibility = if (shouldShowVariants) View.VISIBLE else View.GONE
         binding.chipGroupVariant.removeAllViews()
@@ -200,7 +201,7 @@ class CakeDetailUserFragment : Fragment() {
     private fun updateSelectedCategory() {
         hargaPerSatuan = productPriceToLong(selectedCategory.harga)
         stok = selectedCategory.stok.toInt()
-        val displayUnit = selectedCategory.satuan.ifBlank { selectedCategory.displayUnit() }
+        val displayUnit = productUnit
         binding.tvPriceCake.text = selectedCategory.harga
         binding.tvUnitCake.text = " / $displayUnit"
         binding.tvUnitTotal.text = " / $displayUnit"

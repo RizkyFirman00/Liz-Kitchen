@@ -5,7 +5,11 @@ import com.dissy.lizkitchen.model.ProductCategory
 
 fun normalizeProductUnit(value: String?): String {
     val normalized = value.orEmpty().trim().lowercase()
-    return if (normalized == "gram" || normalized == "gr" || normalized == "g") "gram" else "pcs"
+    return when (normalized) {
+        "", "pc", "piece", "pieces" -> "pcs"
+        "gr", "g" -> "gram"
+        else -> normalized
+    }
 }
 
 fun formatProductPrice(value: String): String {
@@ -106,7 +110,7 @@ fun cakeFromMap(documentId: String, map: Map<*, *>): Cake {
         imageUrl = map["imageUrl"]?.toString().orEmpty(),
         namaKue = map["namaKue"]?.toString().orEmpty(),
         stok = primary?.stok ?: fallbackStok,
-        satuan = primary?.satuan ?: fallbackUnit,
+        satuan = fallbackUnit,
         kategori = primary?.namaKategori ?: map["kategori"]?.toString().orEmpty(),
         kategoriProduk = categories
     )

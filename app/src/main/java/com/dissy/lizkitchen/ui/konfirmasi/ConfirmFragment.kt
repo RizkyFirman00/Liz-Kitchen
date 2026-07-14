@@ -276,6 +276,9 @@ class ConfirmFragment : Fragment() {
                 appendLine("Alamat Cabang: ${pickupBranchAddressForOrder(order)}")
             } else {
                 appendLine("Alamat Pengiriman: ${order.user.alamat.orEmpty().ifBlank { "-" }}")
+                if (order.patokanAlamat.isNotBlank()) {
+                    appendLine("Patokan Alamat: ${order.patokanAlamat}")
+                }
             }
             appendLine("Total Pembayaran: $totalText")
             appendLine()

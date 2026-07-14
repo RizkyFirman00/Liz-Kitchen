@@ -25,6 +25,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
 import com.google.firebase.auth.FirebaseAuthRecentLoginRequiredException
 import com.google.firebase.auth.FirebaseAuthUserCollisionException
+import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.ktx.Firebase
@@ -38,6 +39,7 @@ class ProfileFragment : Fragment() {
     private val auth by lazy { FirebaseAuth.getInstance() }
     private val db = Firebase.firestore
     private val usersCollection = db.collection("users")
+    private var profileDocumentId: String? = null
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -50,7 +52,13 @@ class ProfileFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        val userId = Preferences.getUserId(requireContext())
+        val cachedUser = Preferences.getUserInfo(requireContext())
+        if (cachedUser != null && cachedUser.userId.orEmpty().isNotBlank()) {
+            bindUserData(cachedUser)
+        }
+
+        val userId = cachedUser?.userId?.takeIf { it.isNotBlank() }
+            ?: FirebaseAuth.getInstance().currentUser?.uid?.takeIf { it.isNotBlank() }
 
         if (userId != null) {
             getUserData(userId)
@@ -111,7 +119,7 @@ class ProfileFragment : Fragment() {
 
             if (userId != null) {
                 updateUserData(
-                    userId,
+                    profileDocumentId ?: userId,
                     updatedEmail,
                     updatedPhoneNumber,
                     updatedName,
@@ -125,29 +133,28 @@ class ProfileFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             setRequestLoading(true)
             try {
-                auth.currentUser?.reload()?.await()
-                val documentSnapshot = usersCollection.document(userId).get().await()
-                if (documentSnapshot.exists()) {
+                // Auth reload is useful for a fresh email, but it must not block profile data.
+                runCatching { auth.currentUser?.reload()?.await() }
+                val documentSnapshot = findUserDocument(userId)
+                if (documentSnapshot != null) {
+                    profileDocumentId = documentSnapshot.id
                     val storedEmail = documentSnapshot.getString("email").orEmpty()
                     val email = auth.currentUser?.email.orEmpty().ifBlank { storedEmail }
-                    val phoneNumber = documentSnapshot.getString("phoneNumber")
+                    val phoneNumber = documentSnapshot.getString("phoneNumber").orEmpty()
                     val name = documentSnapshot.getString("name").orEmpty()
                         .ifBlank { documentSnapshot.getString("username").orEmpty() }
-                    val alamat = documentSnapshot.getString("alamat")
-                    binding.apply {
-                        etEmail.setText(email)
-                        etNotelp.setText(phoneNumber)
-                        etName.setText(name)
-                        etAlamat.setText(alamat)
-                        tvProfileName.text = name.ifBlank { "Pelanggan Liz Kitchen" }
-                        tvProfileEmail.text = email.orEmpty().ifBlank { "Email belum diisi" }
-                        tvProfileInitial.text = name
-                            .trim()
-                            .firstOrNull()
-                            ?.uppercaseChar()
-                            ?.toString()
-                            ?: "L"
-                    }
+                    val alamat = documentSnapshot.getString("alamat").orEmpty()
+                    bindUserData(
+                        User(
+                            userId = documentSnapshot.getString("userId").orEmpty().ifBlank {
+                                documentSnapshot.id
+                            },
+                            email = email,
+                            name = name,
+                            phoneNumber = phoneNumber,
+                            alamat = alamat
+                        )
+                    )
                     val syncedUserData = mutableMapOf<String, Any>(
                         "email" to email,
                         "name" to name,
@@ -163,18 +170,62 @@ class ProfileFragment : Fragment() {
                         (currentUser ?: User(userId = userId)).copy(
                             email = email,
                             name = name,
-                            phoneNumber = phoneNumber.orEmpty(),
-                            alamat = alamat ?: "Belum diisi"
+                            phoneNumber = phoneNumber,
+                            alamat = alamat.ifBlank { "Belum diisi" }
                         ),
                         requireContext()
                     )
                 }
             } catch (exception: Exception) {
                 Log.e("UserData", "Error getting document", exception)
-                Toast.makeText(requireContext(), "Gagal memuat profil", Toast.LENGTH_SHORT).show()
+                if (Preferences.getUserInfo(requireContext()) == null) {
+                    Toast.makeText(requireContext(), "Gagal memuat profil", Toast.LENGTH_SHORT).show()
+                }
             } finally {
                 if (_binding != null) setRequestLoading(false)
             }
+        }
+    }
+
+    private suspend fun findUserDocument(preferredUserId: String): DocumentSnapshot? {
+        val preferredDocument = usersCollection.document(preferredUserId).get().await()
+        if (preferredDocument.exists()) return preferredDocument
+
+        val authUserId = auth.currentUser?.uid.orEmpty()
+        if (authUserId.isNotBlank() && authUserId != preferredUserId) {
+            val authDocument = usersCollection.document(authUserId).get().await()
+            if (authDocument.exists()) return authDocument
+        }
+
+        val email = auth.currentUser?.email.orEmpty().trim().lowercase()
+        if (email.isBlank()) return null
+
+        return usersCollection
+            .whereEqualTo("email", email)
+            .limit(1)
+            .get()
+            .await()
+            .documents
+            .firstOrNull()
+    }
+
+    private fun bindUserData(user: User) {
+        if (_binding == null) return
+        val name = user.name.orEmpty()
+        val email = user.email.orEmpty()
+        binding.apply {
+            etEmail.setText(email)
+            etNotelp.setText(user.phoneNumber.orEmpty())
+            etName.setText(name)
+            etAlamat.setText(user.alamat.orEmpty())
+            tvProfileName.text = name.ifBlank { "Pelanggan Liz Kitchen" }
+            tvProfileEmail.text = email.ifBlank { "Email belum diisi" }
+            tvProfileInitial.text = name
+                .trim()
+                .firstOrNull()
+                ?.uppercaseChar()
+                ?.toString()
+                ?: "L"
         }
     }
 

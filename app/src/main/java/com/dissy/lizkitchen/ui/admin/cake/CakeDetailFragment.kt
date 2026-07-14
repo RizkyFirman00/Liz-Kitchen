@@ -88,6 +88,7 @@ class CakeDetailFragment : Fragment() {
             variants.clear()
             variants.addAll(cake.availableCategories())
             binding.etNamaKue.setText(cake.namaKue)
+            binding.etSatuanProduk.setText(cake.satuan)
             renderVariants()
             Glide.with(this@CakeDetailFragment).load(imageUrl).into(binding.ivBanner)
         }.addOnFailureListener { exception ->
@@ -98,12 +99,17 @@ class CakeDetailFragment : Fragment() {
     private fun saveVariantFromInput() {
         val name = binding.etNamaVarian.text.toString().trim()
         val stock = binding.etStokVarian.text.toString().toLongOrNull()
-        val unit = normalizeProductUnit(binding.etSatuanVarian.text.toString())
+        val unitInput = binding.etSatuanProduk.text.toString().trim()
         val price = formatProductPrice(binding.etHargaVarian.text.toString())
+        if (unitInput.isEmpty()) {
+            Toast.makeText(requireContext(), "Isi satuan produk terlebih dahulu", Toast.LENGTH_SHORT).show()
+            return
+        }
         if (name.isEmpty() || stock == null || price.isEmpty()) {
             Toast.makeText(requireContext(), "Nama varian, stok, dan harga wajib diisi", Toast.LENGTH_SHORT).show()
             return
         }
+        val unit = normalizeProductUnit(unitInput)
         val variant = ProductCategory(name, price, stock, unit)
         val editIndex = editingVariantIndex
         if (editIndex == null) variants.add(variant) else variants[editIndex] = variant
@@ -118,7 +124,6 @@ class CakeDetailFragment : Fragment() {
         editingVariantIndex = index
         binding.etNamaVarian.setText(variant.namaKategori)
         binding.etStokVarian.setText(variant.stok.toString())
-        binding.etSatuanVarian.setText(variant.satuan)
         binding.etHargaVarian.setText(variant.harga)
         binding.btnAddVarian.text = "Simpan Perubahan Varian"
     }
@@ -126,7 +131,6 @@ class CakeDetailFragment : Fragment() {
     private fun clearVariantInput() {
         binding.etNamaVarian.text?.clear()
         binding.etStokVarian.text?.clear()
-        binding.etSatuanVarian.text?.clear()
         binding.etHargaVarian.text?.clear()
     }
 
@@ -191,7 +195,7 @@ class CakeDetailFragment : Fragment() {
             setPadding(0, (10 * dp).toInt(), 0, (10 * dp).toInt())
         }
         stats.addView(createInfoPill("Stok", variant.stok.toString(), dp))
-        stats.addView(createInfoPill("Satuan", variant.satuan, dp))
+        stats.addView(createInfoPill("Satuan", normalizeProductUnit(binding.etSatuanProduk.text.toString()), dp))
         stats.addView(createInfoPill("Harga/satuan", "Rp. ${variant.harga}", dp))
 
         // --- ACTION BUTTONS: edit & hapus ---
@@ -268,25 +272,39 @@ class CakeDetailFragment : Fragment() {
 
     private fun updateCakeData() {
         val namaKue = binding.etNamaKue.text.toString().trim()
-        if (namaKue.isEmpty() || variants.isEmpty()) {
-            Toast.makeText(requireContext(), "Nama kue dan minimal 1 varian wajib diisi", Toast.LENGTH_SHORT).show()
+        val unitInput = binding.etSatuanProduk.text.toString().trim()
+        if (namaKue.isEmpty() || unitInput.isEmpty() || variants.isEmpty()) {
+            Toast.makeText(requireContext(), "Nama kue, satuan produk, dan minimal 1 varian wajib diisi", Toast.LENGTH_SHORT).show()
             return
         }
         setRequestLoading(true)
-        val categoryMaps = variants.map { it.toFirestoreMap() }
+        val productUnit = normalizeProductUnit(unitInput)
+        val categoryMaps = variants.map { it.copy(satuan = productUnit).toFirestoreMap() }
         if (file != null) {
             val imageRef = storage.reference.child("images/$namaKue")
             imageRef.putFile(Uri.fromFile(file)).addOnSuccessListener {
-                imageRef.downloadUrl.addOnSuccessListener { uri -> saveToFirestore(namaKue, categoryMaps, uri.toString()) }
+                imageRef.downloadUrl.addOnSuccessListener { uri ->
+                    saveToFirestore(namaKue, productUnit, categoryMaps, uri.toString())
+                }
                     .addOnFailureListener { handleSaveFailure(it) }
             }.addOnFailureListener { handleSaveFailure(it) }
         } else {
-            saveToFirestore(namaKue, categoryMaps, imageUrlDb)
+            saveToFirestore(namaKue, productUnit, categoryMaps, imageUrlDb)
         }
     }
 
-    private fun saveToFirestore(nama: String, kategoriProduk: List<Map<String, Any>>, url: String) {
-        val data = mapOf("namaKue" to nama, "kategoriProduk" to kategoriProduk, "imageUrl" to url)
+    private fun saveToFirestore(
+        nama: String,
+        satuanProduk: String,
+        kategoriProduk: List<Map<String, Any>>,
+        url: String
+    ) {
+        val data = mapOf(
+            "namaKue" to nama,
+            "satuan" to satuanProduk,
+            "kategoriProduk" to kategoriProduk,
+            "imageUrl" to url
+        )
         db.collection("cakes").document(documentId!!).update(data).addOnSuccessListener {
             if (_binding != null) setRequestLoading(false)
             Toast.makeText(requireContext(), "Data berhasil diupdate", Toast.LENGTH_SHORT).show()

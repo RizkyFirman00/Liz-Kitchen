@@ -51,7 +51,7 @@ class HomeUserAdapter(private val onItemClick: (String) -> Unit) :
             binding.apply {
                 tvCakeName.text = cake.namaKue
                 tvPrice.text = "Rp ${primaryCategory.harga}"
-                tvUnit.text = " / ${normalizeProductUnit(primaryCategory.satuan)}"
+                tvUnit.text = " / ${normalizeProductUnit(cake.satuan)}"
                 tvVariantSummary.text = buildVariantSummary(cake)
                 tvVarianCount.text = "${categories.size} varian"
                 startVariantStockTicker(categories)

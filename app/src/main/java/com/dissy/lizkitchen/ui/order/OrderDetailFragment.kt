@@ -225,7 +225,13 @@ class OrderDetailFragment : Fragment() {
         return if (order.metodePengambilan.contains("ambil", ignoreCase = true)) {
             "${pickupBranchNameForOrder(order)}\n${pickupBranchAddressForOrder(order)}"
         } else {
-            order.user.alamat?.ifBlank { "Belum ada alamat" } ?: "Belum ada alamat"
+            buildString {
+                append(order.user.alamat?.ifBlank { "Belum ada alamat" } ?: "Belum ada alamat")
+                if (order.patokanAlamat.isNotBlank()) {
+                    append("\nPatokan: ")
+                    append(order.patokanAlamat)
+                }
+            }
         }
     }
 

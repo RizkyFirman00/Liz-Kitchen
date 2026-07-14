@@ -101,16 +101,7 @@ class CartFragment : Fragment(),
                     ?.takeUnless { value -> isInvalidCheckoutAddress(value) }
                     ?.trim()
                     .orEmpty()
-                if (fallbackAddress.isNotBlank()) {
-                    createOrder(userId, fallbackAddress)
-                } else {
-                    finishCheckoutPreparation()
-                    Toast.makeText(
-                        requireContext(),
-                        "Gagal memeriksa alamat: ${exception.message}",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
+                createOrder(userId, fallbackAddress)
             }
     }
 

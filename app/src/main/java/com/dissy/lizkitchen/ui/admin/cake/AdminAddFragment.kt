@@ -74,24 +74,32 @@ class AdminAddFragment : Fragment() {
         binding.btnAddVarian.setOnClickListener { saveVariantFromInput() }
         binding.btnUpdateData.setOnClickListener {
             val namaKue = binding.etNamaKue.text.toString().trim()
+            val unitInput = binding.etSatuanProduk.text.toString().trim()
             val gambar = file
-            if (gambar == null || namaKue.isEmpty() || variants.isEmpty()) {
-                Toast.makeText(requireContext(), "Foto, nama kue, dan minimal 1 varian wajib diisi", Toast.LENGTH_SHORT).show()
+            if (gambar == null || namaKue.isEmpty() || unitInput.isEmpty() || variants.isEmpty()) {
+                Toast.makeText(requireContext(), "Foto, nama kue, satuan produk, dan minimal 1 varian wajib diisi", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
-            uploadImageAndGetUrl(namaKue, variants.map { it.toFirestoreMap() }, gambar)
+            val productUnit = normalizeProductUnit(unitInput)
+            val categoryMaps = variants.map { it.copy(satuan = productUnit).toFirestoreMap() }
+            uploadImageAndGetUrl(namaKue, productUnit, categoryMaps, gambar)
         }
     }
 
     private fun saveVariantFromInput() {
         val name = binding.etNamaVarian.text.toString().trim()
         val stock = binding.etStokVarian.text.toString().toLongOrNull()
-        val unit = normalizeProductUnit(binding.etSatuanVarian.text.toString())
+        val unitInput = binding.etSatuanProduk.text.toString().trim()
         val price = formatProductPrice(binding.etHargaVarian.text.toString())
+        if (unitInput.isEmpty()) {
+            Toast.makeText(requireContext(), "Isi satuan produk terlebih dahulu", Toast.LENGTH_SHORT).show()
+            return
+        }
         if (name.isEmpty() || stock == null || price.isEmpty()) {
             Toast.makeText(requireContext(), "Nama varian, stok, dan harga wajib diisi", Toast.LENGTH_SHORT).show()
             return
         }
+        val unit = normalizeProductUnit(unitInput)
         val variant = ProductCategory(name, price, stock, unit)
         val editIndex = editingVariantIndex
         if (editIndex == null) variants.add(variant) else variants[editIndex] = variant
@@ -106,7 +114,6 @@ class AdminAddFragment : Fragment() {
         editingVariantIndex = index
         binding.etNamaVarian.setText(variant.namaKategori)
         binding.etStokVarian.setText(variant.stok.toString())
-        binding.etSatuanVarian.setText(variant.satuan)
         binding.etHargaVarian.setText(variant.harga)
         binding.btnAddVarian.text = "Simpan Perubahan Varian"
     }
@@ -114,7 +121,6 @@ class AdminAddFragment : Fragment() {
     private fun clearVariantInput() {
         binding.etNamaVarian.text?.clear()
         binding.etStokVarian.text?.clear()
-        binding.etSatuanVarian.text?.clear()
         binding.etHargaVarian.text?.clear()
     }
 
@@ -178,7 +184,7 @@ class AdminAddFragment : Fragment() {
         }
         listOf(
             "Stok" to variant.stok.toString(),
-            "Satuan" to variant.satuan,
+            "Satuan" to normalizeProductUnit(binding.etSatuanProduk.text.toString()),
             "Harga/satuan" to "Rp. ${variant.harga}"
         ).forEach { (label, value) -> stats.addView(createInfoPill(label, value, dp)) }
 
@@ -262,12 +268,22 @@ class AdminAddFragment : Fragment() {
         dialog.show()
     }
 
-    private fun uploadImageAndGetUrl(namaKue: String, kategoriProduk: List<Map<String, Any>>, gambar: File) {
+    private fun uploadImageAndGetUrl(
+        namaKue: String,
+        satuanProduk: String,
+        kategoriProduk: List<Map<String, Any>>,
+        gambar: File
+    ) {
         setRequestLoading(true)
         val imageRef = storage.reference.child("images/$namaKue")
         imageRef.putFile(Uri.fromFile(gambar)).addOnSuccessListener {
             imageRef.downloadUrl.addOnSuccessListener { uri ->
-                val data = hashMapOf("namaKue" to namaKue, "kategoriProduk" to kategoriProduk, "imageUrl" to uri.toString())
+                val data = hashMapOf(
+                    "namaKue" to namaKue,
+                    "satuan" to satuanProduk,
+                    "kategoriProduk" to kategoriProduk,
+                    "imageUrl" to uri.toString()
+                )
                 db.collection("cakes").add(data).addOnSuccessListener { documentReference ->
                     db.collection("cakes").document(documentReference.id).update("documentId", documentReference.id).addOnSuccessListener {
                         if (_binding != null) setRequestLoading(false)

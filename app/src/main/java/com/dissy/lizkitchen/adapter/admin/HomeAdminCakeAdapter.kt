@@ -11,7 +11,7 @@ import com.bumptech.glide.Glide
 import com.dissy.lizkitchen.databinding.RvCakeBinding
 import com.dissy.lizkitchen.model.Cake
 import com.dissy.lizkitchen.utility.availableCategories
-import com.dissy.lizkitchen.utility.displayUnit
+import com.dissy.lizkitchen.utility.normalizeProductUnit
 import com.dissy.lizkitchen.utility.primaryCategory
 import java.util.Locale
 import java.util.Locale.getDefault
@@ -58,7 +58,7 @@ class HomeAdminCakeAdapter(private val onItemClick: (String) -> Unit) :
                 tvVariantCount.text = "${categories.size} Varian"
                 tvVariantSummary.text = categories.joinToString { it.namaKategori }
                 tvPrice.text = "Rp ${primaryCategory.harga}"
-                tvUnit.text = "per ${primaryCategory.satuan.ifBlank { primaryCategory.displayUnit() }}"
+                tvUnit.text = "per ${normalizeProductUnit(cake.satuan)}"
                 tvStok.text = "Stok ${categories.sumOf { it.stok }} item"
                 Glide.with(itemView.context)
                     .load(cake.imageUrl)
@@ -97,6 +97,7 @@ class HomeAdminCakeAdapter(private val onItemClick: (String) -> Unit) :
                                     category.satuan.lowercase().contains(filterPattern)
                         }
                         cake.namaKue.lowercase().contains(filterPattern) ||
+                                cake.satuan.lowercase().contains(filterPattern) ||
                                 cake.documentId.lowercase().contains(filterPattern) ||
                                 variantMatches
                     }

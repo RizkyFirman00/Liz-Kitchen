@@ -274,7 +274,13 @@ private fun invoiceAddress(order: Order): String {
     return if (order.metodePengambilan.contains("ambil", ignoreCase = true)) {
         "${pickupBranchNameForOrder(order)} - ${pickupBranchAddressForOrder(order)}"
     } else {
-        order.user.alamat?.ifBlank { "Belum ada alamat" } ?: "Belum ada alamat"
+        buildString {
+            append(order.user.alamat?.ifBlank { "Belum ada alamat" } ?: "Belum ada alamat")
+            if (order.patokanAlamat.isNotBlank()) {
+                append(" | Patokan: ")
+                append(order.patokanAlamat)
+            }
+        }
     }
 }
 

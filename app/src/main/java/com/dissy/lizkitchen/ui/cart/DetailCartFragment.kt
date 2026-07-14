@@ -5,6 +5,8 @@ import android.graphics.Rect
 import android.location.Geocoder
 import android.location.Location
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
@@ -51,6 +53,9 @@ class DetailCartFragment : Fragment() {
     private var selectedMetodePengambilan: String = ""
     private var selectedPickupBranch: LizKitchenBranch? = null
     private var hasSubmittedCheckout: Boolean = false
+    private var validatedAddressText: String = ""
+    private var deliveryCheckResult: DeliveryCheckResult? = null
+    private var isUpdatingAddressText: Boolean = false
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -70,6 +75,7 @@ class DetailCartFragment : Fragment() {
         binding.rvCheckout.isNestedScrollingEnabled = false
         binding.tvCheckoutSummary.text = "Memuat detail pesanan..."
         setupAddressFocusDismiss()
+        setupAddressValidation()
         fetchDataAndUpdateRecyclerView()
 
         val userId = Preferences.getUserId(requireContext())
@@ -86,6 +92,7 @@ class DetailCartFragment : Fragment() {
                     if (!it.exists()) return@addOnSuccessListener
                     val order = orderFromDocument(it)
                     binding.tvPriceSum.text = formatAndDisplayCurrency(order.totalPrice.toString())
+                    binding.etPatokanAlamat.setText(order.patokanAlamat)
                     if (order.metodePengambilan.isNotBlank()) {
                         selectedMetodePengambilan = order.metodePengambilan
                         selectedPickupBranch = pickupBranchForOrder(order)
@@ -157,64 +164,127 @@ class DetailCartFragment : Fragment() {
         inputMethodManager.hideSoftInputFromWindow(view.windowToken, 0)
     }
 
-    private fun setInitialAddress(address: String) {
-        binding.etAlamat.setText(address)
-        resolveAddressIntoInput(address)
+    private fun setupAddressValidation() {
+        binding.textInputLayout.setEndIconOnClickListener {
+            validateTypedAddress()
+        }
+        binding.etAlamat.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
+
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
+
+            override fun afterTextChanged(s: Editable?) {
+                if (!isUpdatingAddressText) invalidateAddressValidation()
+            }
+        })
+        binding.textInputLayout.helperText = "Tekan ikon lokasi untuk memvalidasi alamat"
     }
 
-    private fun resolveAddressIntoInput(address: String) {
-        val originalAddress = address.trim()
-        if (isInvalidCheckoutAddress(originalAddress)) return
-
-        val appContext = requireContext().applicationContext
-        viewLifecycleOwner.lifecycleScope.launch {
-            val geocodedAddress = withContext(Dispatchers.IO) {
-                geocodeAddress(appContext, originalAddress)
-            }
-            if (_binding == null) return@launch
-
-            val currentAddress = binding.etAlamat.text.toString().trim()
-            if (!currentAddress.equals(originalAddress, ignoreCase = true)) return@launch
-
-            applyGeocodedAddressToInput(geocodedAddress?.formattedAddress)
+    private fun validateTypedAddress() {
+        val address = binding.etAlamat.text.toString().trim()
+        if (isInvalidCheckoutAddress(address)) {
+            binding.textInputLayout.error = "Masukkan alamat tujuan terlebih dahulu"
+            return
         }
+
+        hideKeyboard(binding.etAlamat)
+        binding.textInputLayout.error = null
+        binding.textInputLayout.helperText = "Memeriksa alamat..."
+        binding.textInputLayout.isEndIconVisible = false
+
+        checkDeliveryAvailability(address) { deliveryCheck ->
+            if (_binding == null) return@checkDeliveryAvailability
+
+            binding.textInputLayout.isEndIconVisible = true
+            val resolvedAddress = deliveryCheck.resolvedAddress?.trim().orEmpty()
+            if (resolvedAddress.isBlank()) {
+                validatedAddressText = ""
+                deliveryCheckResult = null
+                binding.textInputLayout.helperText = "Alamat tidak ditemukan. Periksa kembali penulisannya."
+                binding.textInputLayout.error = "Alamat belum dapat diverifikasi"
+                return@checkDeliveryAvailability
+            }
+
+            setAddressTextWithoutInvalidating(resolvedAddress)
+            validatedAddressText = resolvedAddress
+            deliveryCheckResult = deliveryCheck
+            binding.textInputLayout.error = null
+            binding.textInputLayout.helperText = when (deliveryCheck.status) {
+                DeliveryStatus.AVAILABLE -> {
+                    val distanceText = deliveryCheck.distanceMeters?.let { formatDistance(it) }
+                    if (distanceText == null) "Alamat terverifikasi"
+                    else "Alamat terverifikasi - delivery tersedia $distanceText dari cabang"
+                }
+                DeliveryStatus.OUT_OF_RANGE -> {
+                    val distanceText = deliveryCheck.distanceMeters?.let { formatDistance(it) } ?: "lebih dari 5 km"
+                    "Di luar jangkauan delivery ($distanceText). Pilih Ambil Sendiri."
+                }
+                DeliveryStatus.UNKNOWN -> "Alamat ditemukan, tetapi jangkauan delivery belum dapat dipastikan"
+            }
+
+            if (deliveryCheck.status != DeliveryStatus.AVAILABLE &&
+                selectedMetodePengambilan == METODE_PESAN_ANTAR
+            ) {
+                selectedMetodePengambilan = ""
+                selectedPickupBranch = null
+                updateSelectedMethodView()
+            }
+        }
+    }
+
+    private fun invalidateAddressValidation() {
+        validatedAddressText = ""
+        deliveryCheckResult = null
+        binding.textInputLayout.error = null
+        binding.textInputLayout.helperText = if (binding.etAlamat.text.isNullOrBlank()) {
+            "Tekan ikon lokasi untuk memvalidasi alamat"
+        } else {
+            "Alamat berubah. Tekan ikon lokasi untuk memvalidasi ulang"
+        }
+    }
+
+    private fun setAddressTextWithoutInvalidating(address: String) {
+        isUpdatingAddressText = true
+        binding.etAlamat.setText(address)
+        binding.etAlamat.setSelection(binding.etAlamat.text?.length ?: 0)
+        isUpdatingAddressText = false
+    }
+
+    private fun setInitialAddress(address: String) {
+        setAddressTextWithoutInvalidating(address)
+        invalidateAddressValidation()
     }
 
     private fun showMetodePengambilanSheet() {
         val alamat = binding.etAlamat.text.toString().trim()
-        if (isInvalidCheckoutAddress(alamat)) {
-            Toast.makeText(requireContext(), "Masukkan alamat terlebih dahulu", Toast.LENGTH_SHORT).show()
-            return
+        val deliveryCheck = deliveryCheckResult?.takeIf {
+            validatedAddressText.equals(alamat, ignoreCase = true)
         }
-
-        setRequestLoading(true)
-        checkDeliveryAvailability(alamat) { deliveryCheck ->
-            if (_binding == null) return@checkDeliveryAvailability
-            applyGeocodedAddressToInput(deliveryCheck.resolvedAddress)
-            setRequestLoading(false)
-
-            val metodeAmbilFragment = MetodeAmbilFragment().apply {
-                setDeliveryAvailability(
-                    isAvailable = deliveryCheck.status == DeliveryStatus.AVAILABLE,
-                    notice = buildDeliveryNotice(deliveryCheck)
-                )
-                setBranchRecommendation(
-                    branch = deliveryCheck.nearestBranch,
-                    distanceMeters = deliveryCheck.distanceMeters
-                )
-                setListener(object : MetodeAmbilFragment.MetodePengambilanListener {
-                    override fun onMetodePengambilanSelected(
-                        metode: String,
-                        pickupBranch: LizKitchenBranch?
-                    ) {
-                        selectedMetodePengambilan = metode
-                        selectedPickupBranch = pickupBranch
-                        updateSelectedMethodView()
-                    }
-                })
-            }
-            metodeAmbilFragment.show(childFragmentManager, metodeAmbilFragment.tag)
+        val metodeAmbilFragment = MetodeAmbilFragment().apply {
+            setDeliveryAvailability(
+                isAvailable = deliveryCheck?.status == DeliveryStatus.AVAILABLE,
+                notice = if (deliveryCheck == null) {
+                    "Validasi alamat dengan ikon lokasi agar Pesan Antar tersedia."
+                } else {
+                    buildDeliveryNotice(deliveryCheck)
+                }
+            )
+            setBranchRecommendation(
+                branch = deliveryCheck?.nearestBranch,
+                distanceMeters = deliveryCheck?.distanceMeters
+            )
+            setListener(object : MetodeAmbilFragment.MetodePengambilanListener {
+                override fun onMetodePengambilanSelected(
+                    metode: String,
+                    pickupBranch: LizKitchenBranch?
+                ) {
+                    selectedMetodePengambilan = metode
+                    selectedPickupBranch = pickupBranch
+                    updateSelectedMethodView()
+                }
+            })
         }
+        metodeAmbilFragment.show(childFragmentManager, metodeAmbilFragment.tag)
     }
 
     private fun updateSelectedMethodView() {
@@ -228,10 +298,14 @@ class DetailCartFragment : Fragment() {
 
         if (selectedMetodePengambilan == METODE_AMBIL_SENDIRI && pickupBranch != null) {
             binding.pickupBranchContainer.visibility = View.VISIBLE
+            binding.textInputLayout.visibility = View.GONE
+            binding.textInputPatokan.visibility = View.GONE
             binding.tvPickupBranchName.text = pickupBranch.name
             binding.tvPickupBranchAddress.text = pickupBranch.address
         } else {
             binding.pickupBranchContainer.visibility = View.GONE
+            binding.textInputLayout.visibility = View.VISIBLE
+            binding.textInputPatokan.visibility = View.VISIBLE
             binding.tvPickupBranchName.text = ""
             binding.tvPickupBranchAddress.text = ""
         }
@@ -294,17 +368,6 @@ class DetailCartFragment : Fragment() {
         }
     }
 
-    private fun applyGeocodedAddressToInput(address: String?) {
-        val resolvedAddress = address?.trim().orEmpty()
-        if (resolvedAddress.isBlank()) return
-
-        val currentAddress = binding.etAlamat.text.toString().trim()
-        if (currentAddress.equals(resolvedAddress, ignoreCase = true)) return
-
-        binding.etAlamat.setText(resolvedAddress)
-        binding.etAlamat.setSelection(binding.etAlamat.text?.length ?: 0)
-    }
-
     private fun buildDeliveryNotice(deliveryCheck: DeliveryCheckResult): String {
         return when (deliveryCheck.status) {
             DeliveryStatus.AVAILABLE -> {
@@ -363,12 +426,8 @@ class DetailCartFragment : Fragment() {
 
     private fun checkout() {
         val alamat = binding.etAlamat.text.toString().trim()
+        val patokanAlamat = binding.etPatokanAlamat.text.toString().trim()
         val metodePengambilan = selectedMetodePengambilan
-
-        if (isInvalidCheckoutAddress(alamat)) {
-            Toast.makeText(requireContext(), "Alamat tidak boleh kosong", Toast.LENGTH_SHORT).show()
-            return
-        }
 
         if (metodePengambilan.isBlank()) {
             Toast.makeText(requireContext(), "Silahkan pilih metode pengambilan", Toast.LENGTH_SHORT).show()
@@ -380,48 +439,53 @@ class DetailCartFragment : Fragment() {
             return
         }
 
-        setRequestLoading(true)
         if (metodePengambilan == METODE_PESAN_ANTAR) {
-            checkDeliveryAvailability(alamat) { deliveryCheck ->
-                if (_binding == null) return@checkDeliveryAvailability
-                applyGeocodedAddressToInput(deliveryCheck.resolvedAddress)
-                val checkoutAddress = deliveryCheck.resolvedAddress?.takeIf { it.isNotBlank() } ?: alamat
-                when (deliveryCheck.status) {
-                    DeliveryStatus.AVAILABLE -> submitCheckout(checkoutAddress, metodePengambilan)
-                    DeliveryStatus.OUT_OF_RANGE -> {
-                        setRequestLoading(false)
-                        selectedMetodePengambilan = ""
-                        selectedPickupBranch = null
-                        updateSelectedMethodView()
-                        Toast.makeText(
-                            requireContext(),
-                            "Alamat di luar radius 5 km. Silahkan pilih Ambil Sendiri.",
-                            Toast.LENGTH_LONG
-                        ).show()
-                    }
-                    DeliveryStatus.UNKNOWN -> {
-                        setRequestLoading(false)
-                        Toast.makeText(
-                            requireContext(),
-                            "Alamat belum bisa diverifikasi untuk delivery. Periksa alamat atau pilih Pickup.",
-                            Toast.LENGTH_LONG
-                        ).show()
-                    }
-                }
+            if (isInvalidCheckoutAddress(alamat)) {
+                Toast.makeText(requireContext(), "Alamat delivery wajib diisi", Toast.LENGTH_SHORT).show()
+                return
+            }
+
+            val deliveryCheck = deliveryCheckResult?.takeIf {
+                validatedAddressText.equals(alamat, ignoreCase = true)
+            }
+            if (deliveryCheck == null) {
+                binding.textInputLayout.error = "Tekan ikon lokasi untuk memvalidasi alamat"
+                Toast.makeText(
+                    requireContext(),
+                    "Validasi alamat terlebih dahulu sebelum melanjutkan",
+                    Toast.LENGTH_LONG
+                ).show()
+                return
+            }
+
+            when (deliveryCheck.status) {
+                DeliveryStatus.AVAILABLE -> submitCheckout(alamat, patokanAlamat, metodePengambilan)
+                DeliveryStatus.OUT_OF_RANGE -> Toast.makeText(
+                    requireContext(),
+                    "Alamat di luar radius 5 km. Silahkan pilih Ambil Sendiri.",
+                    Toast.LENGTH_LONG
+                ).show()
+                DeliveryStatus.UNKNOWN -> Toast.makeText(
+                    requireContext(),
+                    "Alamat belum bisa diverifikasi untuk delivery. Periksa alamat atau pilih Pickup.",
+                    Toast.LENGTH_LONG
+                ).show()
             }
             return
         }
 
-        submitCheckout(alamat, metodePengambilan)
+        submitCheckout("", "", metodePengambilan)
     }
 
-    private fun submitCheckout(alamat: String, metodePengambilan: String) {
+    private fun submitCheckout(alamat: String, patokanAlamat: String, metodePengambilan: String) {
         val userId = Preferences.getUserId(requireContext())
         if (userId != null && orderId != null) {
+            setRequestLoading(true)
             val pickupBranch = if (metodePengambilan == METODE_AMBIL_SENDIRI) selectedPickupBranch else null
             val paymentDeadlineMillis = System.currentTimeMillis() + PAYMENT_EXPIRY_DURATION_MILLIS
             val orderUpdates = mapOf(
                 "user" to mapOf("alamat" to alamat),
+                "patokanAlamat" to patokanAlamat,
                 "metodePengambilan" to metodePengambilan,
                 "pickupBranchId" to pickupBranch?.id.orEmpty(),
                 "pickupBranchName" to pickupBranch?.name.orEmpty(),
@@ -434,7 +498,9 @@ class DetailCartFragment : Fragment() {
             val userOrderRef = userRef.collection("orders").document(orderId!!)
 
             db.runBatch { batch ->
-                batch.set(userRef, mapOf("alamat" to alamat), SetOptions.merge())
+                if (alamat.isNotBlank()) {
+                    batch.set(userRef, mapOf("alamat" to alamat), SetOptions.merge())
+                }
                 batch.set(globalOrderRef, orderUpdates, SetOptions.merge())
                 batch.set(userOrderRef, orderUpdates, SetOptions.merge())
             }

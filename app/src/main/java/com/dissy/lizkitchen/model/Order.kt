@@ -8,6 +8,7 @@ data class Order (
     val pickupBranchId: String = "",
     val pickupBranchName: String = "",
     val pickupBranchAddress: String = "",
+    val patokanAlamat: String = "",
     val tanggalOrder: String = "",
     val jamOrder: String = "",
     val createdAtMillis: Long = 0,
