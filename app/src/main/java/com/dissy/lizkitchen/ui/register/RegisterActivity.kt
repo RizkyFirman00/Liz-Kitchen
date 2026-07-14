@@ -44,6 +44,12 @@ class RegisterActivity : BaseActivity() {
             if (email.isEmpty() || phoneNumber.isEmpty() || username.isEmpty() || password.isEmpty()) {
                 Toast.makeText(this, "Harap isi semua kolom", Toast.LENGTH_SHORT).show()
             } else {
+                val passwordError = validatePassword(password, username)
+                if (passwordError != null) {
+                    binding.etPassword.error = passwordError
+                    Toast.makeText(this, passwordError, Toast.LENGTH_LONG).show()
+                    return@setOnClickListener
+                }
                 registerUser(email, phoneNumber, username, password, alamat)
             }
         }
@@ -118,6 +124,32 @@ class RegisterActivity : BaseActivity() {
             etNotelp.isEnabled = true
             etUsername.isEnabled = true
             etPassword.isEnabled = true
+        }
+    }
+
+    private fun validatePassword(password: String, username: String): String? {
+        val normalizedPassword = password.lowercase()
+        val normalizedUsername = username.trim().lowercase()
+        val weakPasswords = setOf(
+            "password",
+            "password123",
+            "12345678",
+            "qwerty123",
+            "admin123",
+            "lizkitchen"
+        )
+
+        return when {
+            password.length < 8 -> "Password minimal 8 karakter"
+            password.any { it.isWhitespace() } -> "Password tidak boleh memakai spasi"
+            password.none { it.isUpperCase() } -> "Password wajib punya huruf besar"
+            password.none { it.isLowerCase() } -> "Password wajib punya huruf kecil"
+            password.none { it.isDigit() } -> "Password wajib punya angka"
+            password.none { !it.isLetterOrDigit() } -> "Password wajib punya simbol"
+            normalizedUsername.isNotBlank() && normalizedPassword.contains(normalizedUsername) ->
+                "Password tidak boleh mengandung username"
+            normalizedPassword in weakPasswords -> "Password terlalu mudah ditebak"
+            else -> null
         }
     }
 

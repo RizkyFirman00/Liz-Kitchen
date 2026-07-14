@@ -119,7 +119,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:fontFamily="@font/poppins_semibold"
-                    android:text="Transfer Bank"
+                    android:text="Metode Pembayaran"
                     android:textColor="#3A2A20"
                     android:textSize="14sp" />
 
@@ -129,9 +129,10 @@
                     android:layout_marginTop="8dp"
                     android:background="@drawable/bg_cart_subtotal"
                     android:fontFamily="@font/poppins_bold"
+                    android:textAlignment="center"
                     android:paddingHorizontal="12dp"
                     android:paddingVertical="10dp"
-                    android:text="BCA 6331238420"
+                    android:text="QRIS"
                     android:textColor="@color/brown_old"
                     android:textSize="18sp" />
 
@@ -140,9 +141,78 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="6dp"
                     android:fontFamily="@font/poppins_regular"
-                    android:text="A/N Dissy Irman Ikarami"
+                    android:text="Setelah pembayaran berhasil, upload bukti lalu kirim validasi lewat WhatsApp."
                     android:textColor="#765945"
                     android:textSize="12sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/qrisPanel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:background="@drawable/bg_cart_card"
+                android:orientation="vertical"
+                android:padding="14dp">
+
+                <LinearLayout
+                    android:id="@+id/qrisTitle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:ellipsize="end"
+                            android:fontFamily="@font/poppins_semibold"
+                            android:maxLines="1"
+                            android:text="QRIS LizKitchen"
+                            android:textColor="#3A2A20"
+                            android:textSize="14sp" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:fontFamily="@font/poppins_regular"
+                            android:lineSpacingExtra="1dp"
+                            android:maxLines="2"
+                            android:text="Scan QRIS, lalu upload bukti pembayaran."
+                            android:textColor="#765945"
+                            android:textSize="12sp" />
+
+                    </LinearLayout>
+
+                    <androidx.appcompat.widget.AppCompatImageButton
+                        android:id="@+id/btn_saveQris"
+                        android:layout_width="42dp"
+                        android:layout_height="42dp"
+                        android:layout_marginStart="8dp"
+                        android:background="@drawable/shape_button_circle_brown"
+                        android:contentDescription="Simpan QRIS ke galeri"
+                        android:padding="9dp"
+                        android:src="@drawable/baseline_file_download_24_white" />
+
+                </LinearLayout>
+
+                <androidx.appcompat.widget.AppCompatImageView
+                    android:id="@+id/iv_qrisCode"
+                    android:layout_width="match_parent"
+                    android:layout_height="450dp"
+                    android:layout_marginTop="12dp"
+                    android:background="@drawable/bg_cart_panel"
+                    android:contentDescription="QRIS Statis Liz Kitchen"
+                    android:padding="18dp"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/qris" />
             </LinearLayout>
 
             <LinearLayout
@@ -215,11 +285,12 @@
                     android:textSize="14sp" />
 
                 <TextView
+                    android:id="@+id/tv_uploadHint"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="2dp"
                     android:fontFamily="@font/poppins_regular"
-                    android:text="Ketuk area gambar untuk memilih bukti transfer."
+                    android:text="Ketuk area gambar untuk memilih bukti pembayaran."
                     android:textColor="#765945"
                     android:textSize="12sp" />
 

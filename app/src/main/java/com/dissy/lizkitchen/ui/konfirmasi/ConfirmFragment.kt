@@ -1,19 +1,26 @@
 package com.dissy.lizkitchen.ui.konfirmasi
 
+import android.Manifest
 import android.app.Activity
 import android.content.ActivityNotFoundException
+import android.content.ContentValues
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.provider.MediaStore
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.FileProvider
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.bumptech.glide.Glide
+import com.dissy.lizkitchen.R
 import com.dissy.lizkitchen.databinding.FragmentConfirmBinding
 import com.dissy.lizkitchen.model.Order
 import com.dissy.lizkitchen.utility.METODE_AMBIL_SENDIRI
@@ -36,6 +43,15 @@ class ConfirmFragment : Fragment() {
     private var file: File? = null
     private var orderId: String? = null
     private var currentOrder: Order? = null
+
+    private val saveQrisPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
+            if (isGranted) {
+                saveQrisToGallery()
+            } else {
+                Toast.makeText(requireContext(), "Izin penyimpanan diperlukan untuk menyimpan QRIS", Toast.LENGTH_SHORT).show()
+            }
+        }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -94,12 +110,76 @@ class ConfirmFragment : Fragment() {
             findNavController().navigateUp()
         }
 
+        updateConfirmationButton()
+
         binding.ivBuktiBayar.setOnClickListener {
             startGallery()
         }
 
+        binding.btnSaveQris.setOnClickListener {
+            requestSaveQris()
+        }
+
         binding.btnKonfirmasi.setOnClickListener {
             confirmPayment()
+        }
+    }
+
+    private fun requestSaveQris() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q &&
+            ContextCompat.checkSelfPermission(
+                requireContext(),
+                Manifest.permission.WRITE_EXTERNAL_STORAGE
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            saveQrisPermissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+            return
+        }
+
+        saveQrisToGallery()
+    }
+
+    private fun saveQrisToGallery() {
+        val resolver = requireContext().contentResolver
+        val fileName = "liz_kitchen_qris_${System.currentTimeMillis()}.jpg"
+        val values = ContentValues().apply {
+            put(MediaStore.Images.Media.DISPLAY_NAME, fileName)
+            put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/Liz Kitchen")
+                put(MediaStore.Images.Media.IS_PENDING, 1)
+            }
+        }
+
+        val collection = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
+        } else {
+            MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+        }
+
+        val imageUri = resolver.insert(collection, values)
+        if (imageUri == null) {
+            Toast.makeText(requireContext(), "Gagal menyiapkan galeri", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        try {
+            resolver.openOutputStream(imageUri)?.use { outputStream ->
+                resources.openRawResource(R.drawable.qris).use { inputStream ->
+                    inputStream.copyTo(outputStream)
+                }
+            } ?: throw IllegalStateException("Output stream tidak tersedia")
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                values.clear()
+                values.put(MediaStore.Images.Media.IS_PENDING, 0)
+                resolver.update(imageUri, values, null, null)
+            }
+
+            Toast.makeText(requireContext(), "QRIS berhasil disimpan ke galeri", Toast.LENGTH_SHORT).show()
+        } catch (exception: Exception) {
+            resolver.delete(imageUri, null, null)
+            Toast.makeText(requireContext(), "Gagal menyimpan QRIS: ${exception.message}", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -149,8 +229,19 @@ class ConfirmFragment : Fragment() {
                 Toast.makeText(requireContext(), "WhatsApp tidak terpasang di perangkat ini", Toast.LENGTH_SHORT).show()
             }
         } else {
-            Toast.makeText(requireContext(), "Lengkapi data dan bukti pembayaran", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), "Upload bukti pembayaran terlebih dahulu", Toast.LENGTH_SHORT).show()
         }
+    }
+
+    private fun updateConfirmationButton() {
+        if (_binding == null) return
+        binding.tvUploadHint.text = "Upload bukti pembayaran setelah scan QRIS."
+        if (currentOrder?.status == ORDER_STATUS_EXPIRED) {
+            binding.btnKonfirmasi.isEnabled = false
+            binding.btnKonfirmasi.text = "Pesanan Expired"
+            return
+        }
+        binding.btnKonfirmasi.text = "Validasi Pembayaran via WhatsApp"
     }
 
     private fun buildWhatsAppMessage(order: Order): String {
@@ -179,6 +270,7 @@ class ConfirmFragment : Fragment() {
             appendLine("No. HP: $customerPhone")
             appendLine("Order ID: $displayOrderId")
             appendLine("Metode: $methodText")
+            appendLine("Metode Pembayaran: QRIS Statis")
             if (isPickup) {
                 appendLine("Cabang Pengambilan: ${pickupBranchNameForOrder(order)}")
                 appendLine("Alamat Cabang: ${pickupBranchAddressForOrder(order)}")

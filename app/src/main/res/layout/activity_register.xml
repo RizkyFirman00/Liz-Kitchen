@@ -216,6 +216,17 @@
                         android:textColorHint="#A68B78"
                         android:textSize="14sp" />
 
+                    <TextView
+                        android:id="@+id/tv_passwordRules"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:fontFamily="@font/poppins_regular"
+                        android:lineSpacingExtra="2dp"
+                        android:text="Minimal 8 karakter, wajib ada huruf besar, huruf kecil, angka, simbol, dan tanpa spasi."
+                        android:textColor="#765945"
+                        android:textSize="10sp" />
+
                     <androidx.appcompat.widget.AppCompatButton
                         android:id="@+id/btn_register"
                         android:layout_width="match_parent"
