@@ -11,6 +11,7 @@ import java.text.SimpleDateFormat
 import java.util.Locale
 
 const val ORDER_STATUS_PENDING_PAYMENT = "Menunggu Pembayaran"
+const val ORDER_STATUS_PAYMENT_VERIFICATION = "Menunggu Verifikasi Pembayaran"
 const val ORDER_STATUS_CONFIRMED = "Sudah Dikonfirmasi"
 const val ORDER_STATUS_PROCESSING = "Sedang Diproses"
 const val ORDER_STATUS_SHIPPING = "Sedang Dikirim"
@@ -30,6 +31,8 @@ fun orderFromDocument(document: DocumentSnapshot): Order {
         pickupBranchName = document.getString("pickupBranchName").orEmpty(),
         pickupBranchAddress = document.getString("pickupBranchAddress").orEmpty(),
         patokanAlamat = document.getString("patokanAlamat").orEmpty(),
+        paymentProofUrl = document.getString("paymentProofUrl").orEmpty(),
+        paymentProofUploadedAtMillis = numberToLong(document.get("paymentProofUploadedAtMillis")),
         tanggalOrder = document.getString("tanggalOrder").orEmpty(),
         jamOrder = document.getString("jamOrder").orEmpty(),
         createdAtMillis = numberToLong(document.get("createdAtMillis")),
@@ -49,6 +52,8 @@ fun orderToFirestoreMap(order: Order): Map<String, Any> {
         "pickupBranchName" to order.pickupBranchName,
         "pickupBranchAddress" to order.pickupBranchAddress,
         "patokanAlamat" to order.patokanAlamat,
+        "paymentProofUrl" to order.paymentProofUrl,
+        "paymentProofUploadedAtMillis" to order.paymentProofUploadedAtMillis,
         "tanggalOrder" to order.tanggalOrder,
         "jamOrder" to order.jamOrder,
         "createdAtMillis" to order.createdAtMillis,

@@ -9,6 +9,8 @@ data class Order (
     val pickupBranchName: String = "",
     val pickupBranchAddress: String = "",
     val patokanAlamat: String = "",
+    val paymentProofUrl: String = "",
+    val paymentProofUploadedAtMillis: Long = 0,
     val tanggalOrder: String = "",
     val jamOrder: String = "",
     val createdAtMillis: Long = 0,

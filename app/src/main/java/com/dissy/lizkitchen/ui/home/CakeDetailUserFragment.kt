@@ -165,6 +165,9 @@ class CakeDetailUserFragment : Fragment() {
 
     private fun setupVariantPicker(cake: Cake) {
         val categories = cake.availableCategories()
+        val firstAvailableIndex = categories.indexOfFirst { it.stok > 0 }
+            .takeIf { it >= 0 }
+            ?: 0
         val shouldShowVariants = categories.size > 1 ||
             categories.firstOrNull()?.namaKategori?.equals("Default", ignoreCase = true) == false
 
@@ -174,9 +177,15 @@ class CakeDetailUserFragment : Fragment() {
         categories.forEachIndexed { index, category ->
             val chip = Chip(requireContext()).apply {
                 id = View.generateViewId()
-                text = category.namaKategori
+                text = if (category.stok > 0) {
+                    category.namaKategori
+                } else {
+                    "${category.namaKategori} (Habis)"
+                }
                 isCheckable = true
-                isClickable = true
+                isEnabled = category.stok > 0
+                isClickable = isEnabled
+                alpha = if (isEnabled) 1f else 0.55f
                 isCheckedIconVisible = false
                 chipStrokeWidth = 1f
                 chipBackgroundColor = ContextCompat.getColorStateList(requireContext(), R.color.variant_chip_background_selector)
@@ -189,12 +198,12 @@ class CakeDetailUserFragment : Fragment() {
                 }
             }
             binding.chipGroupVariant.addView(chip)
-            if (index == 0) {
+            if (index == firstAvailableIndex) {
                 binding.chipGroupVariant.check(chip.id)
             }
         }
 
-        selectedCategory = categories.first()
+        selectedCategory = categories[firstAvailableIndex]
         updateSelectedCategory()
     }
 
@@ -269,6 +278,8 @@ class CakeDetailUserFragment : Fragment() {
         binding.btnAddCart.isEnabled = isAvailable
         binding.btnAddCart.alpha = if (isAvailable) 1f else 0.55f
         binding.btnAddCart.text = if (isAvailable) "Tambah ke Keranjang" else "Stok Habis"
+        binding.btnMinus.isEnabled = isAvailable && jumlahPesanan > 1
+        binding.btnPlus.isEnabled = isAvailable && jumlahPesanan < stok
         binding.btnMinus.alpha = if (jumlahPesanan > 1) 1f else 0.45f
         binding.btnPlus.alpha = if (isAvailable && jumlahPesanan < stok) 1f else 0.45f
     }

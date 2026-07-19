@@ -158,6 +158,46 @@
             </LinearLayout>
 
             <LinearLayout
+                android:id="@+id/paymentProofPanel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:background="@drawable/bg_order_card"
+                android:orientation="vertical"
+                android:padding="14dp"
+                android:visibility="gone"
+                tools:visibility="visible">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/poppins_semibold"
+                    android:text="Bukti Pembayaran"
+                    android:textColor="#3A2A20"
+                    android:textSize="14sp" />
+
+                <TextView
+                    android:id="@+id/tvPaymentProofHint"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:fontFamily="@font/poppins_regular"
+                    android:text="Bukti ini sedang menunggu verifikasi admin."
+                    android:textColor="#765945"
+                    android:textSize="12sp" />
+
+                <androidx.appcompat.widget.AppCompatImageView
+                    android:id="@+id/ivPaymentProofPreview"
+                    android:layout_width="match_parent"
+                    android:layout_height="240dp"
+                    android:layout_marginTop="10dp"
+                    android:background="@drawable/bg_cart_panel"
+                    android:contentDescription="Preview bukti pembayaran"
+                    android:scaleType="fitCenter"
+                    tools:src="@drawable/upload_bukti_pembayaran" />
+            </LinearLayout>
+
+            <LinearLayout
                 android:id="@+id/orderItemsPanel"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

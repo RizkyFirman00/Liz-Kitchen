@@ -141,7 +141,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="6dp"
                     android:fontFamily="@font/poppins_regular"
-                    android:text="Setelah pembayaran berhasil, upload bukti lalu kirim validasi lewat WhatsApp."
+                    android:text="Setelah pembayaran berhasil, upload bukti pembayaran ke sistem untuk diverifikasi admin."
                     android:textColor="#765945"
                     android:textSize="12sp" />
             </LinearLayout>
@@ -324,5 +324,46 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
+
+    <FrameLayout
+        android:id="@+id/loadingOverlay"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="#CCFFF9F5"
+        android:clickable="true"
+        android:focusable="true"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:background="@drawable/bg_cart_card"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:paddingHorizontal="24dp"
+            android:paddingVertical="18dp">
+
+            <ProgressBar
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:indeterminateTint="@color/brown_old"
+                android:indeterminateTintMode="src_atop" />
+
+            <TextView
+                android:id="@+id/tvLoadingState"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:fontFamily="@font/poppins_semibold"
+                android:text="Memuat pesanan..."
+                android:textColor="#3A2A20"
+                android:textSize="13sp" />
+        </LinearLayout>
+    </FrameLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

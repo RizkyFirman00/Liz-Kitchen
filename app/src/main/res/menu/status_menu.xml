@@ -15,6 +15,9 @@
         android:id="@+id/menu_menungguPembayaran"
         android:title="Menunggu Pembayaran" />
     <item
+        android:id="@+id/menu_verifikasiPembayaran"
+        android:title="Verifikasi Pembayaran" />
+    <item
         android:id="@+id/menu_sedangDikirim"
         android:title="Sedang Dikirim" />
     <item

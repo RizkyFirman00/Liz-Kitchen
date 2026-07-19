@@ -1,10 +1,7 @@
 package com.dissy.lizkitchen.ui.konfirmasi
 
 import android.Manifest
-import android.app.Activity
-import android.content.ActivityNotFoundException
 import android.content.ContentValues
-import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
@@ -15,34 +12,33 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.core.content.FileProvider
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
+import androidx.navigation.NavOptions
 import androidx.navigation.fragment.findNavController
 import com.bumptech.glide.Glide
 import com.dissy.lizkitchen.R
 import com.dissy.lizkitchen.databinding.FragmentConfirmBinding
 import com.dissy.lizkitchen.model.Order
-import com.dissy.lizkitchen.utility.METODE_AMBIL_SENDIRI
 import com.dissy.lizkitchen.utility.ORDER_STATUS_EXPIRED
+import com.dissy.lizkitchen.utility.ORDER_STATUS_PAYMENT_VERIFICATION
 import com.dissy.lizkitchen.utility.Preferences
 import com.dissy.lizkitchen.utility.orderFromDocument
-import com.dissy.lizkitchen.utility.pickupBranchAddressForOrder
-import com.dissy.lizkitchen.utility.pickupBranchNameForOrder
 import com.dissy.lizkitchen.utility.setFirebaseRequestLoading
-import com.dissy.lizkitchen.utility.uriToFile
 import com.dissy.lizkitchen.utility.validateOrderExpiryOnRead
 import com.google.firebase.Firebase
 import com.google.firebase.firestore.firestore
-import java.io.File
+import com.google.firebase.firestore.SetOptions
+import com.google.firebase.storage.FirebaseStorage
 
 class ConfirmFragment : Fragment() {
     private var _binding: FragmentConfirmBinding? = null
     private val binding get() = _binding!!
     private val db = Firebase.firestore
-    private var file: File? = null
+    private val storage = FirebaseStorage.getInstance()
     private var orderId: String? = null
     private var currentOrder: Order? = null
+    private var selectedProofUri: Uri? = null
 
     private val saveQrisPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
@@ -87,6 +83,11 @@ class ConfirmFragment : Fragment() {
                         tvOrderName.text = order.user.name.orEmpty().ifBlank { "Pelanggan" }
                         tvOrderTotal.text = formattedText
                         tvOrderId.text = orderId
+                        if (order.paymentProofUrl.isNotBlank()) {
+                            Glide.with(this@ConfirmFragment)
+                                .load(order.paymentProofUrl)
+                                .into(ivBuktiBayar)
+                        }
                         if (order.status == ORDER_STATUS_EXPIRED) {
                             btnKonfirmasi.isEnabled = false
                             btnKonfirmasi.text = "Pesanan Expired"
@@ -97,6 +98,7 @@ class ConfirmFragment : Fragment() {
                             ).show()
                         }
                     }
+                    updateConfirmationButton()
                 }
                 .addOnFailureListener { exception ->
                     if (_binding != null) {
@@ -184,20 +186,16 @@ class ConfirmFragment : Fragment() {
     }
 
     private fun startGallery() {
-        val intent = Intent(Intent.ACTION_GET_CONTENT)
-        intent.type = "image/*"
-        val chooser = Intent.createChooser(intent, "Choose a Picture")
-        launcherIntentGallery.launch(chooser)
+        launcherIntentGallery.launch("image/*")
     }
 
     private val launcherIntentGallery = registerForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            val selectedImg: Uri = result.data?.data ?: return@registerForActivityResult
-            file = uriToFile(selectedImg, requireContext())
-            Glide.with(this).load(selectedImg).into(binding.ivBuktiBayar)
-        }
+        ActivityResultContracts.GetContent()
+    ) { selectedImg ->
+        if (selectedImg == null || _binding == null) return@registerForActivityResult
+        selectedProofUri = selectedImg
+        Glide.with(this).load(selectedImg).into(binding.ivBuktiBayar)
+        updateConfirmationButton()
     }
 
     private fun confirmPayment() {
@@ -212,78 +210,115 @@ class ConfirmFragment : Fragment() {
             return
         }
 
-        if (file != null) {
-            val message = buildWhatsAppMessage(order)
-
-            val sendIntent = Intent(Intent.ACTION_SEND).apply {
-                putExtra("jid", "6287887003907@s.whatsapp.net")
-                putExtra(Intent.EXTRA_STREAM, FileProvider.getUriForFile(requireContext(), "com.dissy.lizkitchen", file!!))
-                putExtra(Intent.EXTRA_TEXT, message)
-                setPackage("com.whatsapp")
-                type = "image/*"
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        val proofUri = selectedProofUri
+        if (proofUri == null) {
+            if (order.paymentProofUrl.isNotBlank()) {
+                startGallery()
+            } else {
+                Toast.makeText(requireContext(), "Upload bukti pembayaran terlebih dahulu", Toast.LENGTH_SHORT).show()
             }
-            try {
-                startActivity(sendIntent)
-            } catch (exception: ActivityNotFoundException) {
-                Toast.makeText(requireContext(), "WhatsApp tidak terpasang di perangkat ini", Toast.LENGTH_SHORT).show()
-            }
-        } else {
-            Toast.makeText(requireContext(), "Upload bukti pembayaran terlebih dahulu", Toast.LENGTH_SHORT).show()
+            return
         }
+
+        val currentOrderId = order.orderId.ifBlank { orderId.orEmpty() }
+        val userId = Preferences.getUserId(requireContext())
+        if (currentOrderId.isBlank() || userId.isNullOrBlank()) {
+            Toast.makeText(requireContext(), "Data pesanan tidak lengkap", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        setRequestLoading(true)
+        val proofRef = storage.reference.child(
+            "payment_proofs/${currentOrderId}_${System.currentTimeMillis()}.jpg"
+        )
+        proofRef.putFile(proofUri)
+            .addOnSuccessListener {
+                proofRef.downloadUrl
+                    .addOnSuccessListener { downloadUri ->
+                        val uploadedAt = System.currentTimeMillis()
+                        val updates = mapOf(
+                            "paymentProofUrl" to downloadUri.toString(),
+                            "paymentProofUploadedAtMillis" to uploadedAt,
+                            "status" to ORDER_STATUS_PAYMENT_VERIFICATION
+                        )
+                        val globalOrderRef = db.collection("orders").document(currentOrderId)
+                        val userOrderRef = db.collection("users").document(userId).collection("orders").document(currentOrderId)
+                        db.runBatch { batch ->
+                            batch.set(globalOrderRef, updates, SetOptions.merge())
+                            batch.set(userOrderRef, updates, SetOptions.merge())
+                        }.addOnSuccessListener {
+                            currentOrder = order.copy(
+                                status = ORDER_STATUS_PAYMENT_VERIFICATION,
+                                paymentProofUrl = downloadUri.toString(),
+                                paymentProofUploadedAtMillis = uploadedAt
+                            )
+                            selectedProofUri = null
+                            setRequestLoading(false)
+                            updateConfirmationButton()
+                            Toast.makeText(
+                                requireContext(),
+                                "Bukti pembayaran berhasil dikirim. Menunggu verifikasi admin.",
+                                Toast.LENGTH_LONG
+                            ).show()
+                            val navOptions = NavOptions.Builder()
+                                .setPopUpTo(R.id.navigation_confirm, true)
+                                .setLaunchSingleTop(true)
+                                .build()
+                            findNavController().navigate(
+                                R.id.navigation_history,
+                                null,
+                                navOptions
+                            )
+                        }.addOnFailureListener { exception ->
+                            handlePaymentUploadFailure(exception)
+                        }
+                    }
+                    .addOnFailureListener { exception ->
+                        handlePaymentUploadFailure(exception)
+                    }
+            }
+            .addOnFailureListener { exception ->
+                handlePaymentUploadFailure(exception)
+            }
+    }
+
+    private fun handlePaymentUploadFailure(exception: Exception) {
+        if (_binding == null) return
+        setRequestLoading(false)
+        Toast.makeText(
+            requireContext(),
+            "Gagal mengunggah bukti pembayaran: ${exception.message}",
+            Toast.LENGTH_LONG
+        ).show()
     }
 
     private fun updateConfirmationButton() {
         if (_binding == null) return
-        binding.tvUploadHint.text = "Upload bukti pembayaran setelah scan QRIS."
-        if (currentOrder?.status == ORDER_STATUS_EXPIRED) {
-            binding.btnKonfirmasi.isEnabled = false
-            binding.btnKonfirmasi.text = "Pesanan Expired"
-            return
-        }
-        binding.btnKonfirmasi.text = "Validasi Pembayaran via WhatsApp"
-    }
-
-    private fun buildWhatsAppMessage(order: Order): String {
-        val orderTotal = binding.tvOrderTotal.text.toString().ifBlank {
-            formatAndDisplayCurrency(order.totalPrice.toString())
-        }
-        val totalText = if (orderTotal.startsWith("Rp", ignoreCase = true)) {
-            orderTotal
-        } else {
-            "Rp $orderTotal"
-        }
-        val customerName = order.user.name.orEmpty().ifBlank { "Pelanggan" }
-        val customerPhone = order.user.phoneNumber.orEmpty().ifBlank { "-" }
-        val displayOrderId = order.orderId.ifBlank { orderId.orEmpty() }
-        val isPickup = order.metodePengambilan.contains("ambil", ignoreCase = true)
-        val methodText = if (isPickup) {
-            METODE_AMBIL_SENDIRI
-        } else {
-            order.metodePengambilan.ifBlank { "-" }
+        val order = currentOrder
+        binding.tvUploadHint.text = when {
+            order?.status == ORDER_STATUS_EXPIRED -> "Pesanan sudah expired."
+            selectedProofUri != null -> "Bukti siap dikirim ke sistem."
+            order?.paymentProofUrl?.isNotBlank() == true -> "Bukti sudah dikirim. Pilih gambar baru jika ingin menggantinya."
+            else -> "Setelah membayar QRIS, pilih bukti pembayaran dari galeri."
         }
 
-        return buildString {
-            appendLine("Halo kak, saya ingin konfirmasi pembayaran pesanan Liz Kitchen.")
-            appendLine()
-            appendLine("Nama: $customerName")
-            appendLine("No. HP: $customerPhone")
-            appendLine("Order ID: $displayOrderId")
-            appendLine("Metode: $methodText")
-            appendLine("Metode Pembayaran: QRIS Statis")
-            if (isPickup) {
-                appendLine("Cabang Pengambilan: ${pickupBranchNameForOrder(order)}")
-                appendLine("Alamat Cabang: ${pickupBranchAddressForOrder(order)}")
-            } else {
-                appendLine("Alamat Pengiriman: ${order.user.alamat.orEmpty().ifBlank { "-" }}")
-                if (order.patokanAlamat.isNotBlank()) {
-                    appendLine("Patokan Alamat: ${order.patokanAlamat}")
-                }
+        when {
+            order?.status == ORDER_STATUS_EXPIRED -> {
+                binding.btnKonfirmasi.isEnabled = false
+                binding.btnKonfirmasi.text = "Pesanan Expired"
             }
-            appendLine("Total Pembayaran: $totalText")
-            appendLine()
-            appendLine("Bukti pembayaran saya lampirkan di pesan ini.")
-            append("Terima kasih kak.")
+            selectedProofUri != null -> {
+                binding.btnKonfirmasi.isEnabled = true
+                binding.btnKonfirmasi.text = "Kirim Bukti Pembayaran"
+            }
+            order?.paymentProofUrl?.isNotBlank() == true -> {
+                binding.btnKonfirmasi.isEnabled = true
+                binding.btnKonfirmasi.text = "Ganti Bukti Pembayaran"
+            }
+            else -> {
+                binding.btnKonfirmasi.isEnabled = false
+                binding.btnKonfirmasi.text = "Pilih Bukti Pembayaran"
+            }
         }
     }
 
@@ -301,7 +336,13 @@ class ConfirmFragment : Fragment() {
 
     private fun setRequestLoading(isLoading: Boolean) {
         if (_binding == null) return
-        binding.root.setFirebaseRequestLoading(isLoading)
+        binding.tvLoadingState.text = if (currentOrder == null) {
+            "Memuat pesanan..."
+        } else {
+            "Mengunggah bukti pembayaran..."
+        }
+        binding.root.setFirebaseRequestLoading(isLoading, binding.loadingOverlay)
+        binding.ivBuktiBayar.isEnabled = !isLoading
     }
 
     override fun onDestroyView() {

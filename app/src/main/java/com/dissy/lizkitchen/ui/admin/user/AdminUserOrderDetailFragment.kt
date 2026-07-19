@@ -1,9 +1,13 @@
 package com.dissy.lizkitchen.ui.admin.user
 
 import android.annotation.SuppressLint
+import android.app.DownloadManager
+import android.content.Context
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
+import android.os.Environment
+import android.net.Uri
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -11,12 +15,18 @@ import android.view.View.GONE
 import android.view.View.VISIBLE
 import android.view.ViewGroup
 import android.webkit.WebView
+import android.widget.ImageView
+import android.widget.LinearLayout
+import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.widget.AppCompatImageView
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.bumptech.glide.Glide
+import com.dissy.lizkitchen.R
 import com.dissy.lizkitchen.adapter.admin.CartDetailUserAdapter
 import com.dissy.lizkitchen.databinding.FragmentAdminUserOrderDetailBinding
 import com.dissy.lizkitchen.model.Cart
@@ -27,6 +37,7 @@ import com.dissy.lizkitchen.utility.ORDER_STATUS_CONFIRMED
 import com.dissy.lizkitchen.utility.ORDER_STATUS_DONE
 import com.dissy.lizkitchen.utility.ORDER_STATUS_EXPIRED
 import com.dissy.lizkitchen.utility.ORDER_STATUS_PENDING_PAYMENT
+import com.dissy.lizkitchen.utility.ORDER_STATUS_PAYMENT_VERIFICATION
 import com.dissy.lizkitchen.utility.ORDER_STATUS_PROCESSING
 import com.dissy.lizkitchen.utility.ORDER_STATUS_READY_PICKUP
 import com.dissy.lizkitchen.utility.ORDER_STATUS_SHIPPING
@@ -83,6 +94,12 @@ class AdminUserOrderDetailFragment : Fragment() {
 
         binding.btnToPrint.setOnClickListener {
             printCurrentInvoice()
+        }
+
+        binding.ivPaymentProof.setOnClickListener {
+            currentOrder?.paymentProofUrl
+                ?.takeIf { it.isNotBlank() }
+                ?.let { showPaymentProofDialog(it) }
         }
 
         binding.btnConfirm.setOnClickListener {
@@ -152,9 +169,9 @@ class AdminUserOrderDetailFragment : Fragment() {
                 currentOrder = order
                 userId = order.user.userId.orEmpty()
 
+                setRequestLoading(false)
                 updateUI(order)
                 cartDetailUserAdapter.submitList(order.cart)
-                setRequestLoading(false)
             }
             .addOnFailureListener { exception ->
                 if (_binding != null) setRequestLoading(false)
@@ -184,6 +201,18 @@ class AdminUserOrderDetailFragment : Fragment() {
             tvAlamat.text = buildAddressText(order)
             tvPriceSum.text = formatCurrency(order.totalPrice.toString())
 
+            if (order.paymentProofUrl.isBlank()) {
+                tvPaymentProofStatus.text = "Pelanggan belum mengunggah bukti pembayaran."
+                ivPaymentProof.visibility = GONE
+                Glide.with(this@AdminUserOrderDetailFragment).clear(ivPaymentProof)
+            } else {
+                tvPaymentProofStatus.text = "Bukti pembayaran sudah diunggah oleh pelanggan."
+                ivPaymentProof.visibility = VISIBLE
+                Glide.with(this@AdminUserOrderDetailFragment)
+                    .load(order.paymentProofUrl)
+                    .into(ivPaymentProof)
+            }
+
             // Reset visibility
             actionContainer.visibility = GONE
             btnCancel.visibility = GONE
@@ -191,14 +220,21 @@ class AdminUserOrderDetailFragment : Fragment() {
             btnProcess.visibility = GONE
             btnShipping.visibility = GONE
             btnReady.visibility = GONE
+            btnConfirm.isEnabled = true
 
             when (order.status) {
-                ORDER_STATUS_PENDING_PAYMENT -> {
+                ORDER_STATUS_PENDING_PAYMENT, ORDER_STATUS_PAYMENT_VERIFICATION -> {
                     actionContainer.visibility = VISIBLE
-                    tvActionTitle.text = "Validasi pembayaran pelanggan untuk melanjutkan pesanan."
+                    val hasPaymentProof = order.paymentProofUrl.isNotBlank()
+                    tvActionTitle.text = if (hasPaymentProof) {
+                        "Periksa bukti pembayaran pelanggan sebelum mengkonfirmasi pesanan."
+                    } else {
+                        "Menunggu pelanggan mengunggah bukti pembayaran."
+                    }
                     btnCancel.visibility = VISIBLE
                     btnConfirm.visibility = VISIBLE
-                    btnConfirm.text = "Konfirmasi"
+                    btnConfirm.isEnabled = hasPaymentProof
+                    btnConfirm.text = if (hasPaymentProof) "Verifikasi Pembayaran" else "Menunggu Bukti"
                     btnCancel.text = "Batalkan"
                 }
                 ORDER_STATUS_CONFIRMED -> {
@@ -227,7 +263,7 @@ class AdminUserOrderDetailFragment : Fragment() {
         val (textColor, backgroundColor) = when (status) {
             ORDER_STATUS_DONE -> "#128A35" to "#E8F7EC"
             ORDER_STATUS_CANCELED, ORDER_STATUS_EXPIRED -> "#C62828" to "#FDECEC"
-            ORDER_STATUS_PENDING_PAYMENT -> "#C46A16" to "#FFF0DE"
+            ORDER_STATUS_PENDING_PAYMENT, ORDER_STATUS_PAYMENT_VERIFICATION -> "#C46A16" to "#FFF0DE"
             ORDER_STATUS_CONFIRMED, ORDER_STATUS_SHIPPING, ORDER_STATUS_READY_PICKUP -> "#128A35" to "#E8F7EC"
             ORDER_STATUS_PROCESSING -> "#9C6843" to "#F7E6DA"
             else -> "#9C6843" to "#F7E6DA"
@@ -243,7 +279,8 @@ class AdminUserOrderDetailFragment : Fragment() {
 
     private fun buildStatusDescription(status: String): String {
         return when (status) {
-            ORDER_STATUS_PENDING_PAYMENT -> "Menunggu pembayaran. Admin bisa konfirmasi jika pembayaran sudah valid."
+            ORDER_STATUS_PENDING_PAYMENT -> "Menunggu pembayaran dan bukti pembayaran dari pelanggan."
+            ORDER_STATUS_PAYMENT_VERIFICATION -> "Bukti pembayaran sudah dikirim dan menunggu verifikasi admin."
             ORDER_STATUS_CONFIRMED -> "Pembayaran sudah dikonfirmasi. Pesanan siap masuk proses produksi."
             ORDER_STATUS_PROCESSING -> "Pesanan sedang dibuat oleh tim Liz Kitchen."
             ORDER_STATUS_SHIPPING -> "Pesanan sedang dalam pengiriman ke pelanggan."
@@ -275,7 +312,92 @@ class AdminUserOrderDetailFragment : Fragment() {
         }
     }
 
+    private fun showPaymentProofDialog(url: String) {
+        val container = LinearLayout(requireContext()).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(16), 10, dp(16), dp(4))
+        }
+
+        val scrollView = ScrollView(requireContext()).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                dp(360)
+            )
+            isFillViewport = true
+        }
+
+        val proofImage = AppCompatImageView(requireContext()).apply {
+            adjustViewBounds = true
+            scaleType = ImageView.ScaleType.FIT_CENTER
+            contentDescription = "Bukti pembayaran pelanggan"
+            layoutParams = ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            )
+        }
+        Glide.with(this).load(url).into(proofImage)
+        scrollView.addView(proofImage)
+        container.addView(scrollView)
+
+        val dialog = AlertDialog.Builder(requireContext())
+            .setTitle("Bukti Pembayaran")
+            .setView(container)
+            .setNeutralButton("Download Bukti", null)
+            .setPositiveButton("Tutup", null)
+            .create()
+        dialog.show()
+        dialog.getButton(AlertDialog.BUTTON_NEUTRAL)?.apply {
+            setTextColor(Color.parseColor("#9C6843"))
+            setCompoundDrawablesWithIntrinsicBounds(
+                R.drawable.baseline_file_download_24_white,
+                0,
+                0,
+                0
+            )
+            compoundDrawablePadding = dp(6)
+            setOnClickListener { downloadPaymentProof(url) }
+        }
+        dialog.window?.setLayout(
+            (resources.displayMetrics.widthPixels * 0.92f).toInt(),
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        )
+    }
+
+    private fun downloadPaymentProof(url: String) {
+        try {
+            val safeOrderId = orderId.replace(Regex("[^A-Za-z0-9_-]"), "_")
+            val request = DownloadManager.Request(Uri.parse(url))
+                .setTitle("Bukti Pembayaran $safeOrderId")
+                .setDescription("Mengunduh bukti pembayaran pelanggan")
+                .setMimeType("image/*")
+                .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+                .setAllowedOverMetered(true)
+                .setDestinationInExternalPublicDir(
+                    Environment.DIRECTORY_DOWNLOADS,
+                    "liz_kitchen_bukti_$safeOrderId.jpg"
+                )
+            val manager = requireContext().getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+            manager.enqueue(request)
+            Toast.makeText(requireContext(), "Bukti pembayaran sedang diunduh", Toast.LENGTH_SHORT).show()
+        } catch (exception: Exception) {
+            Toast.makeText(
+                requireContext(),
+                "Gagal mengunduh bukti pembayaran: ${exception.message}",
+                Toast.LENGTH_LONG
+            ).show()
+        }
+    }
+
+    private fun dp(value: Int): Int {
+        return (value * resources.displayMetrics.density).toInt()
+    }
+
     private fun confirmOrder() {
+        if (currentOrder?.paymentProofUrl.isNullOrBlank()) {
+            Toast.makeText(requireContext(), "Bukti pembayaran belum tersedia", Toast.LENGTH_SHORT).show()
+            return
+        }
+
         val formattedDate = SimpleDateFormat("dd-MM-yyyy", Locale.getDefault()).format(Date())
         val currentTime = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
 

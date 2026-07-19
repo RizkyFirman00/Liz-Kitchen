@@ -22,6 +22,7 @@ import com.dissy.lizkitchen.utility.ORDER_STATUS_CONFIRMED
 import com.dissy.lizkitchen.utility.ORDER_STATUS_DONE
 import com.dissy.lizkitchen.utility.ORDER_STATUS_EXPIRED
 import com.dissy.lizkitchen.utility.ORDER_STATUS_PENDING_PAYMENT
+import com.dissy.lizkitchen.utility.ORDER_STATUS_PAYMENT_VERIFICATION
 import com.dissy.lizkitchen.utility.ORDER_STATUS_PROCESSING
 import com.dissy.lizkitchen.utility.ORDER_STATUS_READY_PICKUP
 import com.dissy.lizkitchen.utility.ORDER_STATUS_SHIPPING
@@ -232,6 +233,7 @@ class AdminUserOrderFragment : Fragment() {
         private val STATUS_FILTERS = listOf(
             StatusFilter(STATUS_ALL, "Semua"),
             StatusFilter(ORDER_STATUS_PENDING_PAYMENT, "Menunggu Bayar"),
+            StatusFilter(ORDER_STATUS_PAYMENT_VERIFICATION, "Verifikasi Bayar"),
             StatusFilter(ORDER_STATUS_CONFIRMED, "Dikonfirmasi"),
             StatusFilter(ORDER_STATUS_PROCESSING, "Diproses"),
             StatusFilter(ORDER_STATUS_SHIPPING, "Dikirim"),

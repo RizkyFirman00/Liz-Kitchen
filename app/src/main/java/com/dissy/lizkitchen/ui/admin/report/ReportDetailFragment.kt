@@ -24,6 +24,7 @@ import com.dissy.lizkitchen.utility.ORDER_STATUS_CONFIRMED
 import com.dissy.lizkitchen.utility.ORDER_STATUS_DONE
 import com.dissy.lizkitchen.utility.ORDER_STATUS_EXPIRED
 import com.dissy.lizkitchen.utility.ORDER_STATUS_PENDING_PAYMENT
+import com.dissy.lizkitchen.utility.ORDER_STATUS_PAYMENT_VERIFICATION
 import com.dissy.lizkitchen.utility.ORDER_STATUS_PROCESSING
 import com.dissy.lizkitchen.utility.ORDER_STATUS_READY_PICKUP
 import com.dissy.lizkitchen.utility.ORDER_STATUS_SHIPPING
@@ -71,6 +72,7 @@ class ReportDetailFragment : Fragment() {
                 R.id.menu_dibatalkan -> updateStatusFilter(ORDER_STATUS_CANCELED)
                 R.id.menu_expired -> updateStatusFilter(ORDER_STATUS_EXPIRED)
                 R.id.menu_menungguPembayaran -> updateStatusFilter(ORDER_STATUS_PENDING_PAYMENT)
+                R.id.menu_verifikasiPembayaran -> updateStatusFilter(ORDER_STATUS_PAYMENT_VERIFICATION)
                 R.id.menu_sedangDikirim -> updateStatusFilter(ORDER_STATUS_SHIPPING)
                 R.id.menu_siapDiambil -> updateStatusFilter(ORDER_STATUS_READY_PICKUP)
                 R.id.menu_sudahDikonfirmasi -> updateStatusFilter(ORDER_STATUS_CONFIRMED)

@@ -16,6 +16,8 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ArrayAdapter
+import android.widget.Filter
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
@@ -44,6 +46,7 @@ import com.google.firebase.storage.ktx.storage
 import java.io.File
 
 class CakeDetailFragment : Fragment() {
+    private val variantNameOptions = listOf("250 Gram", "500 Gram", "700 Gram")
     private var _binding: FragmentCakeDetailBinding? = null
     private val binding get() = _binding!!
     private val db = Firebase.firestore
@@ -67,6 +70,7 @@ class CakeDetailFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         binding.root.clearFocusWhenTouchOutsideInput()
+        setupVariantNameDropdown()
         documentId = arguments?.getString("documentId")
         documentId?.let { fetchCakeData(it) }
         binding.btnToHome.setOnClickListener { findNavController().navigateUp() }
@@ -75,6 +79,36 @@ class CakeDetailFragment : Fragment() {
         binding.btnAddVarian.setOnClickListener { saveVariantFromInput() }
         binding.btnUpdateData.setOnClickListener { updateCakeData() }
         binding.btnDeleteData.setOnClickListener { deleteCakeData() }
+    }
+
+    private fun setupVariantNameDropdown() {
+        val adapter = object : ArrayAdapter<String>(
+            requireContext(),
+            android.R.layout.simple_dropdown_item_1line,
+            variantNameOptions
+        ) {
+            override fun getFilter(): Filter {
+                return object : Filter() {
+                    override fun performFiltering(constraint: CharSequence?): FilterResults {
+                        return FilterResults().apply {
+                            values = variantNameOptions
+                            count = variantNameOptions.size
+                        }
+                    }
+
+                    override fun publishResults(constraint: CharSequence?, results: FilterResults?) {
+                        notifyDataSetChanged()
+                    }
+                }
+            }
+        }
+        binding.etNamaVarian.setAdapter(adapter)
+        binding.etNamaVarian.setOnClickListener {
+            binding.etNamaVarian.showDropDown()
+        }
+        binding.etNamaVarian.setOnFocusChangeListener { _, hasFocus ->
+            if (hasFocus) binding.etNamaVarian.showDropDown()
+        }
     }
 
     private fun fetchCakeData(id: String) {
