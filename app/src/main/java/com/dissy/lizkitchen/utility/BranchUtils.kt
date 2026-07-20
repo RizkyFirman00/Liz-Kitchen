@@ -2,10 +2,13 @@ package com.dissy.lizkitchen.utility
 
 import android.location.Location
 import com.dissy.lizkitchen.model.Order
+import kotlin.math.roundToLong
+import java.util.Locale
 
 const val METODE_AMBIL_SENDIRI = "Ambil Sendiri"
 const val METODE_PESAN_ANTAR = "Pesan Antar"
-const val MAX_DELIVERY_RADIUS_METERS = 5_000f
+const val FREE_DELIVERY_RADIUS_METERS = 5_000f
+const val MAX_DELIVERY_RADIUS_METERS = 100_000f
 
 const val LIZ_KITCHEN_BRANCH_ADDRESS =
     "Jl. Kebon Sirih Barat I No.24, RT.2/RW.2, Kb. Sirih, Kec. Menteng, Kota Jakarta Pusat, DKI Jakarta 10340"
@@ -92,4 +95,46 @@ fun nearestBranchDistanceMeters(location: Location): Pair<LizKitchenBranch, Floa
 fun isWithinDeliveryRadius(location: Location): Boolean {
     val nearestBranch = nearestBranchDistanceMeters(location) ?: return false
     return nearestBranch.second <= MAX_DELIVERY_RADIUS_METERS
+}
+
+fun deliveryFeeForDistanceMeters(distanceMeters: Float?): Long? {
+    val distance = distanceMeters ?: return null
+    if (distance < 0f || distance > MAX_DELIVERY_RADIUS_METERS) return null
+
+    return when {
+        distance <= FREE_DELIVERY_RADIUS_METERS -> 0L
+        distance <= 10_000f -> 15_000L
+        distance <= 20_000f -> 30_000L
+        distance <= 40_000f -> 45_000L
+        distance <= 60_000f -> 60_000L
+        distance <= 80_000f -> 80_000L
+        else -> 100_000L
+    }
+}
+
+fun deliveryDistanceMeters(distanceMeters: Float?): Long {
+    return distanceMeters?.roundToLong()?.coerceAtLeast(0L) ?: 0L
+}
+
+fun deliveryFeeLabel(fee: Long): String {
+    return if (fee <= 0L) "Gratis" else "Rp ${formatDeliveryCurrency(fee)}"
+}
+
+fun deliveryDistanceLabel(distanceMeters: Long): String {
+    if (distanceMeters <= 0L) return "Jarak belum tersedia"
+    return if (distanceMeters >= 1_000L) {
+        String.format(Locale("id", "ID"), "%.1f km", distanceMeters / 1_000f)
+    } else {
+        "$distanceMeters m"
+    }
+}
+
+private fun formatDeliveryCurrency(value: Long): String {
+    val formatted = StringBuilder(value.toString())
+    var index = formatted.length - 3
+    while (index > 0) {
+        formatted.insert(index, ".")
+        index -= 3
+    }
+    return formatted.toString()
 }

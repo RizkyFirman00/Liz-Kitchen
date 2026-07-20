@@ -31,6 +31,8 @@ fun orderFromDocument(document: DocumentSnapshot): Order {
         pickupBranchName = document.getString("pickupBranchName").orEmpty(),
         pickupBranchAddress = document.getString("pickupBranchAddress").orEmpty(),
         patokanAlamat = document.getString("patokanAlamat").orEmpty(),
+        deliveryDistanceMeters = numberToLong(document.get("deliveryDistanceMeters")),
+        deliveryFee = numberToLong(document.get("deliveryFee")),
         paymentProofUrl = document.getString("paymentProofUrl").orEmpty(),
         paymentProofUploadedAtMillis = numberToLong(document.get("paymentProofUploadedAtMillis")),
         tanggalOrder = document.getString("tanggalOrder").orEmpty(),
@@ -52,6 +54,8 @@ fun orderToFirestoreMap(order: Order): Map<String, Any> {
         "pickupBranchName" to order.pickupBranchName,
         "pickupBranchAddress" to order.pickupBranchAddress,
         "patokanAlamat" to order.patokanAlamat,
+        "deliveryDistanceMeters" to order.deliveryDistanceMeters,
+        "deliveryFee" to order.deliveryFee,
         "paymentProofUrl" to order.paymentProofUrl,
         "paymentProofUploadedAtMillis" to order.paymentProofUploadedAtMillis,
         "tanggalOrder" to order.tanggalOrder,
@@ -61,6 +65,12 @@ fun orderToFirestoreMap(order: Order): Map<String, Any> {
         "totalPrice" to order.totalPrice,
         "user" to userToFirestoreMap(order.user)
     )
+}
+
+fun orderProductSubtotal(order: Order): Long {
+    return order.cart.sumOf { item ->
+        productPriceToLong(item.cake.harga) * item.jumlahPesanan
+    }
 }
 
 fun orderPaymentDeadlineMillis(order: Order): Long {

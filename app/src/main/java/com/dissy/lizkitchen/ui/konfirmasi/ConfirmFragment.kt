@@ -23,7 +23,10 @@ import com.dissy.lizkitchen.model.Order
 import com.dissy.lizkitchen.utility.ORDER_STATUS_EXPIRED
 import com.dissy.lizkitchen.utility.ORDER_STATUS_PAYMENT_VERIFICATION
 import com.dissy.lizkitchen.utility.Preferences
+import com.dissy.lizkitchen.utility.deliveryDistanceLabel
+import com.dissy.lizkitchen.utility.deliveryFeeLabel
 import com.dissy.lizkitchen.utility.orderFromDocument
+import com.dissy.lizkitchen.utility.orderProductSubtotal
 import com.dissy.lizkitchen.utility.setFirebaseRequestLoading
 import com.dissy.lizkitchen.utility.validateOrderExpiryOnRead
 import com.google.firebase.Firebase
@@ -83,6 +86,14 @@ class ConfirmFragment : Fragment() {
                         tvOrderName.text = order.user.name.orEmpty().ifBlank { "Pelanggan" }
                         tvOrderTotal.text = formattedText
                         tvOrderId.text = orderId
+                        tvOrderSubtotal.text = formatAndDisplayCurrency(orderProductSubtotal(order).toString())
+                        deliveryFeeRow.visibility = if (order.metodePengambilan.contains("antar", ignoreCase = true)) {
+                            View.VISIBLE
+                        } else {
+                            View.GONE
+                        }
+                        tvOrderDeliveryDistance.text = "${deliveryDistanceLabel(order.deliveryDistanceMeters)} dari cabang"
+                        tvOrderDeliveryFee.text = deliveryFeeLabel(order.deliveryFee)
                         if (order.paymentProofUrl.isNotBlank()) {
                             Glide.with(this@ConfirmFragment)
                                 .load(order.paymentProofUrl)

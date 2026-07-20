@@ -42,8 +42,11 @@ import com.dissy.lizkitchen.utility.ORDER_STATUS_PROCESSING
 import com.dissy.lizkitchen.utility.ORDER_STATUS_READY_PICKUP
 import com.dissy.lizkitchen.utility.ORDER_STATUS_SHIPPING
 import com.dissy.lizkitchen.utility.cartItemsFromAny
+import com.dissy.lizkitchen.utility.deliveryDistanceLabel
+import com.dissy.lizkitchen.utility.deliveryFeeLabel
 import com.dissy.lizkitchen.utility.metodePengambilanDisplayForOrder
 import com.dissy.lizkitchen.utility.orderFromDocument
+import com.dissy.lizkitchen.utility.orderProductSubtotal
 import com.dissy.lizkitchen.utility.pickupBranchAddressForOrder
 import com.dissy.lizkitchen.utility.pickupBranchNameForOrder
 import com.dissy.lizkitchen.utility.printOrderInvoice
@@ -200,6 +203,14 @@ class AdminUserOrderDetailFragment : Fragment() {
             }
             tvAlamat.text = buildAddressText(order)
             tvPriceSum.text = formatCurrency(order.totalPrice.toString())
+            tvOrderSubtotal.text = formatCurrency(orderProductSubtotal(order).toString())
+            deliveryFeeRow.visibility = if (order.metodePengambilan.contains("antar", ignoreCase = true)) {
+                VISIBLE
+            } else {
+                GONE
+            }
+            tvOrderDeliveryDistance.text = "${deliveryDistanceLabel(order.deliveryDistanceMeters)} dari cabang"
+            tvOrderDeliveryFee.text = deliveryFeeLabel(order.deliveryFee)
 
             if (order.paymentProofUrl.isBlank()) {
                 tvPaymentProofStatus.text = "Pelanggan belum mengunggah bukti pembayaran."

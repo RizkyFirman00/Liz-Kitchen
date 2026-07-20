@@ -36,8 +36,11 @@ import com.dissy.lizkitchen.utility.ORDER_STATUS_PROCESSING
 import com.dissy.lizkitchen.utility.ORDER_STATUS_READY_PICKUP
 import com.dissy.lizkitchen.utility.ORDER_STATUS_SHIPPING
 import com.dissy.lizkitchen.utility.Preferences
+import com.dissy.lizkitchen.utility.deliveryDistanceLabel
+import com.dissy.lizkitchen.utility.deliveryFeeLabel
 import com.dissy.lizkitchen.utility.metodePengambilanDisplayForOrder
 import com.dissy.lizkitchen.utility.orderFromDocument
+import com.dissy.lizkitchen.utility.orderProductSubtotal
 import com.dissy.lizkitchen.utility.orderToFirestoreMap
 import com.dissy.lizkitchen.utility.pickupBranchAddressForOrder
 import com.dissy.lizkitchen.utility.pickupBranchNameForOrder
@@ -159,6 +162,14 @@ class OrderDetailFragment : Fragment() {
             tvAlamat.text = buildAddressText(order)
             tvOrderDate.text = order.tanggalOrder.ifBlank { "-" }
             tvJamOrder.text = order.jamOrder.ifBlank { "-" }
+            tvOrderSubtotal.text = formatCurrency(orderProductSubtotal(order).toString())
+            deliveryFeeRow.visibility = if (order.metodePengambilan.contains("antar", ignoreCase = true)) {
+                View.VISIBLE
+            } else {
+                View.GONE
+            }
+            tvOrderDeliveryDistance.text = "${deliveryDistanceLabel(order.deliveryDistanceMeters)} dari cabang"
+            tvOrderDeliveryFee.text = deliveryFeeLabel(order.deliveryFee)
 
             if (order.status == ORDER_STATUS_PAYMENT_VERIFICATION && order.paymentProofUrl.isNotBlank()) {
                 paymentProofPanel.visibility = View.VISIBLE

@@ -31,9 +31,13 @@ import com.dissy.lizkitchen.utility.ORDER_STATUS_PENDING_PAYMENT
 import com.dissy.lizkitchen.utility.PAYMENT_EXPIRY_DURATION_MILLIS
 import com.dissy.lizkitchen.utility.Preferences
 import com.dissy.lizkitchen.utility.cartItemsFromAny
+import com.dissy.lizkitchen.utility.deliveryDistanceMeters
+import com.dissy.lizkitchen.utility.deliveryFeeForDistanceMeters
+import com.dissy.lizkitchen.utility.deliveryFeeLabel
 import com.dissy.lizkitchen.utility.isInvalidCheckoutAddress
 import com.dissy.lizkitchen.utility.nearestBranchDistanceMeters
 import com.dissy.lizkitchen.utility.orderFromDocument
+import com.dissy.lizkitchen.utility.productPriceToLong
 import com.dissy.lizkitchen.utility.pickupBranchForOrder
 import com.dissy.lizkitchen.utility.setFirebaseRequestLoading
 import com.google.firebase.firestore.SetOptions
@@ -56,6 +60,9 @@ class DetailCartFragment : Fragment() {
     private var validatedAddressText: String = ""
     private var deliveryCheckResult: DeliveryCheckResult? = null
     private var isUpdatingAddressText: Boolean = false
+    private var orderSubtotalPrice: Long = 0L
+    private var selectedDeliveryFee: Long = 0L
+    private var selectedDeliveryDistanceMeters: Long = 0L
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -91,13 +98,18 @@ class DetailCartFragment : Fragment() {
                 .addOnSuccessListener {
                     if (!it.exists()) return@addOnSuccessListener
                     val order = orderFromDocument(it)
-                    binding.tvPriceSum.text = formatAndDisplayCurrency(order.totalPrice.toString())
+                    orderSubtotalPrice = calculateCartSubtotal(order.cart)
+                        .takeIf { subtotal -> subtotal > 0L }
+                        ?: (order.totalPrice - order.deliveryFee).coerceAtLeast(0L)
+                    selectedDeliveryFee = order.deliveryFee
+                    selectedDeliveryDistanceMeters = order.deliveryDistanceMeters
                     binding.etPatokanAlamat.setText(order.patokanAlamat)
                     if (order.metodePengambilan.isNotBlank()) {
                         selectedMetodePengambilan = order.metodePengambilan
                         selectedPickupBranch = pickupBranchForOrder(order)
                         updateSelectedMethodView()
                     }
+                    updatePriceSummary()
                 }
         }
 
@@ -208,16 +220,22 @@ class DetailCartFragment : Fragment() {
             setAddressTextWithoutInvalidating(resolvedAddress)
             validatedAddressText = resolvedAddress
             deliveryCheckResult = deliveryCheck
+            selectedDeliveryDistanceMeters = deliveryDistanceMeters(deliveryCheck.distanceMeters)
+            selectedDeliveryFee = deliveryFeeForDistanceMeters(deliveryCheck.distanceMeters) ?: 0L
             binding.textInputLayout.error = null
             binding.textInputLayout.helperText = when (deliveryCheck.status) {
                 DeliveryStatus.AVAILABLE -> {
                     val distanceText = deliveryCheck.distanceMeters?.let { formatDistance(it) }
-                    if (distanceText == null) "Alamat terverifikasi"
-                    else "Alamat terverifikasi - delivery tersedia $distanceText dari cabang"
+                    val fee = deliveryFeeForDistanceMeters(deliveryCheck.distanceMeters) ?: 0L
+                    if (distanceText == null) {
+                        "Alamat terverifikasi - biaya antar ${deliveryFeeLabel(fee)}"
+                    } else {
+                        "Alamat terverifikasi - delivery $distanceText dari cabang | biaya ${deliveryFeeLabel(fee)}"
+                    }
                 }
                 DeliveryStatus.OUT_OF_RANGE -> {
-                    val distanceText = deliveryCheck.distanceMeters?.let { formatDistance(it) } ?: "lebih dari 5 km"
-                    "Di luar jangkauan delivery ($distanceText). Pilih Ambil Sendiri."
+                    val distanceText = deliveryCheck.distanceMeters?.let { formatDistance(it) } ?: "lebih dari 100 km"
+                    "Di luar jangkauan delivery ($distanceText). Maksimal 100 km, pilih Ambil Sendiri."
                 }
                 DeliveryStatus.UNKNOWN -> "Alamat ditemukan, tetapi jangkauan delivery belum dapat dipastikan"
             }
@@ -227,20 +245,26 @@ class DetailCartFragment : Fragment() {
             ) {
                 selectedMetodePengambilan = ""
                 selectedPickupBranch = null
+                selectedDeliveryFee = 0L
+                selectedDeliveryDistanceMeters = 0L
                 updateSelectedMethodView()
             }
+            updatePriceSummary()
         }
     }
 
     private fun invalidateAddressValidation() {
         validatedAddressText = ""
         deliveryCheckResult = null
+        selectedDeliveryFee = 0L
+        selectedDeliveryDistanceMeters = 0L
         binding.textInputLayout.error = null
         binding.textInputLayout.helperText = if (binding.etAlamat.text.isNullOrBlank()) {
             "Tekan ikon lokasi untuk memvalidasi alamat"
         } else {
             "Alamat berubah. Tekan ikon lokasi untuk memvalidasi ulang"
         }
+        updatePriceSummary()
     }
 
     private fun setAddressTextWithoutInvalidating(address: String) {
@@ -309,6 +333,15 @@ class DetailCartFragment : Fragment() {
             binding.tvPickupBranchName.text = ""
             binding.tvPickupBranchAddress.text = ""
         }
+
+        if (selectedMetodePengambilan != METODE_PESAN_ANTAR) {
+            selectedDeliveryFee = 0L
+            selectedDeliveryDistanceMeters = 0L
+        } else {
+            selectedDeliveryFee = deliveryFeeForDistanceMeters(deliveryCheckResult?.distanceMeters)
+                ?: selectedDeliveryFee
+        }
+        updatePriceSummary()
     }
 
     private fun checkDeliveryAvailability(
@@ -372,11 +405,16 @@ class DetailCartFragment : Fragment() {
         return when (deliveryCheck.status) {
             DeliveryStatus.AVAILABLE -> {
                 val distanceText = deliveryCheck.distanceMeters?.let { formatDistance(it) }
-                if (distanceText == null) "Delivery tersedia" else "Delivery tersedia - $distanceText"
+                val fee = deliveryFeeForDistanceMeters(deliveryCheck.distanceMeters) ?: 0L
+                if (distanceText == null) {
+                    "Delivery tersedia - Biaya antar ${deliveryFeeLabel(fee)}"
+                } else {
+                    "Delivery tersedia - $distanceText | Biaya antar ${deliveryFeeLabel(fee)}"
+                }
             }
             DeliveryStatus.OUT_OF_RANGE -> {
-                val distanceText = deliveryCheck.distanceMeters?.let { formatDistance(it) } ?: "lebih dari 5 km"
-                "Pickup saja - $distanceText"
+                val distanceText = deliveryCheck.distanceMeters?.let { formatDistance(it) } ?: "lebih dari 100 km"
+                "Pickup saja - $distanceText (maksimal 100 km)"
             }
             DeliveryStatus.UNKNOWN ->
                 "Delivery belum bisa dicek"
@@ -462,7 +500,7 @@ class DetailCartFragment : Fragment() {
                 DeliveryStatus.AVAILABLE -> submitCheckout(alamat, patokanAlamat, metodePengambilan)
                 DeliveryStatus.OUT_OF_RANGE -> Toast.makeText(
                     requireContext(),
-                    "Alamat di luar radius 5 km. Silahkan pilih Ambil Sendiri.",
+                    "Alamat di luar jangkauan 100 km. Silahkan pilih Ambil Sendiri.",
                     Toast.LENGTH_LONG
                 ).show()
                 DeliveryStatus.UNKNOWN -> Toast.makeText(
@@ -482,6 +520,12 @@ class DetailCartFragment : Fragment() {
         if (userId != null && orderId != null) {
             setRequestLoading(true)
             val pickupBranch = if (metodePengambilan == METODE_AMBIL_SENDIRI) selectedPickupBranch else null
+            val deliveryFee = if (metodePengambilan == METODE_PESAN_ANTAR) selectedDeliveryFee else 0L
+            val deliveryDistance = if (metodePengambilan == METODE_PESAN_ANTAR) {
+                selectedDeliveryDistanceMeters
+            } else {
+                0L
+            }
             val paymentDeadlineMillis = System.currentTimeMillis() + PAYMENT_EXPIRY_DURATION_MILLIS
             val orderUpdates = mapOf(
                 "user" to mapOf("alamat" to alamat),
@@ -490,6 +534,9 @@ class DetailCartFragment : Fragment() {
                 "pickupBranchId" to pickupBranch?.id.orEmpty(),
                 "pickupBranchName" to pickupBranch?.name.orEmpty(),
                 "pickupBranchAddress" to pickupBranch?.address.orEmpty(),
+                "deliveryDistanceMeters" to deliveryDistance,
+                "deliveryFee" to deliveryFee,
+                "totalPrice" to (orderSubtotalPrice + deliveryFee),
                 "status" to ORDER_STATUS_PENDING_PAYMENT,
                 "paymentDeadlineMillis" to paymentDeadlineMillis
             )
@@ -566,7 +613,9 @@ class DetailCartFragment : Fragment() {
                     if (_binding == null) return@addOnSuccessListener
                     val cartItems = cartItemsFromAny(snapshot.get("cart"))
                     checkoutAdapter.submitList(cartItems)
+                    orderSubtotalPrice = calculateCartSubtotal(cartItems)
                     binding.tvCheckoutSummary.text = buildCheckoutSummary(cartItems)
+                    updatePriceSummary()
                     setRequestLoading(false)
                 }
                 .addOnFailureListener { exception ->
@@ -581,6 +630,27 @@ class DetailCartFragment : Fragment() {
         val productTypeCount = cartItems.size
         val quantityCount = cartItems.sumOf { it.jumlahPesanan }
         return "$productTypeCount jenis produk | $quantityCount item"
+    }
+
+    private fun calculateCartSubtotal(cartItems: List<Cart>): Long {
+        return cartItems.sumOf { item ->
+            productPriceToLong(item.cake.harga) * item.jumlahPesanan
+        }
+    }
+
+    private fun updatePriceSummary() {
+        if (_binding == null) return
+        val deliverySelected = selectedMetodePengambilan == METODE_PESAN_ANTAR
+        val fee = if (deliverySelected) selectedDeliveryFee else 0L
+        val total = orderSubtotalPrice + fee
+        binding.tvSubtotalPrice.text = formatAndDisplayCurrency(orderSubtotalPrice.toString())
+        binding.tvDeliveryFeePrice.text = deliveryFeeLabel(fee)
+        binding.tvDeliveryFeeDetail.text = if (deliverySelected && selectedDeliveryDistanceMeters > 0L) {
+            "${formatDistance(selectedDeliveryDistanceMeters.toFloat())} dari cabang"
+        } else {
+            "Pilih Pesan Antar untuk menghitung biaya"
+        }
+        binding.tvPriceSum.text = formatAndDisplayCurrency(total.toString())
     }
 
     private fun formatAndDisplayCurrency(value: String): String {

@@ -51,6 +51,8 @@ fun printOrderInvoice(
 private fun buildInvoiceHtml(order: Order): String {
     val totalQuantity = order.cart.sumOf { it.jumlahPesanan }
     val itemTypeCount = order.cart.size
+    val productSubtotal = orderProductSubtotal(order)
+    val isDelivery = order.metodePengambilan.contains("antar", ignoreCase = true)
     val addressTitle = if (order.metodePengambilan.contains("ambil", ignoreCase = true)) {
         "Alamat Cabang"
     } else {
@@ -156,6 +158,21 @@ private fun buildInvoiceHtml(order: Order): String {
                     }
                     .total-label { font-size: 14px; font-weight: 700; }
                     .total-price { color: #9C6843; font-size: 20px; font-weight: 700; }
+                    .breakdown {
+                        margin-top: 16px;
+                        padding: 14px 16px;
+                        border: 1px solid #F0E1D4;
+                        border-radius: 12px;
+                    }
+                    .breakdown-row {
+                        display: flex;
+                        justify-content: space-between;
+                        gap: 16px;
+                        margin-top: 6px;
+                    }
+                    .breakdown-row:first-child { margin-top: 0; }
+                    .breakdown-label { color: #765945; }
+                    .breakdown-value { color: #3A2A20; font-weight: 700; text-align: right; }
                     .footer {
                         margin-top: 20px;
                         color: #765945;
@@ -201,6 +218,11 @@ private fun buildInvoiceHtml(order: Order): String {
                                 <div class="value">${html(order.tanggalOrder.ifBlank { "-" })} ${html(order.jamOrder.ifBlank { "" })}</div>
                                 <div class="muted">Metode: ${html(metodePengambilanDisplayForOrder(order).ifBlank { "-" })}</div>
                                 <div class="muted">Dicetak: ${html(printedAt)}</div>
+                                ${if (isDelivery) {
+                                    "<div class=\"muted\">Jarak antar: ${html(deliveryDistanceLabel(order.deliveryDistanceMeters))}</div>"
+                                } else {
+                                    ""
+                                }}
                             </div>
                             <div class="box" style="grid-column: span 2;">
                                 <div class="label">${html(addressTitle)}</div>
@@ -222,6 +244,23 @@ private fun buildInvoiceHtml(order: Order): String {
                                 ${buildInvoiceRows(order.cart)}
                             </tbody>
                         </table>
+
+                        <div class="breakdown">
+                            <div class="breakdown-row">
+                                <div class="breakdown-label">Subtotal Produk</div>
+                                <div class="breakdown-value">${formatInvoiceCurrency(productSubtotal)}</div>
+                            </div>
+                            ${if (isDelivery) {
+                                """
+                                <div class="breakdown-row">
+                                    <div class="breakdown-label">Biaya Pesan Antar</div>
+                                    <div class="breakdown-value">${html(deliveryFeeLabel(order.deliveryFee))}</div>
+                                </div>
+                                """.trimIndent()
+                            } else {
+                                ""
+                            }}
+                        </div>
 
                         <div class="total">
                             <div class="total-label">Total Pembayaran</div>

@@ -348,6 +348,83 @@
                 </LinearLayout>
 
                 <LinearLayout
+                    android:id="@+id/priceBreakdownPanel"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    android:orientation="vertical">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:fontFamily="@font/poppins_regular"
+                            android:text="Subtotal Produk"
+                            android:textColor="#765945"
+                            android:textSize="12sp" />
+
+                        <TextView
+                            android:id="@+id/tvOrderSubtotal"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="@font/poppins_semibold"
+                            android:textColor="#3A2A20"
+                            android:textSize="12sp"
+                            tools:text="Rp 120.000" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/deliveryFeeRow"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:visibility="gone"
+                        tools:visibility="visible">
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:fontFamily="@font/poppins_regular"
+                                android:text="Biaya Pesan Antar"
+                                android:textColor="#765945"
+                                android:textSize="12sp" />
+
+                            <TextView
+                                android:id="@+id/tvOrderDeliveryDistance"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:fontFamily="@font/poppins_regular"
+                                android:textColor="#9C6843"
+                                android:textSize="10sp"
+                                tools:text="8,4 km dari cabang" />
+                        </LinearLayout>
+
+                        <TextView
+                            android:id="@+id/tvOrderDeliveryFee"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="@font/poppins_semibold"
+                            android:textColor="#3A2A20"
+                            android:textSize="12sp"
+                            tools:text="Rp 15.000" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="14dp"
