@@ -355,7 +355,7 @@ class AdminUserOrderDetailFragment : Fragment() {
     private fun statusProofTitle(status: String): String {
         return when (status) {
             ORDER_STATUS_PROCESSING -> "Bukti Pesanan Diproses"
-            ORDER_STATUS_SHIPPING -> "Bukti Pengiriman Gojek"
+            ORDER_STATUS_SHIPPING -> "Bukti Pengiriman Kurir"
             ORDER_STATUS_READY_PICKUP -> "Bukti Pesanan Siap Diambil"
             ORDER_STATUS_DONE -> "Bukti Pesanan Diterima"
             else -> "Bukti Status Pesanan"
