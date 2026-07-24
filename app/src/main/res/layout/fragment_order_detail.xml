@@ -198,6 +198,44 @@
             </LinearLayout>
 
             <LinearLayout
+                android:id="@+id/statusProofPanel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:background="@drawable/bg_order_card"
+                android:orientation="vertical"
+                android:padding="14dp"
+                android:visibility="gone"
+                tools:visibility="visible">
+
+                <TextView
+                    android:id="@+id/tvStatusProofTitle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/poppins_semibold"
+                    android:text="Bukti Status Pesanan"
+                    android:textColor="#3A2A20"
+                    android:textSize="14sp" />
+
+                <TextView
+                    android:id="@+id/tvStatusProofHint"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:fontFamily="@font/poppins_regular"
+                    android:text="Bukti status dari admin. Ketuk foto untuk melihat lebih besar."
+                    android:textColor="#765945"
+                    android:textSize="12sp" />
+
+                <LinearLayout
+                    android:id="@+id/statusProofList"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:orientation="vertical" />
+            </LinearLayout>
+
+            <LinearLayout
                 android:id="@+id/orderItemsPanel"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

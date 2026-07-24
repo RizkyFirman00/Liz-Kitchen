@@ -542,6 +542,71 @@
             tools:text="Aksi pesanan" />
 
         <LinearLayout
+            android:id="@+id/statusProofInputPanel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/bg_cart_panel"
+            android:orientation="vertical"
+            android:padding="10dp"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/tvStatusProofTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fontFamily="@font/poppins_semibold"
+                android:text="Bukti Status Pesanan"
+                android:textColor="#3A2A20"
+                android:textSize="12sp" />
+
+            <TextView
+                android:id="@+id/tvStatusProofHint"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:fontFamily="@font/poppins_regular"
+                android:text="Pilih foto bukti sebelum memperbarui status."
+                android:textColor="#765945"
+                android:textSize="10sp" />
+
+            <androidx.appcompat.widget.AppCompatImageView
+                android:id="@+id/ivStatusProofInput"
+                android:layout_width="match_parent"
+                android:layout_height="140dp"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/bg_cart_card"
+                android:contentDescription="Preview foto bukti status"
+                android:scaleType="centerInside"
+                android:src="@drawable/upload_bukti_pembayaran" />
+
+            <androidx.appcompat.widget.AppCompatButton
+                android:id="@+id/btnChooseStatusProof"
+                android:layout_width="match_parent"
+                android:layout_height="40dp"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/shape_button_brown_border"
+                android:fontFamily="@font/poppins_semibold"
+                android:text="Pilih Foto Bukti"
+                android:textAllCaps="false"
+                android:textColor="@color/brown_old"
+                android:textSize="12sp" />
+
+            <androidx.appcompat.widget.AppCompatButton
+                android:id="@+id/btnUploadStatusProof"
+                android:layout_width="match_parent"
+                android:layout_height="40dp"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/shape_button_green"
+                android:fontFamily="@font/poppins_semibold"
+                android:text="Simpan Bukti Status"
+                android:textAllCaps="false"
+                android:textColor="@color/white"
+                android:textSize="12sp"
+                android:visibility="gone" />
+        </LinearLayout>
+
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="10dp"

@@ -18,6 +18,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.widget.AppCompatImageView
+import androidx.core.content.res.ResourcesCompat
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -88,7 +89,6 @@ class OrderDetailFragment : Fragment() {
                 ?.takeIf { it.isNotBlank() }
                 ?.let { showPaymentProofDialog(it) }
         }
-
         fetchOrderDetails()
     }
 
@@ -171,6 +171,28 @@ class OrderDetailFragment : Fragment() {
             tvOrderDeliveryDistance.text = "${deliveryDistanceLabel(order.deliveryDistanceMeters)} dari cabang"
             tvOrderDeliveryFee.text = deliveryFeeLabel(order.deliveryFee)
 
+            val statusProofEntries = listOf(
+                ORDER_STATUS_PROCESSING,
+                ORDER_STATUS_SHIPPING,
+                ORDER_STATUS_READY_PICKUP,
+                ORDER_STATUS_DONE
+            ).mapNotNull { status ->
+                order.statusProofs[status]
+                    ?.takeIf { it.isNotBlank() }
+                    ?.let { status to it }
+            }
+            statusProofList.removeAllViews()
+            if (statusProofEntries.isNotEmpty()) {
+                statusProofPanel.visibility = View.VISIBLE
+                tvStatusProofTitle.text = "Bukti Perjalanan Pesanan"
+                tvStatusProofHint.text = "Bukti foto dari admin. Ketuk foto untuk melihat lebih besar."
+                statusProofEntries.forEach { (status, url) ->
+                    addStatusProofPreview(status, url)
+                }
+            } else {
+                statusProofPanel.visibility = View.GONE
+            }
+
             if (order.status == ORDER_STATUS_PAYMENT_VERIFICATION && order.paymentProofUrl.isNotBlank()) {
                 paymentProofPanel.visibility = View.VISIBLE
                 Glide.with(this@OrderDetailFragment)
@@ -228,7 +250,7 @@ class OrderDetailFragment : Fragment() {
         }
     }
 
-    private fun showPaymentProofDialog(url: String) {
+    private fun showPaymentProofDialog(url: String, title: String = "Bukti Pembayaran") {
         val container = LinearLayout(requireContext()).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(16), 0, dp(16), dp(4))
@@ -256,7 +278,7 @@ class OrderDetailFragment : Fragment() {
         container.addView(scrollView)
 
         val dialog = AlertDialog.Builder(requireContext())
-            .setTitle("Bukti Pembayaran")
+            .setTitle(title)
             .setView(container)
             .setNeutralButton("Download Bukti", null)
             .setPositiveButton("Tutup", null)
@@ -271,7 +293,7 @@ class OrderDetailFragment : Fragment() {
                 0
             )
             compoundDrawablePadding = dp(6)
-            setOnClickListener { downloadPaymentProof(url) }
+            setOnClickListener { downloadPaymentProof(url, title) }
         }
         dialog.window?.setLayout(
             (resources.displayMetrics.widthPixels * 0.92f).toInt(),
@@ -279,13 +301,47 @@ class OrderDetailFragment : Fragment() {
         )
     }
 
-    private fun downloadPaymentProof(url: String) {
+    private fun addStatusProofPreview(status: String, url: String) {
+        val item = LinearLayout(requireContext()).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(10), dp(10), dp(10), dp(10))
+            background = resources.getDrawable(R.drawable.bg_cart_panel, requireContext().theme)
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                if (binding.statusProofList.childCount > 0) topMargin = dp(8)
+            }
+            isClickable = true
+            setOnClickListener { showPaymentProofDialog(url, statusProofTitle(status)) }
+        }
+        val title = TextView(requireContext()).apply {
+            text = statusProofTitle(status)
+            setTextColor(Color.parseColor("#3A2A20"))
+            textSize = 12f
+            typeface = ResourcesCompat.getFont(requireContext(), R.font.poppins_semibold)
+        }
+        val preview = AppCompatImageView(requireContext()).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                dp(220)
+            ).apply { topMargin = dp(6) }
+            scaleType = ImageView.ScaleType.FIT_CENTER
+            contentDescription = title.text.toString()
+        }
+        item.addView(title)
+        item.addView(preview)
+        binding.statusProofList.addView(item)
+        Glide.with(this).load(url).into(preview)
+    }
+
+    private fun downloadPaymentProof(url: String, title: String = "Bukti") {
         try {
             val safeOrderId = (orderId ?: "pesanan")
                 .replace(Regex("[^A-Za-z0-9_-]"), "_")
             val request = DownloadManager.Request(Uri.parse(url))
-                .setTitle("Bukti Pembayaran $safeOrderId")
-                .setDescription("Mengunduh bukti pembayaran")
+                .setTitle("$title $safeOrderId")
+                .setDescription("Mengunduh foto bukti pesanan")
                 .setMimeType("image/*")
                 .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
                 .setAllowedOverMetered(true)
@@ -295,11 +351,11 @@ class OrderDetailFragment : Fragment() {
                 )
             val manager = requireContext().getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
             manager.enqueue(request)
-            Toast.makeText(requireContext(), "Bukti pembayaran sedang diunduh", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), "$title sedang diunduh", Toast.LENGTH_SHORT).show()
         } catch (exception: Exception) {
             Toast.makeText(
                 requireContext(),
-                "Gagal mengunduh bukti pembayaran: ${exception.message}",
+                "Gagal mengunduh bukti: ${exception.message}",
                 Toast.LENGTH_LONG
             ).show()
         }
@@ -307,6 +363,16 @@ class OrderDetailFragment : Fragment() {
 
     private fun dp(value: Int): Int {
         return (value * resources.displayMetrics.density).toInt()
+    }
+
+    private fun statusProofTitle(status: String): String {
+        return when (status) {
+            ORDER_STATUS_PROCESSING -> "Bukti Pesanan Diproses"
+            ORDER_STATUS_SHIPPING -> "Bukti Pengiriman Gojek"
+            ORDER_STATUS_READY_PICKUP -> "Bukti Pesanan Siap Diambil"
+            ORDER_STATUS_DONE -> "Bukti Pesanan Diterima"
+            else -> "Bukti Status Pesanan"
+        }
     }
 
     private fun applyStatusStyle(textView: TextView, status: String) {
@@ -443,6 +509,7 @@ class OrderDetailFragment : Fragment() {
         super.onDestroyView()
         if (_binding != null) {
             Glide.with(this).clear(binding.ivPaymentProofPreview)
+            binding.statusProofList.removeAllViews()
         }
         invoiceWebView?.destroy()
         invoiceWebView = null

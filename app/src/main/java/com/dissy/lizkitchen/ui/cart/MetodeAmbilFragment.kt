@@ -57,7 +57,7 @@ class MetodeAmbilFragment : BottomSheetDialogFragment() {
             val cengkarengBranch = LIZ_KITCHEN_BRANCHES[1]
 
             tvDeliveryNotice.text = deliveryNotice.ifBlank {
-                "Delivery tersedia untuk alamat hingga 100 km dari cabang."
+                "Delivery tersedia untuk alamat hingga 40 km dari cabang."
             }
 
             btnAntar.isEnabled = isDeliveryAvailable

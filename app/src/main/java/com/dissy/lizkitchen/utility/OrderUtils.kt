@@ -22,6 +22,15 @@ const val ORDER_STATUS_EXPIRED = "Expired"
 const val PAYMENT_EXPIRY_DURATION_MILLIS = 24L * 60L * 60L * 1_000L
 
 fun orderFromDocument(document: DocumentSnapshot): Order {
+    val statusProofs = (document.get("statusProofs") as? Map<*, *>)
+        ?.mapNotNull { (key, value) ->
+            val status = key?.toString()?.takeIf { it.isNotBlank() }
+            val url = value?.toString()?.takeIf { it.isNotBlank() }
+            if (status != null && url != null) status to url else null
+        }
+        ?.toMap()
+        .orEmpty()
+
     return Order(
         cart = cartItemsFromAny(document.get("cart")),
         orderId = document.getString("orderId").orEmpty().ifBlank { document.id },
@@ -33,6 +42,7 @@ fun orderFromDocument(document: DocumentSnapshot): Order {
         patokanAlamat = document.getString("patokanAlamat").orEmpty(),
         deliveryDistanceMeters = numberToLong(document.get("deliveryDistanceMeters")),
         deliveryFee = numberToLong(document.get("deliveryFee")),
+        statusProofs = statusProofs,
         paymentProofUrl = document.getString("paymentProofUrl").orEmpty(),
         paymentProofUploadedAtMillis = numberToLong(document.get("paymentProofUploadedAtMillis")),
         tanggalOrder = document.getString("tanggalOrder").orEmpty(),
@@ -56,6 +66,7 @@ fun orderToFirestoreMap(order: Order): Map<String, Any> {
         "patokanAlamat" to order.patokanAlamat,
         "deliveryDistanceMeters" to order.deliveryDistanceMeters,
         "deliveryFee" to order.deliveryFee,
+        "statusProofs" to order.statusProofs,
         "paymentProofUrl" to order.paymentProofUrl,
         "paymentProofUploadedAtMillis" to order.paymentProofUploadedAtMillis,
         "tanggalOrder" to order.tanggalOrder,

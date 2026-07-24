@@ -13,14 +13,11 @@ class BranchUtilsTest {
         assertEquals(30_000L, deliveryFeeForDistanceMeters(10_001f))
         assertEquals(30_000L, deliveryFeeForDistanceMeters(20_000f))
         assertEquals(45_000L, deliveryFeeForDistanceMeters(20_001f))
-        assertEquals(60_000L, deliveryFeeForDistanceMeters(40_001f))
-        assertEquals(80_000L, deliveryFeeForDistanceMeters(60_001f))
-        assertEquals(100_000L, deliveryFeeForDistanceMeters(80_001f))
-        assertEquals(100_000L, deliveryFeeForDistanceMeters(100_000f))
+        assertEquals(45_000L, deliveryFeeForDistanceMeters(40_000f))
     }
 
     @Test
     fun deliveryFeeForDistanceMeters_rejectsDistanceAboveMaximum() {
-        assertNull(deliveryFeeForDistanceMeters(100_001f))
+        assertNull(deliveryFeeForDistanceMeters(40_001f))
     }
 }

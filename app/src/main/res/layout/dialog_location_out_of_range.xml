@@ -39,7 +39,7 @@
         android:fontFamily="@font/poppins_regular"
         android:gravity="center"
         android:lineSpacingExtra="2dp"
-        android:text="Lokasimu berada lebih dari 100 km dari cabang kami. Silahkan pilih Ambil Sendiri atau berkunjung langsung ke alamat cabang berikut."
+        android:text="Lokasimu berada lebih dari 40 km dari cabang kami. Silahkan pilih Ambil Sendiri atau berkunjung langsung ke alamat cabang berikut."
         android:textColor="#6F5A4A"
         android:textSize="14sp" />
 

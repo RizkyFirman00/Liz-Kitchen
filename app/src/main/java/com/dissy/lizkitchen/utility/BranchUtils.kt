@@ -8,7 +8,7 @@ import java.util.Locale
 const val METODE_AMBIL_SENDIRI = "Ambil Sendiri"
 const val METODE_PESAN_ANTAR = "Pesan Antar"
 const val FREE_DELIVERY_RADIUS_METERS = 5_000f
-const val MAX_DELIVERY_RADIUS_METERS = 100_000f
+const val MAX_DELIVERY_RADIUS_METERS = 40_000f
 
 const val LIZ_KITCHEN_BRANCH_ADDRESS =
     "Jl. Kebon Sirih Barat I No.24, RT.2/RW.2, Kb. Sirih, Kec. Menteng, Kota Jakarta Pusat, DKI Jakarta 10340"
@@ -106,9 +106,7 @@ fun deliveryFeeForDistanceMeters(distanceMeters: Float?): Long? {
         distance <= 10_000f -> 15_000L
         distance <= 20_000f -> 30_000L
         distance <= 40_000f -> 45_000L
-        distance <= 60_000f -> 60_000L
-        distance <= 80_000f -> 80_000L
-        else -> 100_000L
+        else -> null
     }
 }
 

@@ -20,6 +20,7 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.widget.AppCompatImageView
 import androidx.fragment.app.Fragment
@@ -57,6 +58,7 @@ import com.dissy.lizkitchen.utility.validateOrderExpiryOnRead
 import com.google.firebase.firestore.SetOptions
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
+import com.google.firebase.storage.FirebaseStorage
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -70,6 +72,20 @@ class AdminUserOrderDetailFragment : Fragment() {
     private var currentOrder: Order? = null
     private var invoiceWebView: WebView? = null
     private lateinit var cartDetailUserAdapter: CartDetailUserAdapter
+    private val storage = FirebaseStorage.getInstance()
+    private var selectedStatusProofUri: Uri? = null
+    private var statusProofTarget: String? = null
+
+    private val statusProofPicker = registerForActivityResult(
+        ActivityResultContracts.GetContent()
+    ) { selectedUri ->
+        if (selectedUri == null || _binding == null) return@registerForActivityResult
+        selectedStatusProofUri = selectedUri
+        Glide.with(this).load(selectedUri).into(binding.ivStatusProofInput)
+        binding.tvStatusProofHint.text = "Foto siap diunggah saat status disimpan."
+        binding.btnChooseStatusProof.text = "Ganti Foto Bukti"
+        updateStatusProofActionAvailability()
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -118,7 +134,15 @@ class AdminUserOrderDetailFragment : Fragment() {
         }
 
         binding.btnReady.setOnClickListener {
-            updateOrderStatus(ORDER_STATUS_READY_PICKUP)
+            updateStatusWithProof(ORDER_STATUS_READY_PICKUP)
+        }
+
+        binding.btnChooseStatusProof.setOnClickListener {
+            statusProofPicker.launch("image/*")
+        }
+
+        binding.btnUploadStatusProof.setOnClickListener {
+            saveCurrentStatusProof()
         }
 
         binding.btnCancel.setOnClickListener {
@@ -232,6 +256,10 @@ class AdminUserOrderDetailFragment : Fragment() {
             btnShipping.visibility = GONE
             btnReady.visibility = GONE
             btnConfirm.isEnabled = true
+            statusProofInputPanel.visibility = GONE
+            btnUploadStatusProof.visibility = GONE
+            selectedStatusProofUri = null
+            statusProofTarget = null
 
             when (order.status) {
                 ORDER_STATUS_PENDING_PAYMENT, ORDER_STATUS_PAYMENT_VERIFICATION -> {
@@ -253,6 +281,10 @@ class AdminUserOrderDetailFragment : Fragment() {
                     tvActionTitle.text = "Pesanan sudah dikonfirmasi. Lanjutkan ke proses produksi."
                     btnProcess.visibility = VISIBLE
                     btnProcess.text = "Proses"
+                    bindStatusProofInput(order, ORDER_STATUS_PROCESSING)
+                    btnProcess.setOnClickListener {
+                        updateStatusWithProof(ORDER_STATUS_PROCESSING)
+                    }
                 }
                 ORDER_STATUS_PROCESSING -> {
                     actionContainer.visibility = VISIBLE
@@ -260,13 +292,73 @@ class AdminUserOrderDetailFragment : Fragment() {
                         tvActionTitle.text = "Tandai pesanan siap saat sudah bisa diambil pelanggan."
                         btnReady.visibility = VISIBLE
                         btnReady.text = "Siap Ambil"
+                        bindStatusProofInput(order, ORDER_STATUS_READY_PICKUP)
+                        btnReady.setOnClickListener {
+                            updateStatusWithProof(ORDER_STATUS_READY_PICKUP)
+                        }
                     } else {
                         tvActionTitle.text = "Tandai pesanan dikirim saat kurir mulai mengantar."
                         btnShipping.visibility = VISIBLE
                         btnShipping.text = "Kirim"
+                        bindStatusProofInput(order, ORDER_STATUS_SHIPPING)
+                        btnShipping.setOnClickListener {
+                            updateStatusWithProof(ORDER_STATUS_SHIPPING)
+                        }
                     }
                 }
+                ORDER_STATUS_DONE -> {
+                    actionContainer.visibility = VISIBLE
+                    tvActionTitle.text = "Pesanan selesai. Tambahkan atau ganti bukti pesanan diterima."
+                    bindStatusProofInput(order, ORDER_STATUS_DONE)
+                }
             }
+        }
+    }
+
+    private fun bindStatusProofInput(order: Order, targetStatus: String) {
+        statusProofTarget = targetStatus
+        binding.statusProofInputPanel.visibility = VISIBLE
+        binding.tvStatusProofTitle.text = statusProofTitle(targetStatus)
+
+        val existingUrl = order.statusProofs[targetStatus].orEmpty()
+        if (selectedStatusProofUri != null) {
+            binding.tvStatusProofHint.text = "Foto baru siap diunggah saat status disimpan."
+            binding.btnChooseStatusProof.text = "Ganti Foto Bukti"
+        } else if (existingUrl.isNotBlank()) {
+            binding.tvStatusProofHint.text = "Bukti status sudah tersedia. Pilih foto baru jika ingin menggantinya."
+            binding.btnChooseStatusProof.text = "Ganti Foto Bukti"
+            Glide.with(this).load(existingUrl).into(binding.ivStatusProofInput)
+        } else {
+            binding.tvStatusProofHint.text = "Pilih foto bukti sebelum memperbarui status."
+            binding.btnChooseStatusProof.text = "Pilih Foto Bukti"
+            binding.ivStatusProofInput.setImageResource(R.drawable.upload_bukti_pembayaran)
+        }
+
+        binding.btnUploadStatusProof.visibility = if (targetStatus == ORDER_STATUS_DONE) VISIBLE else GONE
+        updateStatusProofActionAvailability()
+    }
+
+    private fun updateStatusProofActionAvailability() {
+        val target = statusProofTarget ?: return
+        val hasSelectedPhoto = selectedStatusProofUri != null
+        val hasExistingPhoto = currentOrder?.statusProofs?.get(target).orEmpty().isNotBlank()
+        val hasPhoto = hasSelectedPhoto || hasExistingPhoto
+
+        when (target) {
+            ORDER_STATUS_PROCESSING -> binding.btnProcess.isEnabled = hasPhoto
+            ORDER_STATUS_SHIPPING -> binding.btnShipping.isEnabled = hasPhoto
+            ORDER_STATUS_READY_PICKUP -> binding.btnReady.isEnabled = hasPhoto
+            ORDER_STATUS_DONE -> binding.btnUploadStatusProof.isEnabled = hasSelectedPhoto
+        }
+    }
+
+    private fun statusProofTitle(status: String): String {
+        return when (status) {
+            ORDER_STATUS_PROCESSING -> "Bukti Pesanan Diproses"
+            ORDER_STATUS_SHIPPING -> "Bukti Pengiriman Gojek"
+            ORDER_STATUS_READY_PICKUP -> "Bukti Pesanan Siap Diambil"
+            ORDER_STATUS_DONE -> "Bukti Pesanan Diterima"
+            else -> "Bukti Status Pesanan"
         }
     }
 
@@ -434,6 +526,88 @@ class AdminUserOrderDetailFragment : Fragment() {
             Toast.makeText(requireContext(), "Status diperbarui ke $status", Toast.LENGTH_SHORT).show()
             fetchOrderDetails()
         }
+    }
+
+    private fun updateStatusWithProof(targetStatus: String) {
+        val selectedUri = selectedStatusProofUri
+        val existingUrl = currentOrder?.statusProofs?.get(targetStatus).orEmpty()
+        if (selectedUri == null && existingUrl.isBlank()) {
+            Toast.makeText(requireContext(), "Pilih foto bukti terlebih dahulu", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        if (selectedUri == null) {
+            saveStatusProofAndStatus(targetStatus, existingUrl)
+            return
+        }
+
+        uploadStatusProof(selectedUri, targetStatus) { downloadUrl ->
+            saveStatusProofAndStatus(targetStatus, downloadUrl)
+        }
+    }
+
+    private fun saveCurrentStatusProof() {
+        val targetStatus = statusProofTarget ?: return
+        val selectedUri = selectedStatusProofUri
+        if (selectedUri == null) {
+            Toast.makeText(requireContext(), "Pilih foto bukti terlebih dahulu", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        uploadStatusProof(selectedUri, targetStatus) { downloadUrl ->
+            saveStatusProofAndStatus(targetStatus, downloadUrl, updateStatus = false)
+        }
+    }
+
+    private fun uploadStatusProof(
+        uri: Uri,
+        targetStatus: String,
+        onUploaded: (String) -> Unit
+    ) {
+        setRequestLoading(true)
+        val safeStatus = targetStatus.replace(Regex("[^A-Za-z0-9_-]"), "_")
+        val proofRef = storage.reference.child(
+            "order_status_proofs/${orderId}_${safeStatus}_${System.currentTimeMillis()}.jpg"
+        )
+        proofRef.putFile(uri)
+            .addOnSuccessListener {
+                proofRef.downloadUrl
+                    .addOnSuccessListener { downloadUrl -> onUploaded(downloadUrl.toString()) }
+                    .addOnFailureListener { exception -> handleStatusProofFailure(exception) }
+            }
+            .addOnFailureListener { exception -> handleStatusProofFailure(exception) }
+    }
+
+    private fun saveStatusProofAndStatus(
+        targetStatus: String,
+        downloadUrl: String,
+        updateStatus: Boolean = true
+    ) {
+        val statusProofs = currentOrder?.statusProofs?.toMutableMap() ?: mutableMapOf()
+        statusProofs[targetStatus] = downloadUrl
+        val updates = mutableMapOf<String, Any>("statusProofs" to statusProofs)
+        if (updateStatus) updates["status"] = targetStatus
+
+        updateOrderDocuments(updates) {
+            selectedStatusProofUri = null
+            val message = if (updateStatus) {
+                "Status dan bukti foto berhasil disimpan"
+            } else {
+                "Bukti foto berhasil disimpan"
+            }
+            Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
+            fetchOrderDetails()
+        }
+    }
+
+    private fun handleStatusProofFailure(exception: Exception) {
+        if (_binding == null) return
+        setRequestLoading(false)
+        Toast.makeText(
+            requireContext(),
+            "Gagal mengunggah bukti foto: ${exception.message}",
+            Toast.LENGTH_LONG
+        ).show()
     }
 
     private fun updateOrderDocuments(updates: Map<String, Any>, onSuccess: () -> Unit) {

@@ -45,7 +45,7 @@
         android:layout_marginTop="6dp"
         android:fontFamily="@font/poppins_regular"
         android:lineSpacingExtra="2dp"
-        android:text="Tarif: 0-5 km Gratis | &gt;5-10 km Rp15.000 | &gt;10-20 km Rp30.000 | &gt;20-40 km Rp45.000 | &gt;40-60 km Rp60.000 | &gt;60-80 km Rp80.000 | &gt;80-100 km Rp100.000"
+        android:text="Tarif: 0-5 km Gratis | &gt;5-10 km Rp15.000 | &gt;10-20 km Rp30.000 | &gt;20-40 km Rp45.000"
         android:textColor="#9C6843"
         android:textSize="10sp" />
 

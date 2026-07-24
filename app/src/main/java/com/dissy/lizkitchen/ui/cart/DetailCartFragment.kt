@@ -234,8 +234,8 @@ class DetailCartFragment : Fragment() {
                     }
                 }
                 DeliveryStatus.OUT_OF_RANGE -> {
-                    val distanceText = deliveryCheck.distanceMeters?.let { formatDistance(it) } ?: "lebih dari 100 km"
-                    "Di luar jangkauan delivery ($distanceText). Maksimal 100 km, pilih Ambil Sendiri."
+                    val distanceText = deliveryCheck.distanceMeters?.let { formatDistance(it) } ?: "lebih dari 40 km"
+                    "Di luar jangkauan delivery ($distanceText). Maksimal 40 km, pilih Ambil Sendiri."
                 }
                 DeliveryStatus.UNKNOWN -> "Alamat ditemukan, tetapi jangkauan delivery belum dapat dipastikan"
             }
@@ -413,8 +413,8 @@ class DetailCartFragment : Fragment() {
                 }
             }
             DeliveryStatus.OUT_OF_RANGE -> {
-                val distanceText = deliveryCheck.distanceMeters?.let { formatDistance(it) } ?: "lebih dari 100 km"
-                "Pickup saja - $distanceText (maksimal 100 km)"
+                val distanceText = deliveryCheck.distanceMeters?.let { formatDistance(it) } ?: "lebih dari 40 km"
+                "Pickup saja - $distanceText (maksimal 40 km)"
             }
             DeliveryStatus.UNKNOWN ->
                 "Delivery belum bisa dicek"
@@ -500,7 +500,7 @@ class DetailCartFragment : Fragment() {
                 DeliveryStatus.AVAILABLE -> submitCheckout(alamat, patokanAlamat, metodePengambilan)
                 DeliveryStatus.OUT_OF_RANGE -> Toast.makeText(
                     requireContext(),
-                    "Alamat di luar jangkauan 100 km. Silahkan pilih Ambil Sendiri.",
+                    "Alamat di luar jangkauan 40 km. Silahkan pilih Ambil Sendiri.",
                     Toast.LENGTH_LONG
                 ).show()
                 DeliveryStatus.UNKNOWN -> Toast.makeText(
