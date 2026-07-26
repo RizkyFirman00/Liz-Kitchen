@@ -16,6 +16,9 @@ import com.dissy.lizkitchen.ui.login.LoginActivity
 import com.dissy.lizkitchen.utility.Preferences
 import com.dissy.lizkitchen.utility.availableCategories
 import com.dissy.lizkitchen.utility.cakeFromMap
+import com.dissy.lizkitchen.utility.expiryAtMillis
+import com.dissy.lizkitchen.utility.isExpired
+import com.dissy.lizkitchen.utility.isExpiringSoon
 import com.dissy.lizkitchen.utility.primaryCategory
 import com.dissy.lizkitchen.utility.setFirebaseRequestLoading
 import com.google.firebase.firestore.ktx.firestore
@@ -32,6 +35,7 @@ class HomeFragment : Fragment() {
     private lateinit var userAdapter: HomeUserAdapter
     private var originalList = listOf<Cake>()
     private var searchQuery = ""
+    private var selectedExpiryFilter = EXPIRY_ALL
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -96,19 +100,33 @@ class HomeFragment : Fragment() {
             applyFilterAndSort(scrollToTop = true)
         }
 
+        binding.chipGroupExpiry.setOnCheckedChangeListener { _, checkedId ->
+            selectedExpiryFilter = when (checkedId) {
+                R.id.chipExpiringSoon -> EXPIRY_SOON
+                R.id.chipExpired -> EXPIRY_EXPIRED
+                R.id.chipExpiryNotSet -> EXPIRY_NOT_SET
+                else -> EXPIRY_ALL
+            }
+            applyFilterAndSort(scrollToTop = true)
+        }
+
         binding.btnResetFilter.setOnClickListener {
             binding.searchView.setQuery("", false)
             binding.searchView.clearFocus()
             binding.chipGroupSort.clearCheck()
+            binding.chipGroupExpiry.clearCheck()
             searchQuery = ""
+            selectedExpiryFilter = EXPIRY_ALL
             applyFilterAndSort(scrollToTop = true)
         }
     }
 
     private fun applyFilterAndSort(scrollToTop: Boolean = false) {
         var filteredList = originalList.filter {
-            it.matchesSearchQuery(searchQuery)
+            it.matchesSearchQuery(searchQuery) && it.matchesExpiryFilter(selectedExpiryFilter)
         }
+
+        val expiredCount = filteredList.count { it.isExpired() }
 
         filteredList = when (binding.chipGroupSort.checkedChipId) {
             R.id.chipNameAZ -> filteredList.sortedBy { it.namaKue.lowercase() }
@@ -123,7 +141,13 @@ class HomeFragment : Fragment() {
                 scrollProductListToTop()
             }
         }
-        binding.tvHomeSummary.text = buildHomeSummary(filteredList)
+        binding.tvHomeSummary.text = buildHomeSummary(filteredList, expiredCount)
+        binding.tvEmptyData.text = when (selectedExpiryFilter) {
+            EXPIRY_SOON -> "Tidak ada kue yang segera expired"
+            EXPIRY_EXPIRED -> "Tidak ada kue yang sudah expired"
+            EXPIRY_NOT_SET -> "Semua kue sudah memiliki pengaturan expired"
+            else -> "Produk tidak ditemukan"
+        }
         binding.tvEmptyData.visibility = if (filteredList.isEmpty()) View.VISIBLE else View.GONE
     }
 
@@ -143,13 +167,28 @@ class HomeFragment : Fragment() {
             }
     }
 
-    private fun buildHomeSummary(cakes: List<Cake>): String {
-        val productCount = cakes.size
-        val variantCount = cakes.sumOf { it.availableCategories().size }
-        return if (productCount == 0) {
+    private fun Cake.matchesExpiryFilter(filter: String): Boolean {
+        return when (filter) {
+            EXPIRY_SOON -> isExpiringSoon()
+            EXPIRY_EXPIRED -> isExpired()
+            EXPIRY_NOT_SET -> expiryAtMillis() == null
+            else -> true
+        }
+    }
+
+    private fun buildHomeSummary(cakes: List<Cake>, expiredCount: Int = 0): String {
+        val availableCakes = cakes.filterNot { it.isExpired() }
+        val productCount = availableCakes.size
+        val variantCount = availableCakes.sumOf { it.availableCategories().size }
+        return if (cakes.isEmpty()) {
             "Tidak ada produk sesuai pencarian."
         } else {
-            "$productCount produk tersedia | $variantCount varian"
+            buildString {
+                append("$productCount produk tersedia | $variantCount varian")
+                if (expiredCount > 0) {
+                    append(" • $expiredCount produk expired")
+                }
+            }
         }
     }
 
@@ -187,6 +226,13 @@ class HomeFragment : Fragment() {
             putString("cakeId", cakeId)
         }
         findNavController().navigate(R.id.navigation_cake_detail, bundle)
+    }
+
+    private companion object {
+        const val EXPIRY_ALL = "Semua"
+        const val EXPIRY_SOON = "Segera expired"
+        const val EXPIRY_EXPIRED = "Sudah expired"
+        const val EXPIRY_NOT_SET = "Belum diatur"
     }
 
     override fun onDestroyView() {

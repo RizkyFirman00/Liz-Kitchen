@@ -3,6 +3,7 @@ package com.dissy.lizkitchen.adapter.user
 import android.os.Handler
 import android.os.Looper
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.DiffUtil
@@ -14,6 +15,9 @@ import com.dissy.lizkitchen.model.Cake
 import com.dissy.lizkitchen.model.ProductCategory
 import com.dissy.lizkitchen.utility.availableCategories
 import com.dissy.lizkitchen.utility.displayUnit
+import com.dissy.lizkitchen.utility.expiryLabel
+import com.dissy.lizkitchen.utility.isExpired
+import com.dissy.lizkitchen.utility.isExpiringSoon
 import com.dissy.lizkitchen.utility.normalizeProductUnit
 import com.dissy.lizkitchen.utility.primaryCategory
 
@@ -54,7 +58,16 @@ class HomeUserAdapter(private val onItemClick: (String) -> Unit) :
                 tvUnit.text = " / ${normalizeProductUnit(cake.satuan)}"
                 tvVariantSummary.text = buildVariantSummary(cake)
                 tvVarianCount.text = "${categories.size} varian"
-                startVariantStockTicker(categories)
+                tvExpiryInfo.visibility = View.VISIBLE
+                tvExpiryInfo.text = cake.expiryLabel()
+                tvExpiryInfo.setTextColor(
+                    ContextCompat.getColor(
+                        itemView.context,
+                        if (cake.isExpired() || cake.isExpiringSoon()) R.color.red else R.color.brown_old
+                    )
+                )
+                root.alpha = if (cake.isExpired()) 0.62f else 1f
+                startVariantStockTicker(categories, cake.isExpired())
 
                 Glide.with(itemView.context)
                     .load(cake.imageUrl)
@@ -72,23 +85,23 @@ class HomeUserAdapter(private val onItemClick: (String) -> Unit) :
             stockTickerRunnable = null
         }
 
-        private fun startVariantStockTicker(categories: List<ProductCategory>) {
+        private fun startVariantStockTicker(categories: List<ProductCategory>, expired: Boolean) {
             currentStockIndex = 0
-            updateVariantStockText(categories)
+            updateVariantStockText(categories, expired)
 
             if (categories.size <= 1) return
 
             stockTickerRunnable = object : Runnable {
                 override fun run() {
                     currentStockIndex = (currentStockIndex + 1) % categories.size
-                    updateVariantStockText(categories)
+                    updateVariantStockText(categories, expired)
                     handler.postDelayed(this, STOCK_TICKER_INTERVAL_MS)
                 }
             }
             handler.postDelayed(stockTickerRunnable!!, STOCK_TICKER_INTERVAL_MS)
         }
 
-        private fun updateVariantStockText(categories: List<ProductCategory>) {
+        private fun updateVariantStockText(categories: List<ProductCategory>, expired: Boolean) {
             val category = categories.getOrNull(currentStockIndex) ?: return
             val normalizedVariantName = category.namaKategori.trim()
             val variantName = if (
@@ -100,6 +113,12 @@ class HomeUserAdapter(private val onItemClick: (String) -> Unit) :
                 normalizedVariantName
             }
             val isAvailable = category.stok > 0
+
+            if (expired) {
+                binding.tvStok.text = "Produk expired"
+                binding.tvStok.setTextColor(ContextCompat.getColor(itemView.context, R.color.red))
+                return
+            }
 
             binding.tvStok.text = "Stok $variantName ${category.stok}"
             binding.tvStok.setTextColor(

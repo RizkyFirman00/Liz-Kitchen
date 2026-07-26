@@ -81,6 +81,18 @@
             android:textColor="@color/brown_old"
             android:textSize="12sp"
             tools:text="Subtotal Rp 110.000" />
+
+        <TextView
+            android:id="@+id/tvExpiryInfo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:fontFamily="@font/poppins_regular"
+            android:textColor="#C62828"
+            android:textSize="10sp"
+            android:visibility="gone"
+            tools:text="Sudah tidak tersedia"
+            tools:visibility="visible" />
     </LinearLayout>
 
     <TextView

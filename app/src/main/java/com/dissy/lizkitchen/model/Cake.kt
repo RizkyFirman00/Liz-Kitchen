@@ -9,6 +9,8 @@ data class Cake @JvmOverloads constructor(
     val satuan: String = "pcs",
     val kategori: String = "",
     val kategoriProduk: List<ProductCategory> = emptyList(),
+    val productionAtMillis: Long = 0,
+    val shelfLifeDays: Long = 0,
 )
 
 data class ProductCategory @JvmOverloads constructor(

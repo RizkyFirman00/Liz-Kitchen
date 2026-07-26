@@ -43,6 +43,8 @@ fun orderFromDocument(document: DocumentSnapshot): Order {
         deliveryDistanceMeters = numberToLong(document.get("deliveryDistanceMeters")),
         deliveryFee = numberToLong(document.get("deliveryFee")),
         statusProofs = statusProofs,
+        receiptProofUrl = document.getString("receiptProofUrl").orEmpty(),
+        receiptProofUploadedAtMillis = numberToLong(document.get("receiptProofUploadedAtMillis")),
         paymentProofUrl = document.getString("paymentProofUrl").orEmpty(),
         paymentProofUploadedAtMillis = numberToLong(document.get("paymentProofUploadedAtMillis")),
         tanggalOrder = document.getString("tanggalOrder").orEmpty(),
@@ -67,6 +69,8 @@ fun orderToFirestoreMap(order: Order): Map<String, Any> {
         "deliveryDistanceMeters" to order.deliveryDistanceMeters,
         "deliveryFee" to order.deliveryFee,
         "statusProofs" to order.statusProofs,
+        "receiptProofUrl" to order.receiptProofUrl,
+        "receiptProofUploadedAtMillis" to order.receiptProofUploadedAtMillis,
         "paymentProofUrl" to order.paymentProofUrl,
         "paymentProofUploadedAtMillis" to order.paymentProofUploadedAtMillis,
         "tanggalOrder" to order.tanggalOrder,
@@ -261,7 +265,9 @@ private fun cakeToFirestoreMap(cake: Cake): Map<String, Any> {
         "stok" to cake.stok,
         "satuan" to cake.satuan,
         "kategori" to cake.kategori,
-        "kategoriProduk" to cake.kategoriProduk.map { it.toFirestoreMap() }
+        "kategoriProduk" to cake.kategoriProduk.map { it.toFirestoreMap() },
+        "productionAtMillis" to cake.productionAtMillis,
+        "shelfLifeDays" to cake.shelfLifeDays
     )
 }
 

@@ -12,6 +12,8 @@ data class Order (
     val deliveryDistanceMeters: Long = 0,
     val deliveryFee: Long = 0,
     val statusProofs: Map<String, String> = emptyMap(),
+    val receiptProofUrl: String = "",
+    val receiptProofUploadedAtMillis: Long = 0,
     val paymentProofUrl: String = "",
     val paymentProofUploadedAtMillis: Long = 0,
     val tanggalOrder: String = "",

@@ -1,6 +1,7 @@
 package com.dissy.lizkitchen.adapter.user
 
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.DiffUtil
@@ -10,6 +11,7 @@ import com.dissy.lizkitchen.R
 import com.dissy.lizkitchen.databinding.RvCheckoutBinding
 import com.dissy.lizkitchen.model.Cart
 import com.dissy.lizkitchen.utility.displayNameWithCategory
+import com.dissy.lizkitchen.utility.expiryLabel
 import com.dissy.lizkitchen.utility.normalizeProductUnit
 import com.dissy.lizkitchen.utility.productPriceToLong
 
@@ -28,6 +30,8 @@ class CheckoutUserAdapter() :
                 tvUnit.text = " / $unit"
                 tvJumlahPesanan.text = "x${cart.jumlahPesanan}"
                 tvSubtotal.text = "Subtotal Rp ${formatCurrency(unitPrice * cart.jumlahPesanan)}"
+                tvExpiryInfo.visibility = View.VISIBLE
+                tvExpiryInfo.text = cart.cake.expiryLabel()
                 Glide.with(itemView.context)
                     .load(cart.cake.imageUrl)
                     .placeholder(R.drawable.null_image)

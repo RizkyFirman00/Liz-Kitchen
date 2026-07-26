@@ -35,6 +35,7 @@ import com.dissy.lizkitchen.utility.deliveryDistanceMeters
 import com.dissy.lizkitchen.utility.deliveryFeeForDistanceMeters
 import com.dissy.lizkitchen.utility.deliveryFeeLabel
 import com.dissy.lizkitchen.utility.isInvalidCheckoutAddress
+import com.dissy.lizkitchen.utility.isExpired
 import com.dissy.lizkitchen.utility.nearestBranchDistanceMeters
 import com.dissy.lizkitchen.utility.orderFromDocument
 import com.dissy.lizkitchen.utility.productPriceToLong
@@ -463,6 +464,16 @@ class DetailCartFragment : Fragment() {
     }
 
     private fun checkout() {
+        val expiredItems = checkoutAdapter.currentList.filter { it.cake.isExpired() }
+        if (expiredItems.isNotEmpty()) {
+            binding.btnCheckout.isEnabled = false
+            Toast.makeText(
+                requireContext(),
+                "Ada produk expired di pesanan. Silahkan kembali ke keranjang dan hapus produknya.",
+                Toast.LENGTH_LONG
+            ).show()
+            return
+        }
         val alamat = binding.etAlamat.text.toString().trim()
         val patokanAlamat = binding.etPatokanAlamat.text.toString().trim()
         val metodePengambilan = selectedMetodePengambilan
@@ -617,6 +628,11 @@ class DetailCartFragment : Fragment() {
                     binding.tvCheckoutSummary.text = buildCheckoutSummary(cartItems)
                     updatePriceSummary()
                     setRequestLoading(false)
+                    val hasExpiredItem = cartItems.any { it.cake.isExpired() }
+                    binding.btnCheckout.isEnabled = !hasExpiredItem
+                    if (hasExpiredItem) {
+                        binding.tvCheckoutSummary.text = "Ada produk expired. Kembali ke keranjang untuk menghapusnya."
+                    }
                 }
                 .addOnFailureListener { exception ->
                     if (_binding == null) return@addOnFailureListener

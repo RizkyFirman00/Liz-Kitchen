@@ -1,12 +1,17 @@
 package com.dissy.lizkitchen.ui.order
 
+import android.Manifest
+import android.app.Activity
 import android.app.DownloadManager
 import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.net.Uri
 import android.os.Bundle
 import android.os.Environment
+import android.provider.MediaStore
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -17,8 +22,11 @@ import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.widget.AppCompatImageView
 import androidx.core.content.res.ResourcesCompat
+import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -39,6 +47,7 @@ import com.dissy.lizkitchen.utility.ORDER_STATUS_SHIPPING
 import com.dissy.lizkitchen.utility.Preferences
 import com.dissy.lizkitchen.utility.deliveryDistanceLabel
 import com.dissy.lizkitchen.utility.deliveryFeeLabel
+import com.dissy.lizkitchen.utility.createCustomTempFile
 import com.dissy.lizkitchen.utility.metodePengambilanDisplayForOrder
 import com.dissy.lizkitchen.utility.orderFromDocument
 import com.dissy.lizkitchen.utility.orderProductSubtotal
@@ -51,16 +60,46 @@ import com.dissy.lizkitchen.utility.validateOrderExpiryOnRead
 import com.google.firebase.firestore.SetOptions
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
+import com.google.firebase.storage.FirebaseStorage
+import java.io.File
 
 class OrderDetailFragment : Fragment() {
     private var _binding: FragmentOrderDetailBinding? = null
     private val binding get() = _binding!!
     private val db = Firebase.firestore
+    private val storage = FirebaseStorage.getInstance()
     private lateinit var orderDetailAdapter: HomeOrderUserCakeAdapter
     private var orderId: String? = null
     private var userId: String? = null
     private var currentOrder: Order? = null
     private var invoiceWebView: WebView? = null
+    private var selectedReceiptProofUri: Uri? = null
+    private var receiptCameraFile: File? = null
+
+    private val receiptCameraPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) openReceiptCamera()
+        else Toast.makeText(requireContext(), "Izin kamera diperlukan untuk mengambil foto", Toast.LENGTH_SHORT).show()
+    }
+
+    private val receiptProofPicker = registerForActivityResult(
+        ActivityResultContracts.GetContent()
+    ) { selectedUri ->
+        if (selectedUri == null || _binding == null) return@registerForActivityResult
+        selectedReceiptProofUri = selectedUri
+        uploadReceiptProof(selectedUri)
+    }
+
+    private val receiptCameraLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        val photoFile = receiptCameraFile
+        if (result.resultCode != Activity.RESULT_OK || photoFile == null || !photoFile.exists()) return@registerForActivityResult
+        val photoUri = Uri.fromFile(photoFile)
+        selectedReceiptProofUri = photoUri
+        uploadReceiptProof(photoUri)
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -181,13 +220,20 @@ class OrderDetailFragment : Fragment() {
                     ?.takeIf { it.isNotBlank() }
                     ?.let { status to it }
             }
+            val proofEntries = statusProofEntries.map { (status, url) ->
+                statusProofTitle(status) to url
+            }.toMutableList().apply {
+                order.receiptProofUrl
+                    .takeIf { it.isNotBlank() }
+                    ?.let { add(receiptProofTitle(order) to it) }
+            }
             statusProofList.removeAllViews()
-            if (statusProofEntries.isNotEmpty()) {
+            if (proofEntries.isNotEmpty()) {
                 statusProofPanel.visibility = View.VISIBLE
                 tvStatusProofTitle.text = "Bukti Perjalanan Pesanan"
-                tvStatusProofHint.text = "Bukti foto dari admin. Ketuk foto untuk melihat lebih besar."
-                statusProofEntries.forEach { (status, url) ->
-                    addStatusProofPreview(status, url)
+                tvStatusProofHint.text = "Bukti foto dari admin dan pelanggan. Ketuk foto untuk melihat lebih besar."
+                proofEntries.forEach { (title, url) ->
+                    addStatusProofPreview(title, url)
                 }
             } else {
                 statusProofPanel.visibility = View.GONE
@@ -244,7 +290,7 @@ class OrderDetailFragment : Fragment() {
                     } else {
                         "Pesanan Diterima"
                     }
-                    btnReceive.setOnClickListener { updateOrderStatus(ORDER_STATUS_DONE) }
+                    btnReceive.setOnClickListener { requestReceiptProof(order) }
                 }
             }
         }
@@ -301,7 +347,7 @@ class OrderDetailFragment : Fragment() {
         )
     }
 
-    private fun addStatusProofPreview(status: String, url: String) {
+    private fun addStatusProofPreview(title: String, url: String) {
         val item = LinearLayout(requireContext()).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(10), dp(10), dp(10), dp(10))
@@ -313,10 +359,10 @@ class OrderDetailFragment : Fragment() {
                 if (binding.statusProofList.childCount > 0) topMargin = dp(8)
             }
             isClickable = true
-            setOnClickListener { showPaymentProofDialog(url, statusProofTitle(status)) }
+            setOnClickListener { showPaymentProofDialog(url, title) }
         }
         val title = TextView(requireContext()).apply {
-            text = statusProofTitle(status)
+            text = title
             setTextColor(Color.parseColor("#3A2A20"))
             textSize = 12f
             typeface = ResourcesCompat.getFont(requireContext(), R.font.poppins_semibold)
@@ -368,11 +414,125 @@ class OrderDetailFragment : Fragment() {
     private fun statusProofTitle(status: String): String {
         return when (status) {
             ORDER_STATUS_PROCESSING -> "Bukti Pesanan Diproses"
-            ORDER_STATUS_SHIPPING -> "Bukti Pengiriman Gojek"
+            ORDER_STATUS_SHIPPING -> "Bukti Pesanan Dikirim"
             ORDER_STATUS_READY_PICKUP -> "Bukti Pesanan Siap Diambil"
             ORDER_STATUS_DONE -> "Bukti Pesanan Diterima"
             else -> "Bukti Status Pesanan"
         }
+    }
+
+    private fun receiptProofTitle(order: Order): String {
+        return if (order.metodePengambilan.contains("ambil", ignoreCase = true)) {
+            "Bukti Pengambilan Pelanggan"
+        } else {
+            "Bukti Penerimaan Pelanggan"
+        }
+    }
+
+    private fun requestReceiptProof(order: Order) {
+        val action = if (order.metodePengambilan.contains("ambil", ignoreCase = true)) {
+            "menyelesaikan pengambilan pesanan"
+        } else {
+            "mengonfirmasi penerimaan pesanan"
+        }
+        AlertDialog.Builder(requireContext())
+            .setTitle("Upload Bukti Penerimaan")
+            .setMessage("Pilih foto pesanan yang sudah kamu terima untuk $action.")
+            .setNegativeButton("Batal", null)
+            .setItems(arrayOf("Pilih dari Galeri", "Ambil Foto dari Kamera")) { _, which ->
+                if (which == 0) {
+                    receiptProofPicker.launch("image/*")
+                } else {
+                    startReceiptCameraWithPermissionCheck()
+                }
+            }
+            .show()
+    }
+
+    private fun startReceiptCameraWithPermissionCheck() {
+        if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+            openReceiptCamera()
+        } else {
+            receiptCameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+        }
+    }
+
+    private fun openReceiptCamera() {
+        val photoFile = createCustomTempFile(requireActivity().application)
+        receiptCameraFile = photoFile
+        val photoUri = FileProvider.getUriForFile(requireContext(), "com.dissy.lizkitchen", photoFile)
+        val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE).apply {
+            putExtra(MediaStore.EXTRA_OUTPUT, photoUri)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+        }
+        receiptCameraLauncher.launch(intent)
+    }
+
+    private fun uploadReceiptProof(uri: Uri) {
+        val order = currentOrder
+        val currentUserId = userId
+        val currentOrderId = orderId
+        if (order == null || currentUserId.isNullOrBlank() || currentOrderId.isNullOrBlank()) {
+            Toast.makeText(requireContext(), "Data pesanan tidak lengkap", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        setRequestLoading(true)
+        val proofRef = storage.reference.child(
+            "receipt_proofs/${currentOrderId}_${System.currentTimeMillis()}.jpg"
+        )
+        proofRef.putFile(uri)
+            .addOnSuccessListener {
+                proofRef.downloadUrl
+                    .addOnSuccessListener { downloadUri ->
+                        val uploadedAt = System.currentTimeMillis()
+                        val updates = mapOf(
+                            "status" to ORDER_STATUS_DONE,
+                            "receiptProofUrl" to downloadUri.toString(),
+                            "receiptProofUploadedAtMillis" to uploadedAt
+                        )
+                        val globalOrderRef = db.collection("orders").document(currentOrderId)
+                        val userOrderRef = db.collection("users").document(currentUserId)
+                            .collection("orders").document(currentOrderId)
+                        db.runBatch { batch ->
+                            batch.set(globalOrderRef, updates, SetOptions.merge())
+                            batch.set(userOrderRef, updates, SetOptions.merge())
+                        }.addOnSuccessListener {
+                            if (_binding == null) return@addOnSuccessListener
+                            currentOrder = order.copy(
+                                status = ORDER_STATUS_DONE,
+                                receiptProofUrl = downloadUri.toString(),
+                                receiptProofUploadedAtMillis = uploadedAt
+                            )
+                            selectedReceiptProofUri = null
+                            setRequestLoading(false)
+                            Toast.makeText(
+                                requireContext(),
+                                "Bukti penerimaan berhasil dikirim",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                            fetchOrderDetails()
+                        }.addOnFailureListener { exception ->
+                            handleReceiptProofFailure(exception)
+                        }
+                    }
+                    .addOnFailureListener { exception ->
+                        handleReceiptProofFailure(exception)
+                    }
+            }
+            .addOnFailureListener { exception ->
+                handleReceiptProofFailure(exception)
+            }
+    }
+
+    private fun handleReceiptProofFailure(exception: Exception) {
+        if (_binding == null) return
+        setRequestLoading(false)
+        Toast.makeText(
+            requireContext(),
+            "Gagal mengunggah bukti penerimaan: ${exception.message}",
+            Toast.LENGTH_LONG
+        ).show()
     }
 
     private fun applyStatusStyle(textView: TextView, status: String) {
@@ -492,7 +652,7 @@ class OrderDetailFragment : Fragment() {
 
     private fun setRequestLoading(isLoading: Boolean) {
         if (_binding == null) return
-        binding.root.setFirebaseRequestLoading(isLoading)
+        binding.root.setFirebaseRequestLoading(isLoading, binding.progressBar2)
     }
 
     private fun formatCurrency(value: String): String {

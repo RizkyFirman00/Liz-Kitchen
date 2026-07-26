@@ -2,6 +2,11 @@ package com.dissy.lizkitchen.utility
 
 import com.dissy.lizkitchen.model.Cake
 import com.dissy.lizkitchen.model.ProductCategory
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+
+const val PRODUCT_DAY_MILLIS = 24L * 60L * 60L * 1_000L
 
 fun normalizeProductUnit(value: String?): String {
     val normalized = value.orEmpty().trim().lowercase()
@@ -62,6 +67,36 @@ fun Cake.displayUnit(): String {
     }
 }
 
+fun Cake.expiryAtMillis(): Long? {
+    if (productionAtMillis <= 0L || shelfLifeDays <= 0L) return null
+    return productionAtMillis + (shelfLifeDays * PRODUCT_DAY_MILLIS)
+}
+
+fun Cake.isExpired(nowMillis: Long = System.currentTimeMillis()): Boolean {
+    return expiryAtMillis()?.let { nowMillis >= it } == true
+}
+
+fun Cake.isExpiringSoon(nowMillis: Long = System.currentTimeMillis()): Boolean {
+    val expiry = expiryAtMillis() ?: return false
+    return expiry > nowMillis && expiry - nowMillis <= PRODUCT_DAY_MILLIS
+}
+
+fun Cake.expiryLabel(nowMillis: Long = System.currentTimeMillis()): String {
+    val expiry = expiryAtMillis() ?: return "Tanggal expired belum diatur"
+    val date = SimpleDateFormat("dd MMM yyyy", Locale("id", "ID")).format(Date(expiry))
+    return when {
+        nowMillis >= expiry -> "Sudah tidak tersedia sejak $date"
+        expiry - nowMillis <= PRODUCT_DAY_MILLIS -> "Segera expired • $date"
+        else -> "Baik dikonsumsi sebelum $date"
+    }
+}
+
+fun formatProductionDate(millis: Long): String {
+    return if (millis <= 0L) "" else {
+        SimpleDateFormat("dd/MM/yyyy", Locale("id", "ID")).format(Date(millis))
+    }
+}
+
 fun ProductCategory.displayUnit(): String {
     return if (namaKategori.isBlank() || namaKategori == "Default") {
         normalizeProductUnit(satuan)
@@ -112,7 +147,13 @@ fun cakeFromMap(documentId: String, map: Map<*, *>): Cake {
         stok = primary?.stok ?: fallbackStok,
         satuan = fallbackUnit,
         kategori = primary?.namaKategori ?: map["kategori"]?.toString().orEmpty(),
-        kategoriProduk = categories
+        kategoriProduk = categories,
+        productionAtMillis = (map["productionAtMillis"] as? Number)?.toLong()
+            ?: map["productionAtMillis"]?.toString()?.toLongOrNull()
+            ?: 0L,
+        shelfLifeDays = (map["shelfLifeDays"] as? Number)?.toLong()
+            ?: map["shelfLifeDays"]?.toString()?.toLongOrNull()
+            ?: 0L
     )
 }
 

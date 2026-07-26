@@ -11,6 +11,9 @@ import com.bumptech.glide.Glide
 import com.dissy.lizkitchen.databinding.RvCakeBinding
 import com.dissy.lizkitchen.model.Cake
 import com.dissy.lizkitchen.utility.availableCategories
+import com.dissy.lizkitchen.utility.expiryLabel
+import com.dissy.lizkitchen.utility.isExpired
+import com.dissy.lizkitchen.utility.isExpiringSoon
 import com.dissy.lizkitchen.utility.normalizeProductUnit
 import com.dissy.lizkitchen.utility.primaryCategory
 import java.util.Locale
@@ -57,6 +60,16 @@ class HomeAdminCakeAdapter(private val onItemClick: (String) -> Unit) :
                 tvCakeName.text = cake.namaKue
                 tvVariantCount.text = "${categories.size} Varian"
                 tvVariantSummary.text = categories.joinToString { it.namaKategori }
+                tvExpiryInfo.text = cake.expiryLabel()
+                tvExpiryInfo.setTextColor(
+                    itemView.context.getColor(
+                        if (cake.isExpired() || cake.isExpiringSoon()) {
+                            com.dissy.lizkitchen.R.color.red
+                        } else {
+                            com.dissy.lizkitchen.R.color.brown_old
+                        }
+                    )
+                )
                 tvPrice.text = "Rp ${primaryCategory.harga}"
                 tvUnit.text = "per ${normalizeProductUnit(cake.satuan)}"
                 tvStok.text = "Stok ${categories.sumOf { it.stok }} item"

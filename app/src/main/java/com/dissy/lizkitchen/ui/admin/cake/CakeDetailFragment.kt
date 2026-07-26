@@ -3,6 +3,7 @@ package com.dissy.lizkitchen.ui.admin.cake
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.app.DatePickerDialog
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.BitmapFactory
@@ -36,6 +37,7 @@ import com.dissy.lizkitchen.utility.cakeFromMap
 import com.dissy.lizkitchen.utility.clearFocusWhenTouchOutsideInput
 import com.dissy.lizkitchen.utility.createCustomTempFile
 import com.dissy.lizkitchen.utility.formatProductPrice
+import com.dissy.lizkitchen.utility.formatProductionDate
 import com.dissy.lizkitchen.utility.normalizeProductUnit
 import com.dissy.lizkitchen.utility.setFirebaseRequestLoading
 import com.dissy.lizkitchen.utility.toFirestoreMap
@@ -44,6 +46,7 @@ import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.storage.ktx.storage
 import java.io.File
+import java.util.Calendar
 
 class CakeDetailFragment : Fragment() {
     private val variantNameOptions = listOf("250 Gram", "500 Gram", "700 Gram")
@@ -53,6 +56,7 @@ class CakeDetailFragment : Fragment() {
     private lateinit var photoPath: String
     private val storage = Firebase.storage
     private var file: File? = null
+    private var productionAtMillis: Long = 0L
     private var documentId: String? = null
     private lateinit var imageUrlDb: String
     private val variants = mutableListOf<ProductCategory>()
@@ -70,6 +74,8 @@ class CakeDetailFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         binding.root.clearFocusWhenTouchOutsideInput()
+        binding.etTanggalProduksi.setOnClickListener { showProductionDatePicker() }
+        binding.tilTanggalProduksi.setEndIconOnClickListener { showProductionDatePicker() }
         setupVariantNameDropdown()
         documentId = arguments?.getString("documentId")
         documentId?.let { fetchCakeData(it) }
@@ -123,6 +129,9 @@ class CakeDetailFragment : Fragment() {
             variants.addAll(cake.availableCategories())
             binding.etNamaKue.setText(cake.namaKue)
             binding.etSatuanProduk.setText(cake.satuan)
+            productionAtMillis = cake.productionAtMillis
+            binding.etTanggalProduksi.setText(formatProductionDate(productionAtMillis))
+            binding.etMasaSimpan.setText(cake.shelfLifeDays.takeIf { it > 0L }?.toString().orEmpty())
             renderVariants()
             Glide.with(this@CakeDetailFragment).load(imageUrl).into(binding.ivBanner)
         }.addOnFailureListener { exception ->
@@ -307,8 +316,11 @@ class CakeDetailFragment : Fragment() {
     private fun updateCakeData() {
         val namaKue = binding.etNamaKue.text.toString().trim()
         val unitInput = binding.etSatuanProduk.text.toString().trim()
-        if (namaKue.isEmpty() || unitInput.isEmpty() || variants.isEmpty()) {
-            Toast.makeText(requireContext(), "Nama kue, satuan produk, dan minimal 1 varian wajib diisi", Toast.LENGTH_SHORT).show()
+        val shelfLifeDays = binding.etMasaSimpan.text.toString().toLongOrNull()
+        if (namaKue.isEmpty() || unitInput.isEmpty() || variants.isEmpty() ||
+            productionAtMillis <= 0L || shelfLifeDays == null || shelfLifeDays <= 0L
+        ) {
+            Toast.makeText(requireContext(), "Lengkapi nama, satuan, tanggal produksi, masa simpan, dan minimal 1 varian", Toast.LENGTH_SHORT).show()
             return
         }
         setRequestLoading(true)
@@ -318,12 +330,12 @@ class CakeDetailFragment : Fragment() {
             val imageRef = storage.reference.child("images/$namaKue")
             imageRef.putFile(Uri.fromFile(file)).addOnSuccessListener {
                 imageRef.downloadUrl.addOnSuccessListener { uri ->
-                    saveToFirestore(namaKue, productUnit, categoryMaps, uri.toString())
+                    saveToFirestore(namaKue, productUnit, categoryMaps, uri.toString(), shelfLifeDays)
                 }
                     .addOnFailureListener { handleSaveFailure(it) }
             }.addOnFailureListener { handleSaveFailure(it) }
         } else {
-            saveToFirestore(namaKue, productUnit, categoryMaps, imageUrlDb)
+            saveToFirestore(namaKue, productUnit, categoryMaps, imageUrlDb, shelfLifeDays)
         }
     }
 
@@ -331,13 +343,16 @@ class CakeDetailFragment : Fragment() {
         nama: String,
         satuanProduk: String,
         kategoriProduk: List<Map<String, Any>>,
-        url: String
+        url: String,
+        shelfLifeDays: Long
     ) {
         val data = mapOf(
             "namaKue" to nama,
             "satuan" to satuanProduk,
             "kategoriProduk" to kategoriProduk,
-            "imageUrl" to url
+            "imageUrl" to url,
+            "productionAtMillis" to productionAtMillis,
+            "shelfLifeDays" to shelfLifeDays
         )
         db.collection("cakes").document(documentId!!).update(data).addOnSuccessListener {
             if (_binding != null) setRequestLoading(false)
@@ -350,6 +365,24 @@ class CakeDetailFragment : Fragment() {
         Log.e("CakeDetailFragment", "Error saving cake data", exception)
         if (_binding != null) setRequestLoading(false)
         Toast.makeText(requireContext(), "Data gagal disimpan", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun showProductionDatePicker() {
+        val calendar = Calendar.getInstance().apply {
+            if (productionAtMillis > 0L) timeInMillis = productionAtMillis
+        }
+        DatePickerDialog(
+            requireContext(),
+            { _, year, month, day ->
+                calendar.set(year, month, day, 0, 0, 0)
+                calendar.set(Calendar.MILLISECOND, 0)
+                productionAtMillis = calendar.timeInMillis
+                binding.etTanggalProduksi.setText(formatProductionDate(productionAtMillis))
+            },
+            calendar.get(Calendar.YEAR),
+            calendar.get(Calendar.MONTH),
+            calendar.get(Calendar.DAY_OF_MONTH)
+        ).show()
     }
 
     private fun deleteCakeData() {

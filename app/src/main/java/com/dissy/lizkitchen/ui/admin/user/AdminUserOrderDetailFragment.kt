@@ -1,13 +1,18 @@
 package com.dissy.lizkitchen.ui.admin.user
 
+import android.Manifest
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.app.DownloadManager
 import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.os.Environment
 import android.net.Uri
+import android.provider.MediaStore
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -23,6 +28,8 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.widget.AppCompatImageView
+import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -43,6 +50,7 @@ import com.dissy.lizkitchen.utility.ORDER_STATUS_PROCESSING
 import com.dissy.lizkitchen.utility.ORDER_STATUS_READY_PICKUP
 import com.dissy.lizkitchen.utility.ORDER_STATUS_SHIPPING
 import com.dissy.lizkitchen.utility.cartItemsFromAny
+import com.dissy.lizkitchen.utility.createCustomTempFile
 import com.dissy.lizkitchen.utility.deliveryDistanceLabel
 import com.dissy.lizkitchen.utility.deliveryFeeLabel
 import com.dissy.lizkitchen.utility.metodePengambilanDisplayForOrder
@@ -62,6 +70,7 @@ import com.google.firebase.storage.FirebaseStorage
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.io.File
 
 class AdminUserOrderDetailFragment : Fragment() {
     private var _binding: FragmentAdminUserOrderDetailBinding? = null
@@ -75,6 +84,27 @@ class AdminUserOrderDetailFragment : Fragment() {
     private val storage = FirebaseStorage.getInstance()
     private var selectedStatusProofUri: Uri? = null
     private var statusProofTarget: String? = null
+    private var statusCameraFile: File? = null
+
+    private val statusCameraPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) openStatusCamera()
+        else Toast.makeText(requireContext(), "Izin kamera diperlukan untuk mengambil foto", Toast.LENGTH_SHORT).show()
+    }
+
+    private val statusCameraLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        val photoFile = statusCameraFile
+        if (result.resultCode != Activity.RESULT_OK || photoFile == null || !photoFile.exists() || _binding == null) return@registerForActivityResult
+        val photoUri = Uri.fromFile(photoFile)
+        selectedStatusProofUri = photoUri
+        Glide.with(this).load(photoUri).into(binding.ivStatusProofInput)
+        binding.tvStatusProofHint.text = "Foto siap diunggah saat status disimpan."
+        binding.btnChooseStatusProof.text = "Ganti Foto Bukti"
+        updateStatusProofActionAvailability()
+    }
 
     private val statusProofPicker = registerForActivityResult(
         ActivityResultContracts.GetContent()
@@ -121,6 +151,12 @@ class AdminUserOrderDetailFragment : Fragment() {
                 ?.let { showPaymentProofDialog(it) }
         }
 
+        binding.ivReceiptProof.setOnClickListener {
+            currentOrder?.receiptProofUrl
+                ?.takeIf { it.isNotBlank() }
+                ?.let { showPaymentProofDialog(it, "Bukti Penerimaan Pelanggan") }
+        }
+
         binding.btnConfirm.setOnClickListener {
             confirmOrder()
         }
@@ -138,7 +174,7 @@ class AdminUserOrderDetailFragment : Fragment() {
         }
 
         binding.btnChooseStatusProof.setOnClickListener {
-            statusProofPicker.launch("image/*")
+            showStatusProofSourceDialog()
         }
 
         binding.btnUploadStatusProof.setOnClickListener {
@@ -248,6 +284,47 @@ class AdminUserOrderDetailFragment : Fragment() {
                     .into(ivPaymentProof)
             }
 
+            if (order.receiptProofUrl.isBlank()) {
+                receiptProofPanel.visibility = GONE
+                tvReceiptProofStatus.text = "Pelanggan belum mengunggah bukti penerimaan."
+                ivReceiptProof.visibility = GONE
+                Glide.with(this@AdminUserOrderDetailFragment).clear(ivReceiptProof)
+            } else {
+                receiptProofPanel.visibility = VISIBLE
+                tvReceiptProofStatus.text = "Bukti penerimaan sudah diunggah oleh pelanggan."
+                ivReceiptProof.visibility = VISIBLE
+                Glide.with(this@AdminUserOrderDetailFragment)
+                    .load(order.receiptProofUrl)
+                    .into(ivReceiptProof)
+            }
+
+            val statusProofEntries = listOf(
+                ORDER_STATUS_PROCESSING,
+                ORDER_STATUS_SHIPPING,
+                ORDER_STATUS_READY_PICKUP,
+                ORDER_STATUS_DONE
+            ).mapNotNull { status ->
+                order.statusProofs[status]
+                    ?.takeIf { it.isNotBlank() }
+                    ?.let { statusProofTitle(status) to it }
+            }.toMutableList().apply {
+                order.receiptProofUrl
+                    .takeIf { it.isNotBlank() }
+                    ?.let {
+                        val title = if (order.metodePengambilan.contains("ambil", ignoreCase = true)) {
+                            "Bukti Pengambilan Pelanggan"
+                        } else {
+                            "Bukti Penerimaan Pelanggan"
+                        }
+                        add(title to it)
+                    }
+            }
+            statusProofHistoryList.removeAllViews()
+            statusProofHistoryPanel.visibility = if (statusProofEntries.isEmpty()) GONE else VISIBLE
+            statusProofEntries.forEach { (title, url) ->
+                addStatusProofHistoryPreview(title, url)
+            }
+
             // Reset visibility
             actionContainer.visibility = GONE
             btnCancel.visibility = GONE
@@ -355,11 +432,77 @@ class AdminUserOrderDetailFragment : Fragment() {
     private fun statusProofTitle(status: String): String {
         return when (status) {
             ORDER_STATUS_PROCESSING -> "Bukti Pesanan Diproses"
-            ORDER_STATUS_SHIPPING -> "Bukti Pengiriman Kurir"
+            ORDER_STATUS_SHIPPING -> "Bukti Pesanan Dikirim"
             ORDER_STATUS_READY_PICKUP -> "Bukti Pesanan Siap Diambil"
             ORDER_STATUS_DONE -> "Bukti Pesanan Diterima"
             else -> "Bukti Status Pesanan"
         }
+    }
+
+    private fun addStatusProofHistoryPreview(title: String, url: String) {
+        val card = LinearLayout(requireContext()).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = android.view.Gravity.CENTER_VERTICAL
+            setPadding(dp(8), dp(8), dp(8), dp(8))
+            background = resources.getDrawable(R.drawable.bg_cart_panel, requireContext().theme)
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                if (binding.statusProofHistoryList.childCount > 0) topMargin = dp(8)
+            }
+            isClickable = true
+            setOnClickListener { showPaymentProofDialog(url, title) }
+        }
+        val preview = AppCompatImageView(requireContext()).apply {
+            layoutParams = LinearLayout.LayoutParams(dp(76), dp(76))
+            scaleType = ImageView.ScaleType.CENTER_CROP
+            contentDescription = title
+        }
+        val label = TextView(requireContext()).apply {
+            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply {
+                marginStart = dp(10)
+            }
+            text = title
+            setTextColor(Color.parseColor("#3A2A20"))
+            textSize = 12f
+        }
+        card.addView(preview)
+        card.addView(label)
+        binding.statusProofHistoryList.addView(card)
+        Glide.with(this).load(url).into(preview)
+    }
+
+    private fun showStatusProofSourceDialog() {
+        AlertDialog.Builder(requireContext())
+            .setTitle("Pilih Sumber Foto")
+            .setItems(arrayOf("Pilih dari Galeri", "Ambil Foto dari Kamera")) { _, which ->
+                if (which == 0) {
+                    statusProofPicker.launch("image/*")
+                } else {
+                    startStatusCameraWithPermissionCheck()
+                }
+            }
+            .show()
+    }
+
+    private fun startStatusCameraWithPermissionCheck() {
+        if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+            openStatusCamera()
+        } else {
+            statusCameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+        }
+    }
+
+    private fun openStatusCamera() {
+        val photoFile = createCustomTempFile(requireActivity().application)
+        statusCameraFile = photoFile
+        val photoUri = FileProvider.getUriForFile(requireContext(), "com.dissy.lizkitchen", photoFile)
+        val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE).apply {
+            putExtra(MediaStore.EXTRA_OUTPUT, photoUri)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+        }
+        statusCameraLauncher.launch(intent)
     }
 
     private fun applyStatusStyle(textView: TextView, status: String) {
@@ -415,7 +558,7 @@ class AdminUserOrderDetailFragment : Fragment() {
         }
     }
 
-    private fun showPaymentProofDialog(url: String) {
+    private fun showPaymentProofDialog(url: String, title: String = "Bukti Pembayaran") {
         val container = LinearLayout(requireContext()).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(16), 10, dp(16), dp(4))
@@ -432,7 +575,7 @@ class AdminUserOrderDetailFragment : Fragment() {
         val proofImage = AppCompatImageView(requireContext()).apply {
             adjustViewBounds = true
             scaleType = ImageView.ScaleType.FIT_CENTER
-            contentDescription = "Bukti pembayaran pelanggan"
+            contentDescription = title
             layoutParams = ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
@@ -443,7 +586,7 @@ class AdminUserOrderDetailFragment : Fragment() {
         container.addView(scrollView)
 
         val dialog = AlertDialog.Builder(requireContext())
-            .setTitle("Bukti Pembayaran")
+            .setTitle(title)
             .setView(container)
             .setNeutralButton("Download Bukti", null)
             .setPositiveButton("Tutup", null)
@@ -458,7 +601,7 @@ class AdminUserOrderDetailFragment : Fragment() {
                 0
             )
             compoundDrawablePadding = dp(6)
-            setOnClickListener { downloadPaymentProof(url) }
+            setOnClickListener { downloadPaymentProof(url, title) }
         }
         dialog.window?.setLayout(
             (resources.displayMetrics.widthPixels * 0.92f).toInt(),
@@ -466,12 +609,12 @@ class AdminUserOrderDetailFragment : Fragment() {
         )
     }
 
-    private fun downloadPaymentProof(url: String) {
+    private fun downloadPaymentProof(url: String, title: String = "Bukti Pembayaran") {
         try {
             val safeOrderId = orderId.replace(Regex("[^A-Za-z0-9_-]"), "_")
             val request = DownloadManager.Request(Uri.parse(url))
-                .setTitle("Bukti Pembayaran $safeOrderId")
-                .setDescription("Mengunduh bukti pembayaran pelanggan")
+                .setTitle("$title $safeOrderId")
+                .setDescription("Mengunduh foto bukti pesanan")
                 .setMimeType("image/*")
                 .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
                 .setAllowedOverMetered(true)
@@ -481,11 +624,11 @@ class AdminUserOrderDetailFragment : Fragment() {
                 )
             val manager = requireContext().getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
             manager.enqueue(request)
-            Toast.makeText(requireContext(), "Bukti pembayaran sedang diunduh", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), "$title sedang diunduh", Toast.LENGTH_SHORT).show()
         } catch (exception: Exception) {
             Toast.makeText(
                 requireContext(),
-                "Gagal mengunduh bukti pembayaran: ${exception.message}",
+                "Gagal mengunduh bukti: ${exception.message}",
                 Toast.LENGTH_LONG
             ).show()
         }
@@ -694,7 +837,7 @@ class AdminUserOrderDetailFragment : Fragment() {
 
     private fun setRequestLoading(isLoading: Boolean) {
         if (_binding == null) return
-        binding.root.setFirebaseRequestLoading(isLoading)
+        binding.root.setFirebaseRequestLoading(isLoading, binding.progressBar2)
     }
 
     override fun onDestroyView() {

@@ -88,6 +88,18 @@
                 android:textSize="11sp"
                 tools:text="Original, Keju, Cokelat" />
 
+            <TextView
+                android:id="@+id/tvExpiryInfo"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:ellipsize="end"
+                android:fontFamily="@font/poppins_regular"
+                android:maxLines="1"
+                android:textColor="#7F6657"
+                android:textSize="10sp"
+                tools:text="Baik dikonsumsi sebelum 30 Jul 2026" />
+
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

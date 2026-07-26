@@ -4,6 +4,7 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.AlertDialog
+import android.app.DatePickerDialog
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.BitmapFactory
@@ -36,6 +37,7 @@ import com.dissy.lizkitchen.model.ProductCategory
 import com.dissy.lizkitchen.utility.clearFocusWhenTouchOutsideInput
 import com.dissy.lizkitchen.utility.createCustomTempFile
 import com.dissy.lizkitchen.utility.formatProductPrice
+import com.dissy.lizkitchen.utility.formatProductionDate
 import com.dissy.lizkitchen.utility.normalizeProductUnit
 import com.dissy.lizkitchen.utility.setFirebaseRequestLoading
 import com.dissy.lizkitchen.utility.toFirestoreMap
@@ -44,6 +46,7 @@ import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.storage.ktx.storage
 import java.io.File
+import java.util.Calendar
 
 class AdminAddFragment : Fragment() {
     private var _binding: FragmentAdminAddBinding? = null
@@ -52,6 +55,7 @@ class AdminAddFragment : Fragment() {
     private lateinit var photoPath: String
     private val storage = Firebase.storage
     private var file: File? = null
+    private var productionAtMillis: Long = 0L
     private val variants = mutableListOf<ProductCategory>()
     private var editingVariantIndex: Int? = null
 
@@ -69,20 +73,27 @@ class AdminAddFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         binding.root.clearFocusWhenTouchOutsideInput()
+        productionAtMillis = startOfTodayMillis()
+        binding.etTanggalProduksi.setText(formatProductionDate(productionAtMillis))
+        binding.etTanggalProduksi.setOnClickListener { showProductionDatePicker() }
+        binding.tilTanggalProduksi.setEndIconOnClickListener { showProductionDatePicker() }
         binding.ivBanner.setOnClickListener { showImagePickerDialog() }
         binding.btnToHome.setOnClickListener { findNavController().navigateUp() }
         binding.btnAddVarian.setOnClickListener { saveVariantFromInput() }
         binding.btnUpdateData.setOnClickListener {
             val namaKue = binding.etNamaKue.text.toString().trim()
             val unitInput = binding.etSatuanProduk.text.toString().trim()
+            val shelfLifeDays = binding.etMasaSimpan.text.toString().toLongOrNull()
             val gambar = file
-            if (gambar == null || namaKue.isEmpty() || unitInput.isEmpty() || variants.isEmpty()) {
-                Toast.makeText(requireContext(), "Foto, nama kue, satuan produk, dan minimal 1 varian wajib diisi", Toast.LENGTH_SHORT).show()
+            if (gambar == null || namaKue.isEmpty() || unitInput.isEmpty() || variants.isEmpty() ||
+                productionAtMillis <= 0L || shelfLifeDays == null || shelfLifeDays <= 0L
+            ) {
+                Toast.makeText(requireContext(), "Lengkapi foto, data produk, tanggal produksi, masa simpan, dan minimal 1 varian", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
             val productUnit = normalizeProductUnit(unitInput)
             val categoryMaps = variants.map { it.copy(satuan = productUnit).toFirestoreMap() }
-            uploadImageAndGetUrl(namaKue, productUnit, categoryMaps, gambar)
+            uploadImageAndGetUrl(namaKue, productUnit, categoryMaps, gambar, shelfLifeDays)
         }
     }
 
@@ -272,7 +283,8 @@ class AdminAddFragment : Fragment() {
         namaKue: String,
         satuanProduk: String,
         kategoriProduk: List<Map<String, Any>>,
-        gambar: File
+        gambar: File,
+        shelfLifeDays: Long
     ) {
         setRequestLoading(true)
         val imageRef = storage.reference.child("images/$namaKue")
@@ -282,7 +294,9 @@ class AdminAddFragment : Fragment() {
                     "namaKue" to namaKue,
                     "satuan" to satuanProduk,
                     "kategoriProduk" to kategoriProduk,
-                    "imageUrl" to uri.toString()
+                    "imageUrl" to uri.toString(),
+                    "productionAtMillis" to productionAtMillis,
+                    "shelfLifeDays" to shelfLifeDays
                 )
                 db.collection("cakes").add(data).addOnSuccessListener { documentReference ->
                     db.collection("cakes").document(documentReference.id).update("documentId", documentReference.id).addOnSuccessListener {
@@ -312,6 +326,33 @@ class AdminAddFragment : Fragment() {
     private fun setRequestLoading(isLoading: Boolean) {
         if (_binding == null) return
         binding.root.setFirebaseRequestLoading(isLoading, binding.progressBar2)
+    }
+
+    private fun showProductionDatePicker() {
+        val calendar = Calendar.getInstance().apply {
+            if (productionAtMillis > 0L) timeInMillis = productionAtMillis
+        }
+        DatePickerDialog(
+            requireContext(),
+            { _, year, month, day ->
+                calendar.set(year, month, day, 0, 0, 0)
+                calendar.set(Calendar.MILLISECOND, 0)
+                productionAtMillis = calendar.timeInMillis
+                binding.etTanggalProduksi.setText(formatProductionDate(productionAtMillis))
+            },
+            calendar.get(Calendar.YEAR),
+            calendar.get(Calendar.MONTH),
+            calendar.get(Calendar.DAY_OF_MONTH)
+        ).show()
+    }
+
+    private fun startOfTodayMillis(): Long {
+        return Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }.timeInMillis
     }
 
     private fun startCameraWithPermissionCheck() { if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) openCamera() else requestCameraPermissionLauncher.launch(Manifest.permission.CAMERA) }

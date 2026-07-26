@@ -21,6 +21,7 @@ import com.dissy.lizkitchen.utility.PAYMENT_EXPIRY_DURATION_MILLIS
 import com.dissy.lizkitchen.utility.Preferences
 import com.dissy.lizkitchen.utility.cakeFromMap
 import com.dissy.lizkitchen.utility.isInvalidCheckoutAddress
+import com.dissy.lizkitchen.utility.isExpired
 import com.dissy.lizkitchen.utility.orderToFirestoreMap
 import com.dissy.lizkitchen.utility.productPriceToLong
 import com.dissy.lizkitchen.utility.setFirebaseRequestLoading
@@ -127,6 +128,16 @@ class CartFragment : Fragment(),
                     Toast.makeText(requireContext(), "Keranjang masih kosong", Toast.LENGTH_SHORT).show()
                     return@addOnSuccessListener
                 }
+                val expiredItems = cartList.filter { it.cake.isExpired() }
+                if (expiredItems.isNotEmpty()) {
+                    finishCheckoutPreparation()
+                    Toast.makeText(
+                        requireContext(),
+                        "${expiredItems.size} produk di keranjang sudah expired. Hapus sebelum checkout.",
+                        Toast.LENGTH_LONG
+                    ).show()
+                    return@addOnSuccessListener
+                }
                 val userInfo = Preferences.getUserInfo(requireContext())
                 val user = User(
                     userId = userId,
@@ -209,6 +220,11 @@ class CartFragment : Fragment(),
                 binding.tvCheckoutSummary.text = summaryText
                 cartAdapter.submitList(cartList)
                 setRequestLoading(false)
+                val hasExpiredItem = cartList.any { it.cake.isExpired() }
+                binding.btnCheckout.isEnabled = !hasExpiredItem
+                if (hasExpiredItem) {
+                    binding.tvCheckoutSummary.text = "$summaryText • Hapus produk expired sebelum checkout"
+                }
                 binding.emptyCart.visibility = if (cartList.isEmpty()) View.VISIBLE else View.GONE
                 binding.linearLayout1.visibility = if (cartList.isEmpty()) View.GONE else View.VISIBLE
             }

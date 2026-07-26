@@ -22,6 +22,9 @@ import com.dissy.lizkitchen.utility.Preferences
 import com.dissy.lizkitchen.utility.availableCategories
 import com.dissy.lizkitchen.utility.cakeFromMap
 import com.dissy.lizkitchen.utility.clearFocusWhenTouchOutsideInput
+import com.dissy.lizkitchen.utility.expiryAtMillis
+import com.dissy.lizkitchen.utility.isExpired
+import com.dissy.lizkitchen.utility.isExpiringSoon
 import com.dissy.lizkitchen.utility.primaryCategory
 import com.dissy.lizkitchen.utility.setFirebaseRequestLoading
 import com.google.firebase.firestore.ktx.firestore
@@ -37,6 +40,7 @@ class AdminCakeFragment : Fragment() {
     private var searchQuery = ""
     private var selectedSort = SORT_NAME_AZ
     private var selectedVarianFilter = FILTER_ALL
+    private var selectedExpiryFilter = EXPIRY_ALL
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -126,6 +130,16 @@ class AdminCakeFragment : Fragment() {
             }
             override fun onNothingSelected(parent: AdapterView<*>?) = Unit
         }
+
+        binding.chipGroupExpiry.setOnCheckedChangeListener { _, checkedId ->
+            selectedExpiryFilter = when (checkedId) {
+                R.id.chipExpiringSoon -> EXPIRY_SOON
+                R.id.chipExpired -> EXPIRY_EXPIRED
+                R.id.chipExpiryNotSet -> EXPIRY_NOT_SET
+                else -> EXPIRY_ALL
+            }
+            applyFilterAndSort()
+        }
     }
 
     private fun applyFilterAndSort() {
@@ -143,7 +157,14 @@ class AdminCakeFragment : Fragment() {
                 else -> true
             }
 
-            matchSearch && matchVarian
+            val matchExpiry = when (selectedExpiryFilter) {
+                EXPIRY_SOON -> cake.isExpiringSoon()
+                EXPIRY_EXPIRED -> cake.isExpired()
+                EXPIRY_NOT_SET -> cake.expiryAtMillis() == null
+                else -> true
+            }
+
+            matchSearch && matchVarian && matchExpiry
         }
 
         result = when (selectedSort) {
@@ -195,6 +216,10 @@ class AdminCakeFragment : Fragment() {
 
     companion object {
         private const val FILTER_ALL = "Semua"
+        private const val EXPIRY_ALL = "Semua"
+        private const val EXPIRY_SOON = "Segera expired"
+        private const val EXPIRY_EXPIRED = "Sudah expired"
+        private const val EXPIRY_NOT_SET = "Belum diatur"
         private const val SORT_NAME_AZ = "Nama A-Z"
         private const val SORT_NAME_ZA = "Nama Z-A"
         private const val SORT_PRICE_LOW = "Harga Terendah"

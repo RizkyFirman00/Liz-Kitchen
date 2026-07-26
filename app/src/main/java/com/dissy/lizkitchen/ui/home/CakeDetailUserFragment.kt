@@ -19,6 +19,10 @@ import com.dissy.lizkitchen.model.ProductCategory
 import com.dissy.lizkitchen.utility.Preferences
 import com.dissy.lizkitchen.utility.availableCategories
 import com.dissy.lizkitchen.utility.cakeFromMap
+import com.dissy.lizkitchen.utility.expiryAtMillis
+import com.dissy.lizkitchen.utility.expiryLabel
+import com.dissy.lizkitchen.utility.isExpired
+import com.dissy.lizkitchen.utility.isExpiringSoon
 import com.dissy.lizkitchen.utility.cartDocumentId
 import com.dissy.lizkitchen.utility.normalizeProductUnit
 import com.dissy.lizkitchen.utility.productPriceToLong
@@ -35,6 +39,7 @@ class CakeDetailUserFragment : Fragment() {
     private var jumlahPesanan = 1
     private var hargaPerSatuan = 0L
     private var stok = 0
+    private var currentCake: Cake? = null
     private lateinit var imageUrlDb: String
     private var cakeIdDb: String = ""
     private var namaKueDb: String = ""
@@ -68,6 +73,7 @@ class CakeDetailUserFragment : Fragment() {
                     if (_binding != null && snapshot != null && snapshot.exists()) {
                         setRequestLoading(false)
                         val cake = cakeFromMap(snapshot.id, snapshot.data ?: emptyMap<String, Any>())
+                        currentCake = cake
                         cakeIdDb = cake.documentId
                         namaKueDb = cake.namaKue
                         imageUrlDb = cake.imageUrl
@@ -75,6 +81,13 @@ class CakeDetailUserFragment : Fragment() {
                         binding.apply {
                             tvCakeName.text = cake.namaKue
                             tvProductSummary.text = buildProductSummary(cake)
+                            tvExpiryInfo.text = cake.expiryLabel()
+                            tvExpiryInfo.setTextColor(
+                                ContextCompat.getColor(
+                                    requireContext(),
+                                    if (cake.isExpired() || cake.isExpiringSoon()) R.color.red else R.color.brown_old
+                                )
+                            )
                             tvVariantBadge.text = "${cake.availableCategories().size} varian"
                             tvJumlahPesanan.text = jumlahPesanan.toString()
                             Glide.with(this@CakeDetailUserFragment)
@@ -104,6 +117,10 @@ class CakeDetailUserFragment : Fragment() {
 
         binding.btnAddCart.setOnClickListener {
             if (userId == null) return@setOnClickListener
+            if (currentCake?.isExpired() == true) {
+                Toast.makeText(requireContext(), "Produk sudah expired dan tidak bisa dipesan", Toast.LENGTH_LONG).show()
+                return@setOnClickListener
+            }
             setRequestLoading(true)
 
             if (jumlahPesanan <= 0) {
@@ -147,7 +164,9 @@ class CakeDetailUserFragment : Fragment() {
                                 namaKue = namaKueDb,
                                 stok = selectedCategory.stok,
                                 satuan = productUnit,
-                                kategori = selectedCategory.namaKategori
+                                kategori = selectedCategory.namaKategori,
+                                productionAtMillis = currentCake?.productionAtMillis ?: 0L,
+                                shelfLifeDays = currentCake?.shelfLifeDays ?: 0L
                             ),
                             "jumlahPesanan" to jumlahPesanan,
                         )
@@ -165,7 +184,8 @@ class CakeDetailUserFragment : Fragment() {
 
     private fun setupVariantPicker(cake: Cake) {
         val categories = cake.availableCategories()
-        val firstAvailableIndex = categories.indexOfFirst { it.stok > 0 }
+        val isExpired = cake.isExpired()
+        val firstAvailableIndex = categories.indexOfFirst { it.stok > 0 && !isExpired }
             .takeIf { it >= 0 }
             ?: 0
         val shouldShowVariants = categories.size > 1 ||
@@ -177,13 +197,13 @@ class CakeDetailUserFragment : Fragment() {
         categories.forEachIndexed { index, category ->
             val chip = Chip(requireContext()).apply {
                 id = View.generateViewId()
-                text = if (category.stok > 0) {
+                text = if (category.stok > 0 && !isExpired) {
                     category.namaKategori
                 } else {
-                    "${category.namaKategori} (Habis)"
+                    "${category.namaKategori} (${if (isExpired) "Expired" else "Habis"})"
                 }
                 isCheckable = true
-                isEnabled = category.stok > 0
+                isEnabled = category.stok > 0 && !isExpired
                 isClickable = isEnabled
                 alpha = if (isEnabled) 1f else 0.55f
                 isCheckedIconVisible = false
@@ -192,7 +212,7 @@ class CakeDetailUserFragment : Fragment() {
                 setTextColor(ContextCompat.getColorStateList(requireContext(), R.color.variant_chip_text_selector))
                 chipStrokeColor = ContextCompat.getColorStateList(requireContext(), R.color.variant_chip_text_selector)
                 setOnClickListener {
-                    jumlahPesanan = if (category.stok > 0) 1 else 0
+                    jumlahPesanan = if (category.stok > 0 && !isExpired) 1 else 0
                     selectedCategory = category
                     updateSelectedCategory()
                 }
@@ -203,7 +223,7 @@ class CakeDetailUserFragment : Fragment() {
             }
         }
 
-        selectedCategory = categories[firstAvailableIndex]
+        selectedCategory = categories[firstAvailableIndex.takeIf { it >= 0 } ?: 0]
         updateSelectedCategory()
     }
 
@@ -211,15 +231,20 @@ class CakeDetailUserFragment : Fragment() {
         hargaPerSatuan = productPriceToLong(selectedCategory.harga)
         stok = selectedCategory.stok.toInt()
         val displayUnit = productUnit
+        val isExpired = currentCake?.isExpired() == true
         binding.tvPriceCake.text = selectedCategory.harga
         binding.tvUnitCake.text = " / $displayUnit"
         binding.tvUnitTotal.text = " / $displayUnit"
-        binding.tvStockBadge.text = if (stok > 0) "Stok $stok $displayUnit" else "Stok habis"
+        binding.tvStockBadge.text = when {
+            isExpired -> "Produk expired"
+            stok > 0 -> "Stok $stok $displayUnit"
+            else -> "Stok habis"
+        }
         binding.tvStockBadge.setTextColor(
-            ContextCompat.getColor(requireContext(), if (stok > 0) R.color.green else R.color.red)
+            ContextCompat.getColor(requireContext(), if (stok > 0 && !isExpired) R.color.green else R.color.red)
         )
         binding.tvVariantInfo.text = "Stok $stok $displayUnit | Rp ${selectedCategory.harga} / $displayUnit"
-        if (stok <= 0) {
+        if (stok <= 0 || isExpired) {
             jumlahPesanan = 0
         } else if (jumlahPesanan > stok) {
             jumlahPesanan = stok
@@ -273,11 +298,15 @@ class CakeDetailUserFragment : Fragment() {
         binding.tvJumlahPesanan.text = jumlahPesanan.toString()
         val totalHarga = hargaPerSatuan * jumlahPesanan
         binding.tvPriceSum.text = formatAndDisplayCurrency(totalHarga.toString())
-        val isAvailable = stok > 0
+        val isAvailable = stok > 0 && currentCake?.isExpired() != true
 
         binding.btnAddCart.isEnabled = isAvailable
         binding.btnAddCart.alpha = if (isAvailable) 1f else 0.55f
-        binding.btnAddCart.text = if (isAvailable) "Tambah ke Keranjang" else "Stok Habis"
+        binding.btnAddCart.text = when {
+            currentCake?.isExpired() == true -> "Produk Expired"
+            isAvailable -> "Tambah ke Keranjang"
+            else -> "Stok Habis"
+        }
         binding.btnMinus.isEnabled = isAvailable && jumlahPesanan > 1
         binding.btnPlus.isEnabled = isAvailable && jumlahPesanan < stok
         binding.btnMinus.alpha = if (jumlahPesanan > 1) 1f else 0.45f

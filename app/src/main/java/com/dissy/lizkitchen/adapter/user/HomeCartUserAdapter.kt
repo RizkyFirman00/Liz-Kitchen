@@ -2,6 +2,7 @@ package com.dissy.lizkitchen.adapter.user
 
 import android.view.LayoutInflater
 import android.view.ViewGroup
+import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.recyclerview.widget.DiffUtil
@@ -12,6 +13,8 @@ import com.dissy.lizkitchen.R
 import com.dissy.lizkitchen.databinding.RvCartBinding
 import com.dissy.lizkitchen.model.Cart
 import com.dissy.lizkitchen.utility.displayNameWithCategory
+import com.dissy.lizkitchen.utility.expiryLabel
+import com.dissy.lizkitchen.utility.isExpired
 import com.dissy.lizkitchen.utility.normalizeProductUnit
 import com.dissy.lizkitchen.utility.productPriceToLong
 
@@ -54,6 +57,10 @@ class HomeCartUserAdapter(
                 tvPrice.text = formatCurrency(unitPrice)
                 tvUnit.text = " / $unit"
                 tvStock.text = "Stok ${cart.cake.stok} $unit"
+                val isExpired = cart.cake.isExpired()
+                tvExpiryInfo.visibility = View.VISIBLE
+                tvExpiryInfo.text = cart.cake.expiryLabel()
+                tvExpiryInfo.setTextColor(itemView.context.getColor(if (isExpired) R.color.red else R.color.brown_old))
                 bindQuantity(cart, unitPrice)
 
                 Glide.with(itemView.context)
@@ -66,6 +73,10 @@ class HomeCartUserAdapter(
                     showDeleteConfirmationDialog(cart)
                 }
                 btnPlus.setOnClickListener {
+                    if (isExpired) {
+                        Toast.makeText(itemView.context, "Produk sudah expired dan tidak bisa dipesan", Toast.LENGTH_SHORT).show()
+                        return@setOnClickListener
+                    }
                     if (cart.jumlahPesanan >= cart.cake.stok) {
                         Toast.makeText(itemView.context, "Stok tidak mencukupi, Stok = ${cart.cake.stok}", Toast.LENGTH_SHORT).show()
                         return@setOnClickListener
@@ -75,6 +86,10 @@ class HomeCartUserAdapter(
                     listener.onQuantityChanged(cart, cart.jumlahPesanan)
                 }
                 btnMinus.setOnClickListener {
+                    if (isExpired) {
+                        showDeleteConfirmationDialog(cart)
+                        return@setOnClickListener
+                    }
                     if (cart.jumlahPesanan > 1) {
                         cart.jumlahPesanan--
                         bindQuantity(cart, unitPrice)
@@ -90,6 +105,12 @@ class HomeCartUserAdapter(
             tvJmlh.text = cart.jumlahPesanan.toString()
             tvSubtotal.text = "Rp ${formatCurrency(unitPrice * cart.jumlahPesanan)}"
             btnPlus.alpha = if (cart.jumlahPesanan >= cart.cake.stok) 0.45f else 1f
+            btnPlus.isEnabled = !cart.cake.isExpired() && cart.jumlahPesanan < cart.cake.stok
+            btnMinus.isEnabled = !cart.cake.isExpired()
+            if (cart.cake.isExpired()) {
+                btnPlus.alpha = 0.45f
+                btnMinus.alpha = 0.45f
+            }
         }
 
         private fun showDeleteConfirmationDialog(cart: Cart) {
