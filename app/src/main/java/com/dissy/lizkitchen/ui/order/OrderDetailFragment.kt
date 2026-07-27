@@ -33,6 +33,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.bumptech.glide.Glide
 import com.dissy.lizkitchen.R
 import com.dissy.lizkitchen.adapter.user.HomeOrderUserCakeAdapter
+import com.dissy.lizkitchen.databinding.DialogPhotoSourceBinding
 import com.dissy.lizkitchen.databinding.FragmentOrderDetailBinding
 import com.dissy.lizkitchen.model.Order
 import com.dissy.lizkitchen.utility.ORDER_STATUS_CANCELED
@@ -61,6 +62,8 @@ import com.google.firebase.firestore.SetOptions
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.storage.FirebaseStorage
+import com.google.android.material.bottomsheet.BottomSheetBehavior
+import com.google.android.material.bottomsheet.BottomSheetDialog
 import java.io.File
 
 class OrderDetailFragment : Fragment() {
@@ -96,7 +99,7 @@ class OrderDetailFragment : Fragment() {
     ) { result ->
         val photoFile = receiptCameraFile
         if (result.resultCode != Activity.RESULT_OK || photoFile == null || !photoFile.exists()) return@registerForActivityResult
-        val photoUri = Uri.fromFile(photoFile)
+        val photoUri = FileProvider.getUriForFile(requireContext(), "com.dissy.lizkitchen", photoFile)
         selectedReceiptProofUri = photoUri
         uploadReceiptProof(photoUri)
     }
@@ -190,7 +193,8 @@ class OrderDetailFragment : Fragment() {
         orderDetailAdapter.submitList(order.cart)
 
         binding.apply {
-            val statusText = order.status.ifBlank { "Status belum tersedia" }
+            val normalizedStatus = order.status.trim()
+            val statusText = normalizedStatus.ifBlank { "Status belum tersedia" }
             tvOrderId.text = order.orderId
             tvStatus.text = statusText
             applyStatusStyle(tvStatus, statusText)
@@ -254,8 +258,8 @@ class OrderDetailFragment : Fragment() {
             btnConfirm.visibility = View.GONE
             btnReceive.visibility = View.GONE
 
-            when (order.status) {
-                ORDER_STATUS_PENDING_PAYMENT -> {
+            when {
+                normalizedStatus.equals(ORDER_STATUS_PENDING_PAYMENT, ignoreCase = true) -> {
                     actionContainer.visibility = View.VISIBLE
                     tvActionTitle.text = "Selesaikan pembayaran agar pesanan bisa diproses."
                     btnCancel.visibility = View.VISIBLE
@@ -267,7 +271,7 @@ class OrderDetailFragment : Fragment() {
                         findNavController().navigate(R.id.navigation_confirm, bundle)
                     }
                 }
-                ORDER_STATUS_PAYMENT_VERIFICATION -> {
+                normalizedStatus.equals(ORDER_STATUS_PAYMENT_VERIFICATION, ignoreCase = true) -> {
                     actionContainer.visibility = View.VISIBLE
                     tvActionTitle.text = "Bukti pembayaran sudah dikirim dan sedang menunggu verifikasi admin."
                     btnConfirm.visibility = View.VISIBLE
@@ -277,20 +281,33 @@ class OrderDetailFragment : Fragment() {
                         findNavController().navigate(R.id.navigation_confirm, bundle)
                     }
                 }
-                ORDER_STATUS_SHIPPING, ORDER_STATUS_READY_PICKUP -> {
+                normalizedStatus.equals(ORDER_STATUS_SHIPPING, ignoreCase = true) ||
+                    normalizedStatus.equals(ORDER_STATUS_READY_PICKUP, ignoreCase = true) -> {
                     actionContainer.visibility = View.VISIBLE
-                    tvActionTitle.text = if (order.status == ORDER_STATUS_READY_PICKUP) {
+                    val isPickup = normalizedStatus.equals(ORDER_STATUS_READY_PICKUP, ignoreCase = true) ||
+                        order.metodePengambilan.contains("ambil", ignoreCase = true)
+                    tvActionTitle.text = if (isPickup) {
                         "Konfirmasi setelah pesanan sudah kamu ambil."
                     } else {
                         "Konfirmasi setelah pesanan sudah kamu terima."
                     }
                     btnReceive.visibility = View.VISIBLE
-                    btnReceive.text = if (order.status == ORDER_STATUS_READY_PICKUP) {
-                        "Sudah Diambil"
-                    } else {
-                        "Pesanan Diterima"
-                    }
+                    btnReceive.text = if (isPickup) "Sudah Diambil" else "Pesanan Diterima"
                     btnReceive.setOnClickListener { requestReceiptProof(order) }
+                }
+                normalizedStatus.equals(ORDER_STATUS_DONE, ignoreCase = true) -> {
+                    if (order.receiptProofUrl.isBlank()) {
+                        actionContainer.visibility = View.VISIBLE
+                        val isPickup = order.metodePengambilan.contains("ambil", ignoreCase = true)
+                        tvActionTitle.text = if (isPickup) {
+                            "Pesanan pickup sudah selesai. Kirim foto bukti pengambilan untuk melengkapi pesanan."
+                        } else {
+                            "Kirim foto bukti penerimaan untuk melengkapi pesanan."
+                        }
+                        btnReceive.visibility = View.VISIBLE
+                        btnReceive.text = if (isPickup) "Kirim Bukti Pengambilan" else "Kirim Bukti Penerimaan"
+                        btnReceive.setOnClickListener { requestReceiptProof(order) }
+                    }
                 }
             }
         }
@@ -430,23 +447,41 @@ class OrderDetailFragment : Fragment() {
     }
 
     private fun requestReceiptProof(order: Order) {
-        val action = if (order.metodePengambilan.contains("ambil", ignoreCase = true)) {
+        val isPickup = order.metodePengambilan.contains("ambil", ignoreCase = true)
+        val action = if (isPickup) {
             "menyelesaikan pengambilan pesanan"
         } else {
             "mengonfirmasi penerimaan pesanan"
         }
-        AlertDialog.Builder(requireContext())
-            .setTitle("Upload Bukti Penerimaan")
-            .setMessage("Pilih foto pesanan yang sudah kamu terima untuk $action.")
-            .setNegativeButton("Batal", null)
-            .setItems(arrayOf("Pilih dari Galeri", "Ambil Foto dari Kamera")) { _, which ->
-                if (which == 0) {
-                    receiptProofPicker.launch("image/*")
-                } else {
-                    startReceiptCameraWithPermissionCheck()
-                }
+        val dialog = BottomSheetDialog(requireContext())
+        val dialogBinding = DialogPhotoSourceBinding.inflate(layoutInflater)
+        dialogBinding.tvPhotoSourceTitle.text = if (isPickup) {
+            "Upload Bukti Pengambilan"
+        } else {
+            "Upload Bukti Penerimaan"
+        }
+        dialogBinding.tvPhotoSourceDescription.text =
+            "Pilih foto pesanan yang sudah kamu terima untuk $action."
+
+        dialogBinding.btnPhotoGallery.setOnClickListener {
+            dialog.dismiss()
+            receiptProofPicker.launch("image/*")
+        }
+        dialogBinding.btnPhotoCamera.setOnClickListener {
+            dialog.dismiss()
+            startReceiptCameraWithPermissionCheck()
+        }
+        dialogBinding.btnPhotoCancel.setOnClickListener { dialog.dismiss() }
+
+        dialog.setContentView(dialogBinding.root)
+        dialog.setOnShowListener {
+            val sheet = dialog.findViewById<View>(com.google.android.material.R.id.design_bottom_sheet)
+            sheet?.let {
+                BottomSheetBehavior.from(it).state = BottomSheetBehavior.STATE_EXPANDED
+                BottomSheetBehavior.from(it).skipCollapsed = true
             }
-            .show()
+        }
+        dialog.show()
     }
 
     private fun startReceiptCameraWithPermissionCheck() {
@@ -506,9 +541,10 @@ class OrderDetailFragment : Fragment() {
                             )
                             selectedReceiptProofUri = null
                             setRequestLoading(false)
+                            val isPickup = order.metodePengambilan.contains("ambil", ignoreCase = true)
                             Toast.makeText(
                                 requireContext(),
-                                "Bukti penerimaan berhasil dikirim",
+                                if (isPickup) "Bukti pengambilan berhasil dikirim" else "Bukti penerimaan berhasil dikirim",
                                 Toast.LENGTH_SHORT
                             ).show()
                             fetchOrderDetails()
