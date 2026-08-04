@@ -38,7 +38,9 @@ import com.dissy.lizkitchen.utility.clearFocusWhenTouchOutsideInput
 import com.dissy.lizkitchen.utility.createCustomTempFile
 import com.dissy.lizkitchen.utility.formatProductPrice
 import com.dissy.lizkitchen.utility.formatProductionDate
-import com.dissy.lizkitchen.utility.normalizeProductUnit
+import com.dissy.lizkitchen.utility.limitNumericInput
+import com.dissy.lizkitchen.utility.PRODUCT_UNIT
+import com.dissy.lizkitchen.utility.productPriceToLong
 import com.dissy.lizkitchen.utility.setFirebaseRequestLoading
 import com.dissy.lizkitchen.utility.toFirestoreMap
 import com.dissy.lizkitchen.utility.uriToFile
@@ -73,6 +75,8 @@ class CakeDetailFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        binding.etStokVarian.limitNumericInput(6)
+        binding.etHargaVarian.limitNumericInput(9, formatThousands = true)
         binding.root.clearFocusWhenTouchOutsideInput()
         binding.etTanggalProduksi.setOnClickListener { showProductionDatePicker() }
         binding.tilTanggalProduksi.setEndIconOnClickListener { showProductionDatePicker() }
@@ -128,7 +132,6 @@ class CakeDetailFragment : Fragment() {
             variants.clear()
             variants.addAll(cake.availableCategories())
             binding.etNamaKue.setText(cake.namaKue)
-            binding.etSatuanProduk.setText(cake.satuan)
             productionAtMillis = cake.productionAtMillis
             binding.etTanggalProduksi.setText(formatProductionDate(productionAtMillis))
             binding.etMasaSimpan.setText(cake.shelfLifeDays.takeIf { it > 0L }?.toString().orEmpty())
@@ -142,18 +145,12 @@ class CakeDetailFragment : Fragment() {
     private fun saveVariantFromInput() {
         val name = binding.etNamaVarian.text.toString().trim()
         val stock = binding.etStokVarian.text.toString().toLongOrNull()
-        val unitInput = binding.etSatuanProduk.text.toString().trim()
         val price = formatProductPrice(binding.etHargaVarian.text.toString())
-        if (unitInput.isEmpty()) {
-            Toast.makeText(requireContext(), "Isi satuan produk terlebih dahulu", Toast.LENGTH_SHORT).show()
-            return
-        }
-        if (name.isEmpty() || stock == null || price.isEmpty()) {
+        if (name.isEmpty() || stock == null || price.isEmpty() || productPriceToLong(price) <= 0L) {
             Toast.makeText(requireContext(), "Nama varian, stok, dan harga wajib diisi", Toast.LENGTH_SHORT).show()
             return
         }
-        val unit = normalizeProductUnit(unitInput)
-        val variant = ProductCategory(name, price, stock, unit)
+        val variant = ProductCategory(name, price, stock, PRODUCT_UNIT)
         val editIndex = editingVariantIndex
         if (editIndex == null) variants.add(variant) else variants[editIndex] = variant
         editingVariantIndex = null
@@ -238,7 +235,7 @@ class CakeDetailFragment : Fragment() {
             setPadding(0, (10 * dp).toInt(), 0, (10 * dp).toInt())
         }
         stats.addView(createInfoPill("Stok", variant.stok.toString(), dp))
-        stats.addView(createInfoPill("Satuan", normalizeProductUnit(binding.etSatuanProduk.text.toString()), dp))
+        stats.addView(createInfoPill("Satuan", PRODUCT_UNIT, dp))
         stats.addView(createInfoPill("Harga/satuan", "Rp. ${variant.harga}", dp))
 
         // --- ACTION BUTTONS: edit & hapus ---
@@ -315,40 +312,37 @@ class CakeDetailFragment : Fragment() {
 
     private fun updateCakeData() {
         val namaKue = binding.etNamaKue.text.toString().trim()
-        val unitInput = binding.etSatuanProduk.text.toString().trim()
         val shelfLifeDays = binding.etMasaSimpan.text.toString().toLongOrNull()
-        if (namaKue.isEmpty() || unitInput.isEmpty() || variants.isEmpty() ||
+        if (namaKue.isEmpty() || variants.isEmpty() ||
             productionAtMillis <= 0L || shelfLifeDays == null || shelfLifeDays <= 0L
         ) {
-            Toast.makeText(requireContext(), "Lengkapi nama, satuan, tanggal produksi, masa simpan, dan minimal 1 varian", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), "Lengkapi nama, tanggal produksi, masa simpan, dan minimal 1 varian", Toast.LENGTH_SHORT).show()
             return
         }
         setRequestLoading(true)
-        val productUnit = normalizeProductUnit(unitInput)
-        val categoryMaps = variants.map { it.copy(satuan = productUnit).toFirestoreMap() }
+        val categoryMaps = variants.map { it.copy(satuan = PRODUCT_UNIT).toFirestoreMap() }
         if (file != null) {
             val imageRef = storage.reference.child("images/$namaKue")
             imageRef.putFile(Uri.fromFile(file)).addOnSuccessListener {
                 imageRef.downloadUrl.addOnSuccessListener { uri ->
-                    saveToFirestore(namaKue, productUnit, categoryMaps, uri.toString(), shelfLifeDays)
+                    saveToFirestore(namaKue, categoryMaps, uri.toString(), shelfLifeDays)
                 }
                     .addOnFailureListener { handleSaveFailure(it) }
             }.addOnFailureListener { handleSaveFailure(it) }
         } else {
-            saveToFirestore(namaKue, productUnit, categoryMaps, imageUrlDb, shelfLifeDays)
+            saveToFirestore(namaKue, categoryMaps, imageUrlDb, shelfLifeDays)
         }
     }
 
     private fun saveToFirestore(
         nama: String,
-        satuanProduk: String,
         kategoriProduk: List<Map<String, Any>>,
         url: String,
         shelfLifeDays: Long
     ) {
         val data = mapOf(
             "namaKue" to nama,
-            "satuan" to satuanProduk,
+            "satuan" to PRODUCT_UNIT,
             "kategoriProduk" to kategoriProduk,
             "imageUrl" to url,
             "productionAtMillis" to productionAtMillis,

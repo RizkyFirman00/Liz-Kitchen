@@ -45,9 +45,12 @@ import com.dissy.lizkitchen.utility.ORDER_STATUS_PAYMENT_VERIFICATION
 import com.dissy.lizkitchen.utility.ORDER_STATUS_PROCESSING
 import com.dissy.lizkitchen.utility.ORDER_STATUS_READY_PICKUP
 import com.dissy.lizkitchen.utility.ORDER_STATUS_SHIPPING
+import com.dissy.lizkitchen.utility.COMPLETION_LABEL_USER_PROOF
+import com.dissy.lizkitchen.utility.COMPLETION_TYPE_USER_PROOF
 import com.dissy.lizkitchen.utility.Preferences
 import com.dissy.lizkitchen.utility.deliveryDistanceLabel
 import com.dissy.lizkitchen.utility.deliveryFeeLabel
+import com.dissy.lizkitchen.utility.completionLabelForOrder
 import com.dissy.lizkitchen.utility.createCustomTempFile
 import com.dissy.lizkitchen.utility.metodePengambilanDisplayForOrder
 import com.dissy.lizkitchen.utility.orderFromDocument
@@ -199,6 +202,8 @@ class OrderDetailFragment : Fragment() {
             tvStatus.text = statusText
             applyStatusStyle(tvStatus, statusText)
             tvStatusDescription.text = buildStatusDescription(statusText)
+            tvCompletionLabel.text = completionLabelForOrder(order)
+            tvCompletionLabel.visibility = if (tvCompletionLabel.text.isNullOrBlank()) View.GONE else View.VISIBLE
             tvItemCount.text = buildItemSummary(order)
             tvPriceSum.text = formatCurrency(order.totalPrice.toString())
             tvMetodePengambilan.text = metodePengambilanDisplayForOrder(order).ifBlank { "-" }
@@ -230,6 +235,12 @@ class OrderDetailFragment : Fragment() {
                 order.receiptProofUrl
                     .takeIf { it.isNotBlank() }
                     ?.let { add(receiptProofTitle(order) to it) }
+            }
+            val completionLabel = completionLabelForOrder(order)
+            tvStatusProofHint.text = if (completionLabel.isBlank()) {
+                "Bukti status dari admin. Ketuk foto untuk melihat lebih besar."
+            } else {
+                "Status penyelesaian: $completionLabel"
             }
             statusProofList.removeAllViews()
             if (proofEntries.isNotEmpty()) {
@@ -524,7 +535,9 @@ class OrderDetailFragment : Fragment() {
                         val updates = mapOf(
                             "status" to ORDER_STATUS_DONE,
                             "receiptProofUrl" to downloadUri.toString(),
-                            "receiptProofUploadedAtMillis" to uploadedAt
+                            "receiptProofUploadedAtMillis" to uploadedAt,
+                            "completionType" to COMPLETION_TYPE_USER_PROOF,
+                            "completionLabel" to COMPLETION_LABEL_USER_PROOF
                         )
                         val globalOrderRef = db.collection("orders").document(currentOrderId)
                         val userOrderRef = db.collection("users").document(currentUserId)
@@ -537,7 +550,9 @@ class OrderDetailFragment : Fragment() {
                             currentOrder = order.copy(
                                 status = ORDER_STATUS_DONE,
                                 receiptProofUrl = downloadUri.toString(),
-                                receiptProofUploadedAtMillis = uploadedAt
+                                receiptProofUploadedAtMillis = uploadedAt,
+                                completionType = COMPLETION_TYPE_USER_PROOF,
+                                completionLabel = COMPLETION_LABEL_USER_PROOF
                             )
                             selectedReceiptProofUri = null
                             setRequestLoading(false)

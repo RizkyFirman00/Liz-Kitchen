@@ -53,6 +53,7 @@ import com.dissy.lizkitchen.utility.cartItemsFromAny
 import com.dissy.lizkitchen.utility.createCustomTempFile
 import com.dissy.lizkitchen.utility.deliveryDistanceLabel
 import com.dissy.lizkitchen.utility.deliveryFeeLabel
+import com.dissy.lizkitchen.utility.completionLabelForOrder
 import com.dissy.lizkitchen.utility.metodePengambilanDisplayForOrder
 import com.dissy.lizkitchen.utility.orderFromDocument
 import com.dissy.lizkitchen.utility.orderProductSubtotal
@@ -249,6 +250,8 @@ class AdminUserOrderDetailFragment : Fragment() {
             tvStatus.text = statusText
             applyStatusStyle(tvStatus, statusText)
             tvStatusDescription.text = buildStatusDescription(statusText)
+            tvCompletionLabel.text = completionLabelForOrder(order)
+            tvCompletionLabel.visibility = if (tvCompletionLabel.text.isNullOrBlank()) GONE else VISIBLE
             tvItemCount.text = buildItemSummary(order)
             tvCustomerName.text = order.user.name.orEmpty().ifBlank { "Pelanggan" }
             tvCustomerPhone.text = order.user.phoneNumber.orEmpty().ifBlank { "Nomor HP belum tersedia" }
@@ -321,6 +324,9 @@ class AdminUserOrderDetailFragment : Fragment() {
             }
             statusProofHistoryList.removeAllViews()
             statusProofHistoryPanel.visibility = if (statusProofEntries.isEmpty()) GONE else VISIBLE
+            tvStatusProofHistoryHint.text = completionLabelForOrder(order).takeIf { it.isNotBlank() }
+                ?.let { "Status penyelesaian: $it" }
+                ?: "Bukti yang dapat dilihat pelanggan pada detail pesanan."
             statusProofEntries.forEach { (title, url) ->
                 addStatusProofHistoryPreview(title, url)
             }

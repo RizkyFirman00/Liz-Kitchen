@@ -19,6 +19,10 @@ const val ORDER_STATUS_READY_PICKUP = "Siap Diambil"
 const val ORDER_STATUS_DONE = "Selesai"
 const val ORDER_STATUS_CANCELED = "Dibatalkan"
 const val ORDER_STATUS_EXPIRED = "Expired"
+const val COMPLETION_TYPE_USER_PROOF = "USER_PROOF"
+const val COMPLETION_TYPE_AUTO_SYSTEM = "AUTO_SYSTEM"
+const val COMPLETION_LABEL_USER_PROOF = "Diterima Customer dengan Bukti"
+const val COMPLETION_LABEL_AUTO_SYSTEM = "Diterima Otomatis oleh Sistem"
 const val PAYMENT_EXPIRY_DURATION_MILLIS = 24L * 60L * 60L * 1_000L
 
 fun orderFromDocument(document: DocumentSnapshot): Order {
@@ -45,6 +49,11 @@ fun orderFromDocument(document: DocumentSnapshot): Order {
         statusProofs = statusProofs,
         receiptProofUrl = document.getString("receiptProofUrl").orEmpty(),
         receiptProofUploadedAtMillis = numberToLong(document.get("receiptProofUploadedAtMillis")),
+        fulfillmentStartedAtMillis = numberToLong(document.get("fulfillmentStartedAtMillis")),
+        autoCompletionDeadlineAtMillis = numberToLong(document.get("autoCompletionDeadlineAtMillis")),
+        completionType = document.getString("completionType").orEmpty(),
+        completionLabel = document.getString("completionLabel").orEmpty(),
+        autoCompletedAtMillis = numberToLong(document.get("autoCompletedAtMillis")),
         paymentProofUrl = document.getString("paymentProofUrl").orEmpty(),
         paymentProofUploadedAtMillis = numberToLong(document.get("paymentProofUploadedAtMillis")),
         tanggalOrder = document.getString("tanggalOrder").orEmpty(),
@@ -71,6 +80,11 @@ fun orderToFirestoreMap(order: Order): Map<String, Any> {
         "statusProofs" to order.statusProofs,
         "receiptProofUrl" to order.receiptProofUrl,
         "receiptProofUploadedAtMillis" to order.receiptProofUploadedAtMillis,
+        "fulfillmentStartedAtMillis" to order.fulfillmentStartedAtMillis,
+        "autoCompletionDeadlineAtMillis" to order.autoCompletionDeadlineAtMillis,
+        "completionType" to order.completionType,
+        "completionLabel" to order.completionLabel,
+        "autoCompletedAtMillis" to order.autoCompletedAtMillis,
         "paymentProofUrl" to order.paymentProofUrl,
         "paymentProofUploadedAtMillis" to order.paymentProofUploadedAtMillis,
         "tanggalOrder" to order.tanggalOrder,
@@ -85,6 +99,16 @@ fun orderToFirestoreMap(order: Order): Map<String, Any> {
 fun orderProductSubtotal(order: Order): Long {
     return order.cart.sumOf { item ->
         productPriceToLong(item.cake.harga) * item.jumlahPesanan
+    }
+}
+
+fun completionLabelForOrder(order: Order): String {
+    return order.completionLabel.ifBlank {
+        if (order.status == ORDER_STATUS_DONE && order.receiptProofUrl.isNotBlank()) {
+            COMPLETION_LABEL_USER_PROOF
+        } else {
+            ""
+        }
     }
 }
 

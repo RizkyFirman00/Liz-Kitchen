@@ -199,6 +199,9 @@ private fun buildInvoiceHtml(order: Order): String {
                             <div>
                                 <div class="label">Status Pesanan</div>
                                 <div class="status">${html(order.status.ifBlank { "Status belum tersedia" })}</div>
+                                ${completionLabelForOrder(order).takeIf { it.isNotBlank() }
+                                    ?.let { "<div class=\"product-meta\">${html(it)}</div>" }
+                                    .orEmpty()}
                             </div>
                             <div class="summary">
                                 ${itemTypeCount} jenis produk<br/>

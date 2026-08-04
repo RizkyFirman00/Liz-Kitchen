@@ -5,10 +5,10 @@ import org.junit.Test
 
 class ProductUtilsTest {
     @Test
-    fun normalizeProductUnit_preservesCustomProductUnit() {
+    fun normalizeProductUnit_alwaysUsesToples() {
         assertEquals("toples", normalizeProductUnit(" Toples "))
-        assertEquals("gram", normalizeProductUnit("gr"))
-        assertEquals("pcs", normalizeProductUnit(null))
+        assertEquals("toples", normalizeProductUnit("gram"))
+        assertEquals("toples", normalizeProductUnit(null))
     }
 
     @Test
@@ -30,6 +30,14 @@ class ProductUtilsTest {
         )
 
         assertEquals("toples", cake.satuan)
-        assertEquals("gram", cake.kategoriProduk.first().satuan)
+        assertEquals("toples", cake.kategoriProduk.first().satuan)
+    }
+
+    @Test
+    fun normalizeNumericInput_removesLeadingZerosAndLimitsDigits() {
+        assertEquals("12", normalizeNumericInput("00012", 6))
+        assertEquals("0", normalizeNumericInput("000000", 6))
+        assertEquals("123456", normalizeNumericInput("1234567", 6))
+        assertEquals("45000", normalizeNumericInput("Rp 45.000", 9))
     }
 }

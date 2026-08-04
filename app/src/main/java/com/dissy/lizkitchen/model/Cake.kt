@@ -6,7 +6,7 @@ data class Cake @JvmOverloads constructor(
     val imageUrl: String = "",
     val namaKue: String = "",
     val stok: Long = 0,
-    val satuan: String = "pcs",
+    val satuan: String = "toples",
     val kategori: String = "",
     val kategoriProduk: List<ProductCategory> = emptyList(),
     val productionAtMillis: Long = 0,
@@ -17,5 +17,5 @@ data class ProductCategory @JvmOverloads constructor(
     val namaKategori: String = "",
     val harga: String = "",
     val stok: Long = 0,
-    val satuan: String = "pcs",
+    val satuan: String = "toples",
 )

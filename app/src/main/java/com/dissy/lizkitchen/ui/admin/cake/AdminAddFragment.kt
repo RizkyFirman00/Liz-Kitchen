@@ -38,7 +38,9 @@ import com.dissy.lizkitchen.utility.clearFocusWhenTouchOutsideInput
 import com.dissy.lizkitchen.utility.createCustomTempFile
 import com.dissy.lizkitchen.utility.formatProductPrice
 import com.dissy.lizkitchen.utility.formatProductionDate
-import com.dissy.lizkitchen.utility.normalizeProductUnit
+import com.dissy.lizkitchen.utility.limitNumericInput
+import com.dissy.lizkitchen.utility.PRODUCT_UNIT
+import com.dissy.lizkitchen.utility.productPriceToLong
 import com.dissy.lizkitchen.utility.setFirebaseRequestLoading
 import com.dissy.lizkitchen.utility.toFirestoreMap
 import com.dissy.lizkitchen.utility.uriToFile
@@ -73,6 +75,8 @@ class AdminAddFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         binding.root.clearFocusWhenTouchOutsideInput()
+        binding.etStokVarian.limitNumericInput(6)
+        binding.etHargaVarian.limitNumericInput(9, formatThousands = true)
         productionAtMillis = startOfTodayMillis()
         binding.etTanggalProduksi.setText(formatProductionDate(productionAtMillis))
         binding.etTanggalProduksi.setOnClickListener { showProductionDatePicker() }
@@ -82,36 +86,28 @@ class AdminAddFragment : Fragment() {
         binding.btnAddVarian.setOnClickListener { saveVariantFromInput() }
         binding.btnUpdateData.setOnClickListener {
             val namaKue = binding.etNamaKue.text.toString().trim()
-            val unitInput = binding.etSatuanProduk.text.toString().trim()
             val shelfLifeDays = binding.etMasaSimpan.text.toString().toLongOrNull()
             val gambar = file
-            if (gambar == null || namaKue.isEmpty() || unitInput.isEmpty() || variants.isEmpty() ||
+            if (gambar == null || namaKue.isEmpty() || variants.isEmpty() ||
                 productionAtMillis <= 0L || shelfLifeDays == null || shelfLifeDays <= 0L
             ) {
                 Toast.makeText(requireContext(), "Lengkapi foto, data produk, tanggal produksi, masa simpan, dan minimal 1 varian", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
-            val productUnit = normalizeProductUnit(unitInput)
-            val categoryMaps = variants.map { it.copy(satuan = productUnit).toFirestoreMap() }
-            uploadImageAndGetUrl(namaKue, productUnit, categoryMaps, gambar, shelfLifeDays)
+            val categoryMaps = variants.map { it.copy(satuan = PRODUCT_UNIT).toFirestoreMap() }
+            uploadImageAndGetUrl(namaKue, categoryMaps, gambar, shelfLifeDays)
         }
     }
 
     private fun saveVariantFromInput() {
         val name = binding.etNamaVarian.text.toString().trim()
         val stock = binding.etStokVarian.text.toString().toLongOrNull()
-        val unitInput = binding.etSatuanProduk.text.toString().trim()
         val price = formatProductPrice(binding.etHargaVarian.text.toString())
-        if (unitInput.isEmpty()) {
-            Toast.makeText(requireContext(), "Isi satuan produk terlebih dahulu", Toast.LENGTH_SHORT).show()
-            return
-        }
-        if (name.isEmpty() || stock == null || price.isEmpty()) {
+        if (name.isEmpty() || stock == null || price.isEmpty() || productPriceToLong(price) <= 0L) {
             Toast.makeText(requireContext(), "Nama varian, stok, dan harga wajib diisi", Toast.LENGTH_SHORT).show()
             return
         }
-        val unit = normalizeProductUnit(unitInput)
-        val variant = ProductCategory(name, price, stock, unit)
+        val variant = ProductCategory(name, price, stock, PRODUCT_UNIT)
         val editIndex = editingVariantIndex
         if (editIndex == null) variants.add(variant) else variants[editIndex] = variant
         editingVariantIndex = null
@@ -195,7 +191,7 @@ class AdminAddFragment : Fragment() {
         }
         listOf(
             "Stok" to variant.stok.toString(),
-            "Satuan" to normalizeProductUnit(binding.etSatuanProduk.text.toString()),
+            "Satuan" to PRODUCT_UNIT,
             "Harga/satuan" to "Rp. ${variant.harga}"
         ).forEach { (label, value) -> stats.addView(createInfoPill(label, value, dp)) }
 
@@ -281,7 +277,6 @@ class AdminAddFragment : Fragment() {
 
     private fun uploadImageAndGetUrl(
         namaKue: String,
-        satuanProduk: String,
         kategoriProduk: List<Map<String, Any>>,
         gambar: File,
         shelfLifeDays: Long
@@ -292,7 +287,7 @@ class AdminAddFragment : Fragment() {
             imageRef.downloadUrl.addOnSuccessListener { uri ->
                 val data = hashMapOf(
                     "namaKue" to namaKue,
-                    "satuan" to satuanProduk,
+                    "satuan" to PRODUCT_UNIT,
                     "kategoriProduk" to kategoriProduk,
                     "imageUrl" to uri.toString(),
                     "productionAtMillis" to productionAtMillis,

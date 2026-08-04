@@ -7,14 +7,13 @@ import java.util.Date
 import java.util.Locale
 
 const val PRODUCT_DAY_MILLIS = 24L * 60L * 60L * 1_000L
+const val PRODUCT_UNIT = "toples"
 
-fun normalizeProductUnit(value: String?): String {
-    val normalized = value.orEmpty().trim().lowercase()
-    return when (normalized) {
-        "", "pc", "piece", "pieces" -> "pcs"
-        "gr", "g" -> "gram"
-        else -> normalized
-    }
+fun normalizeProductUnit(value: String?): String = PRODUCT_UNIT
+
+fun normalizeNumericInput(value: String, maxDigits: Int): String {
+    val digits = value.filter(Char::isDigit).take(maxDigits)
+    return digits.trimStart('0').ifEmpty { if (digits.isEmpty()) "" else "0" }
 }
 
 fun formatProductPrice(value: String): String {

@@ -127,6 +127,21 @@
                     android:textColor="#765945"
                     android:textSize="13sp"
                     tools:text="2 jenis produk | 4 item" />
+
+                <TextView
+                    android:id="@+id/tv_completionLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:background="@drawable/bg_home_stock_badge"
+                    android:fontFamily="@font/poppins_semibold"
+                    android:paddingHorizontal="12dp"
+                    android:paddingVertical="7dp"
+                    android:textColor="#128A35"
+                    android:textSize="11sp"
+                    android:visibility="gone"
+                    tools:text="Diterima Customer dengan Bukti"
+                    tools:visibility="visible" />
             </LinearLayout>
 
             <LinearLayout
