@@ -22,12 +22,15 @@
 
 ## Flow Bukti User
 
-- Tombol user tetap bernama `Pesanan Diterima` untuk pesan antar dan `Sudah Diambil` untuk pickup.
+- Tombol user bernama `Upload Foto Penerimaan` untuk pesan antar dan `Upload Foto Pengambilan` untuk pickup; tombol tidak menyatakan bahwa user menyelesaikan pesanan.
+- Area aksi menampilkan tenggat konfirmasi dari `autoCompletionDeadlineAtMillis` dan sisa waktu ringkas dalam hari/jam.
+- Pesan motivasi menjelaskan bahwa foto perlu dikirim sebelum tenggat agar pesanan diselesaikan admin dengan bukti, bukan otomatis oleh sistem.
 - User tetap wajib memilih foto dari kamera atau galeri.
 - Setelah upload berhasil, sistem menyimpan `receiptProofUrl` dan `receiptProofUploadedAtMillis` pada order global dan salinan order user.
 - Status berubah menjadi `Menunggu Penyelesaian Admin`, bukan langsung `Selesai`.
 - Status ini memberi tahu user bahwa bukti sudah diterima dan sedang menunggu penyelesaian admin.
 - User tidak diminta mengunggah bukti kedua kali selama URL bukti sudah tersedia.
+- Setelah bukti berhasil diunggah, CTA foto hilang dan detail menampilkan pesan bahwa bukti menunggu verifikasi admin.
 
 ## Flow Admin
 
@@ -63,6 +66,7 @@
 
 - Unit test kelayakan auto-completion memastikan order dengan `receiptProofUrl` tidak diselesaikan scheduler.
 - Uji upload bukti delivery dan pickup menghasilkan status `Menunggu Penyelesaian Admin` pada kedua dokumen.
+- Uji CTA user memakai teks upload foto, menampilkan tenggat/sisa waktu, dan menghilang setelah bukti terkirim.
 - Uji tombol admin menyelesaikan kedua dokumen dengan label manual.
 - Uji alamat cabang tampil pada detail user dan admin untuk kedua metode.
 - Uji checkout delivery menyimpan cabang terdekat, bukan selalu memakai cabang default.
