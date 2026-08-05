@@ -62,14 +62,8 @@ class MetodeAmbilFragment : BottomSheetDialogFragment() {
                 "Delivery tersedia untuk alamat hingga 40 km dari cabang."
             }
 
-            btnAntar.isEnabled = isDeliveryAvailable
-            btnAntar.alpha = 1f
-            btnAntar.text = if (isDeliveryAvailable) {
-                METODE_PESAN_ANTAR
-            } else {
-                "Pesan Antar Tidak Tersedia"
-            }
-            updateMethodButtons(isPickupActive = false)
+            bindDeliveryCard()
+            updateMethodCards(isPickupActive = false)
 
             btnAntar.setOnClickListener {
                 if (!isDeliveryAvailable) return@setOnClickListener
@@ -80,10 +74,19 @@ class MetodeAmbilFragment : BottomSheetDialogFragment() {
             branchOptionsContainer.visibility = View.GONE
             btnPickup.setOnClickListener {
                 branchOptionsContainer.visibility = View.VISIBLE
-                updateMethodButtons(isPickupActive = true)
+                updateMethodCards(isPickupActive = true)
             }
 
-            bindRecommendation()
+            tvDeliveryRates.visibility = View.GONE
+            btnToggleRates.setOnClickListener {
+                val showRates = tvDeliveryRates.visibility != View.VISIBLE
+                tvDeliveryRates.visibility = if (showRates) View.VISIBLE else View.GONE
+                btnToggleRates.text = if (showRates) {
+                    "Sembunyikan rincian tarif pengiriman"
+                } else {
+                    "Lihat rincian tarif pengiriman"
+                }
+            }
 
             btnPickupMenteng.text = buildBranchButtonText(mentengBranch)
             applyBranchRecommendationStyle(btnPickupMenteng, mentengBranch)
@@ -103,24 +106,29 @@ class MetodeAmbilFragment : BottomSheetDialogFragment() {
         return binding.root
     }
 
-    private fun FragmentMetodeAmbilBinding.bindRecommendation() {
-        val branch = recommendedBranch
-        if (branch == null) {
-            tvRecommendedBranch.visibility = View.GONE
-            return
+    private fun FragmentMetodeAmbilBinding.bindDeliveryCard() {
+        btnAntar.isEnabled = isDeliveryAvailable
+        btnAntar.alpha = if (isDeliveryAvailable) 1f else 0.55f
+        tvDeliveryTitle.text = if (isDeliveryAvailable) METODE_PESAN_ANTAR else "Pesan Antar Tidak Tersedia"
+        tvDeliveryDescription.text = if (isDeliveryAvailable) {
+            "Dikirim dari cabang terdekat ke alamatmu."
+        } else {
+            "Alamat berada di luar jangkauan maksimal 40 km."
         }
 
+        val branch = recommendedBranch
         val distance = recommendedDistanceMeters
         val distanceText = distance?.let { formatDistance(it) }
         val feeText = distance?.let { deliveryFeeForDistanceMeters(it) }?.let { deliveryFeeLabel(it) }
-        tvRecommendedBranch.visibility = View.VISIBLE
-        tvRecommendedBranch.text = buildString {
-            append("Cabang pengiriman terdekat\n")
-            append(branch.name)
-            append('\n')
-            append(branch.address)
-            if (distanceText != null) append("\n$distanceText")
-            if (feeText != null) append(" | Ongkir $feeText")
+
+        tvDeliveryDistance.text = distanceText ?: "Jarak dihitung"
+        tvDeliveryFee.text = feeText?.let { "Ongkir $it" } ?: "Ongkir dihitung"
+        if (branch == null) {
+            deliveryBranchInfo.visibility = View.GONE
+        } else {
+            deliveryBranchInfo.visibility = View.VISIBLE
+            tvDeliveryBranchName.text = branch.name
+            tvDeliveryBranchAddress.text = branch.address
         }
     }
 
@@ -138,18 +146,14 @@ class MetodeAmbilFragment : BottomSheetDialogFragment() {
         }
     }
 
-    private fun FragmentMetodeAmbilBinding.updateMethodButtons(isPickupActive: Boolean) {
-        val normalTextColor = Color.parseColor("#3A2A20")
-        val disabledTextColor = Color.parseColor("#8A817A")
-
-        if (isDeliveryAvailable) {
-            btnAntar.setBackgroundResource(R.drawable.shape_button_choice_default)
-            btnAntar.setTextColor(normalTextColor)
-        } else {
-            btnAntar.setBackgroundResource(R.drawable.shape_button_choice_disabled)
-            btnAntar.setTextColor(disabledTextColor)
-        }
-
+    private fun FragmentMetodeAmbilBinding.updateMethodCards(isPickupActive: Boolean) {
+        btnAntar.setBackgroundResource(
+            when {
+                !isDeliveryAvailable -> R.drawable.shape_button_choice_disabled
+                !isPickupActive -> R.drawable.shape_button_choice_selected
+                else -> R.drawable.shape_button_choice_default
+            }
+        )
         btnPickup.setBackgroundResource(
             if (isPickupActive) {
                 R.drawable.shape_button_choice_selected
@@ -157,7 +161,6 @@ class MetodeAmbilFragment : BottomSheetDialogFragment() {
                 R.drawable.shape_button_choice_default
             }
         )
-        btnPickup.setTextColor(normalTextColor)
     }
 
     private fun buildBranchButtonText(branch: LizKitchenBranch): String {

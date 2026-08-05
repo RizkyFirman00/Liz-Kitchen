@@ -14,6 +14,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:fontFamily="@font/poppins_bold"
+        android:includeFontPadding="false"
         android:text="Pilih Metode"
         android:textColor="#3A2A20"
         android:textSize="18sp" />
@@ -21,9 +22,10 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="2dp"
+        android:layout_marginTop="4dp"
         android:fontFamily="@font/poppins_regular"
-        android:text="Mau dikirim atau ambil sendiri?"
+        android:includeFontPadding="false"
+        android:text="Tentukan cara menerima pesananmu."
         android:textColor="#765945"
         android:textSize="12sp" />
 
@@ -32,70 +34,261 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="12dp"
+        android:background="@drawable/bg_cart_panel"
         android:fontFamily="@font/poppins_medium"
+        android:includeFontPadding="false"
         android:lineSpacingExtra="2dp"
+        android:padding="10dp"
         android:textColor="#765945"
-        android:textSize="12sp"
+        android:textSize="11sp"
         tools:text="Alamat dalam jangkauan delivery. Kamu juga bisa pickup." />
+
+    <LinearLayout
+        android:id="@+id/btnAntar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:background="@drawable/shape_button_choice_selected"
+        android:clickable="true"
+        android:focusable="true"
+        android:foreground="?attr/selectableItemBackground"
+        android:orientation="vertical"
+        android:padding="14dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="@drawable/bg_home_badge"
+                android:contentDescription="@null"
+                android:padding="9dp"
+                android:src="@drawable/baseline_location_on_24_brown" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/tvDeliveryTitle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/poppins_semibold"
+                    android:includeFontPadding="false"
+                    android:text="Pesan Antar"
+                    android:textColor="#3A2A20"
+                    android:textSize="14sp" />
+
+                <TextView
+                    android:id="@+id/tvDeliveryDescription"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:fontFamily="@font/poppins_regular"
+                    android:includeFontPadding="false"
+                    android:text="Dikirim dari cabang terdekat ke alamatmu."
+                    android:textColor="#765945"
+                    android:textSize="10sp" />
+            </LinearLayout>
+
+            <TextView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:gravity="center"
+                android:text="›"
+                android:textColor="@color/brown_old"
+                android:textSize="22sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="11dp"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/tvDeliveryDistance"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_home_badge"
+                android:fontFamily="@font/poppins_semibold"
+                android:includeFontPadding="false"
+                android:paddingHorizontal="8dp"
+                android:paddingVertical="5dp"
+                android:textColor="@color/brown_old"
+                android:textSize="9sp"
+                tools:text="14,4 km" />
+
+            <TextView
+                android:id="@+id/tvDeliveryFee"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:background="@drawable/bg_home_badge"
+                android:fontFamily="@font/poppins_semibold"
+                android:includeFontPadding="false"
+                android:paddingHorizontal="8dp"
+                android:paddingVertical="5dp"
+                android:textColor="@color/brown_old"
+                android:textSize="9sp"
+                tools:text="Ongkir Rp30.000" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:background="@drawable/bg_home_stock_badge"
+                android:fontFamily="@font/poppins_semibold"
+                android:includeFontPadding="false"
+                android:paddingHorizontal="8dp"
+                android:paddingVertical="5dp"
+                android:text="Maks. 1 hari"
+                android:textColor="#128A35"
+                android:textSize="9sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/deliveryBranchInfo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="11dp"
+            android:orientation="vertical"
+            android:paddingTop="9dp"
+            android:visibility="gone"
+            tools:visibility="visible">
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="#F0DDD0" />
+
+            <TextView
+                android:id="@+id/tvDeliveryBranchName"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:fontFamily="@font/poppins_semibold"
+                android:includeFontPadding="false"
+                android:textColor="#3A2A20"
+                android:textSize="11sp"
+                tools:text="Cabang Menteng" />
+
+            <TextView
+                android:id="@+id/tvDeliveryBranchAddress"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:fontFamily="@font/poppins_regular"
+                android:includeFontPadding="false"
+                android:maxLines="2"
+                android:textColor="#765945"
+                android:textSize="10sp"
+                tools:text="Jl. Kebon Sirih Barat I No.24, Jakarta Pusat" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/btnPickup"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:background="@drawable/shape_button_choice_default"
+        android:clickable="true"
+        android:focusable="true"
+        android:foreground="?attr/selectableItemBackground"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:padding="14dp">
+
+        <ImageView
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="@drawable/bg_home_badge"
+            android:contentDescription="@null"
+            android:padding="9dp"
+            android:src="@drawable/baseline_home_24_white"
+            android:tint="@color/brown_old" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fontFamily="@font/poppins_semibold"
+                android:includeFontPadding="false"
+                android:text="Ambil di Cabang"
+                android:textColor="#3A2A20"
+                android:textSize="14sp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:fontFamily="@font/poppins_regular"
+                android:includeFontPadding="false"
+                android:text="Pilih cabang dan ambil saat pesanan siap."
+                android:textColor="#765945"
+                android:textSize="10sp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="7dp"
+                android:background="@drawable/bg_home_stock_badge"
+                android:fontFamily="@font/poppins_semibold"
+                android:includeFontPadding="false"
+                android:paddingHorizontal="8dp"
+                android:paddingVertical="5dp"
+                android:text="Tanpa ongkir"
+                android:textColor="#128A35"
+                android:textSize="9sp" />
+        </LinearLayout>
+
+        <TextView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:gravity="center"
+            android:text="›"
+            android:textColor="@color/brown_old"
+            android:textSize="22sp" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/btnToggleRates"
+        android:layout_width="match_parent"
+        android:layout_height="40dp"
+        android:gravity="center"
+        android:fontFamily="@font/poppins_semibold"
+        android:text="Lihat rincian tarif pengiriman"
+        android:textColor="@color/brown_old"
+        android:textSize="10sp" />
 
     <TextView
         android:id="@+id/tvDeliveryRates"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
+        android:background="@drawable/bg_cart_panel"
         android:fontFamily="@font/poppins_regular"
+        android:includeFontPadding="false"
         android:lineSpacingExtra="2dp"
-        android:text="Tarif: 0-5 km Gratis | &gt;5-10 km Rp15.000 | &gt;10-20 km Rp30.000 | &gt;20-40 km Rp45.000"
-        android:textColor="#9C6843"
-        android:textSize="10sp" />
-
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
-        android:fontFamily="@font/poppins_semibold"
-        android:text="@string/delivery_estimate"
-        android:textColor="@color/brown_old"
-        android:textSize="10sp" />
-
-    <TextView
-        android:id="@+id/tvRecommendedBranch"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
-        android:background="@drawable/bg_cart_card"
-        android:fontFamily="@font/poppins_medium"
-        android:lineSpacingExtra="2dp"
-        android:padding="12dp"
-        android:textColor="@color/brown_old"
-        android:textSize="11sp"
+        android:padding="10dp"
+        android:text="0-5 km Gratis | &gt;5-10 km Rp15.000 | &gt;10-20 km Rp30.000 | &gt;20-40 km Rp45.000"
+        android:textColor="#765945"
+        android:textSize="10sp"
         android:visibility="gone"
-        tools:text="Cabang pengiriman terdekat\nCabang Cengkareng\nThe City Resort Malibu\n1,2 km | Ongkir Gratis"
         tools:visibility="visible" />
-
-    <androidx.appcompat.widget.AppCompatButton
-        android:id="@+id/btnAntar"
-        android:layout_width="match_parent"
-        android:layout_height="46dp"
-        android:layout_marginTop="12dp"
-        android:background="@drawable/shape_button_choice_default"
-        android:fontFamily="@font/poppins_semibold"
-        android:text="Pesan Antar"
-        android:textAllCaps="false"
-        android:textColor="#3A2A20"
-        android:textSize="14sp" />
-
-    <androidx.appcompat.widget.AppCompatButton
-        android:id="@+id/btnPickup"
-        android:layout_width="match_parent"
-        android:layout_height="46dp"
-        android:layout_marginTop="10dp"
-        android:background="@drawable/shape_button_choice_default"
-        android:fontFamily="@font/poppins_semibold"
-        android:text="Ambil di Cabang"
-        android:textAllCaps="false"
-        android:textColor="#3A2A20"
-        android:textSize="14sp" />
 
     <LinearLayout
         android:id="@+id/branchOptionsContainer"
@@ -108,38 +301,38 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="18dp"
+            android:layout_marginTop="8dp"
             android:fontFamily="@font/poppins_semibold"
             android:text="Pilih Cabang"
             android:textColor="#3A2A20"
-            android:textSize="14sp" />
+            android:textSize="13sp" />
 
         <androidx.appcompat.widget.AppCompatButton
             android:id="@+id/btnPickupMenteng"
             android:layout_width="match_parent"
             android:layout_height="58dp"
-            android:layout_marginTop="10dp"
+            android:layout_marginTop="8dp"
             android:background="@drawable/shape_button_choice_default"
             android:fontFamily="@font/poppins_semibold"
             android:gravity="center"
             android:lineSpacingExtra="2dp"
             android:textAllCaps="false"
             android:textColor="#3A2A20"
-            android:textSize="13sp"
+            android:textSize="12sp"
             tools:text="Cabang Menteng\nJl. Kebon Sirih Barat I No.24" />
 
         <androidx.appcompat.widget.AppCompatButton
             android:id="@+id/btnPickupCengkareng"
             android:layout_width="match_parent"
             android:layout_height="58dp"
-            android:layout_marginTop="10dp"
+            android:layout_marginTop="8dp"
             android:background="@drawable/shape_button_choice_default"
             android:fontFamily="@font/poppins_semibold"
             android:gravity="center"
             android:lineSpacingExtra="2dp"
             android:textAllCaps="false"
             android:textColor="#3A2A20"
-            android:textSize="13sp"
+            android:textSize="12sp"
             tools:text="Cabang Cengkareng\nThe City Resort Malibu" />
     </LinearLayout>
 </LinearLayout>
