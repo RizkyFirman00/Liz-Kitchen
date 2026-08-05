@@ -13,6 +13,9 @@
 - Informasi cabang tampil untuk metode `Pesan Antar` dan `Ambil Sendiri`.
 - Data memakai field snapshot order `pickupBranchId`, `pickupBranchName`, dan `pickupBranchAddress`.
 - Untuk `Pesan Antar`, checkout menyimpan cabang terdekat dari hasil geocode sebagai cabang pemroses.
+- User tidak memilih cabang delivery secara manual.
+- Bottom sheet metode menampilkan nama cabang terdekat, alamat, jarak, dan ongkir sebelum user memilih `Pesan Antar`.
+- Ringkasan checkout menampilkan cabang terdekat yang akan memproses pengiriman.
 - Untuk `Ambil Sendiri`, checkout tetap menyimpan cabang yang dipilih user.
 - Helper fallback cabang yang sudah ada hanya dipakai untuk order lama yang belum memiliki snapshot cabang.
 - Alamat penerima tetap ditampilkan terpisah untuk metode `Pesan Antar`.
@@ -63,4 +66,5 @@
 - Uji tombol admin menyelesaikan kedua dokumen dengan label manual.
 - Uji alamat cabang tampil pada detail user dan admin untuk kedua metode.
 - Uji checkout delivery menyimpan cabang terdekat, bukan selalu memakai cabang default.
+- Uji cabang terdekat tampil pada pemilihan metode dan ringkasan checkout.
 - Jalankan `sh gradlew testDebugUnitTest assembleDebug --console=plain`, test Function, dan `git diff --check`.
