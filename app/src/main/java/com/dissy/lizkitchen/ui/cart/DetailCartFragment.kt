@@ -297,6 +297,7 @@ class DetailCartFragment : Fragment() {
                 branch = deliveryCheck?.nearestBranch,
                 distanceMeters = deliveryCheck?.distanceMeters
             )
+            setInitialSelection(selectedMetodePengambilan, selectedPickupBranch)
             setListener(object : MetodeAmbilFragment.MetodePengambilanListener {
                 override fun onMetodePengambilanSelected(
                     metode: String,

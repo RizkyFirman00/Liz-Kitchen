@@ -28,6 +28,8 @@ class MetodeAmbilFragment : BottomSheetDialogFragment() {
     private var deliveryNotice: String = ""
     private var recommendedBranch: LizKitchenBranch? = null
     private var recommendedDistanceMeters: Float? = null
+    private var pendingMethod: String = ""
+    private var pendingPickupBranch: LizKitchenBranch? = null
 
     fun setListener(listener: MetodePengambilanListener) {
         this.listener = listener
@@ -41,6 +43,11 @@ class MetodeAmbilFragment : BottomSheetDialogFragment() {
     fun setBranchRecommendation(branch: LizKitchenBranch?, distanceMeters: Float?) {
         recommendedBranch = branch
         recommendedDistanceMeters = distanceMeters
+    }
+
+    fun setInitialSelection(method: String, pickupBranch: LizKitchenBranch?) {
+        pendingMethod = method
+        pendingPickupBranch = pickupBranch
     }
 
     private val binding by lazy { FragmentMetodeAmbilBinding.inflate(layoutInflater) }
@@ -63,18 +70,26 @@ class MetodeAmbilFragment : BottomSheetDialogFragment() {
             }
 
             bindDeliveryCard()
-            updateMethodCards(isPickupActive = false)
+            branchOptionsContainer.visibility = if (pendingMethod == METODE_AMBIL_SENDIRI) {
+                View.VISIBLE
+            } else {
+                View.GONE
+            }
+            updateSelectionState()
 
             btnAntar.setOnClickListener {
                 if (!isDeliveryAvailable) return@setOnClickListener
-                listener?.onMetodePengambilanSelected(METODE_PESAN_ANTAR, null)
-                dismiss()
+                pendingMethod = METODE_PESAN_ANTAR
+                pendingPickupBranch = null
+                branchOptionsContainer.visibility = View.GONE
+                updateSelectionState()
             }
 
-            branchOptionsContainer.visibility = View.GONE
             btnPickup.setOnClickListener {
+                if (pendingMethod != METODE_AMBIL_SENDIRI) pendingPickupBranch = null
+                pendingMethod = METODE_AMBIL_SENDIRI
                 branchOptionsContainer.visibility = View.VISIBLE
-                updateMethodCards(isPickupActive = true)
+                updateSelectionState()
             }
 
             tvDeliveryRates.visibility = View.GONE
@@ -89,16 +104,28 @@ class MetodeAmbilFragment : BottomSheetDialogFragment() {
             }
 
             btnPickupMenteng.text = buildBranchButtonText(mentengBranch)
-            applyBranchRecommendationStyle(btnPickupMenteng, mentengBranch)
             btnPickupMenteng.setOnClickListener {
-                listener?.onMetodePengambilanSelected(METODE_AMBIL_SENDIRI, mentengBranch)
-                dismiss()
+                pendingMethod = METODE_AMBIL_SENDIRI
+                pendingPickupBranch = mentengBranch
+                updateSelectionState()
             }
 
             btnPickupCengkareng.text = buildBranchButtonText(cengkarengBranch)
-            applyBranchRecommendationStyle(btnPickupCengkareng, cengkarengBranch)
             btnPickupCengkareng.setOnClickListener {
-                listener?.onMetodePengambilanSelected(METODE_AMBIL_SENDIRI, cengkarengBranch)
+                pendingMethod = METODE_AMBIL_SENDIRI
+                pendingPickupBranch = cengkarengBranch
+                updateSelectionState()
+            }
+
+            btnConfirmMethod.setOnClickListener {
+                if (!isMethodSelectionValid(
+                        pendingMethod,
+                        pendingPickupBranch != null,
+                        isDeliveryAvailable
+                    )
+                ) return@setOnClickListener
+
+                listener?.onMetodePengambilanSelected(pendingMethod, pendingPickupBranch)
                 dismiss()
             }
         }
@@ -132,35 +159,46 @@ class MetodeAmbilFragment : BottomSheetDialogFragment() {
         }
     }
 
-    private fun applyBranchRecommendationStyle(
-        button: androidx.appcompat.widget.AppCompatButton,
-        branch: LizKitchenBranch
-    ) {
-        val isRecommended = branch.id == recommendedBranch?.id
-        if (isRecommended) {
-            button.setBackgroundResource(R.drawable.shape_button_choice_selected)
-            button.setTextColor(Color.parseColor("#3A2A20"))
-        } else {
-            button.setBackgroundResource(R.drawable.shape_button_choice_default)
-            button.setTextColor(Color.parseColor("#3A2A20"))
-        }
-    }
-
-    private fun FragmentMetodeAmbilBinding.updateMethodCards(isPickupActive: Boolean) {
+    private fun FragmentMetodeAmbilBinding.updateSelectionState() {
         btnAntar.setBackgroundResource(
             when {
                 !isDeliveryAvailable -> R.drawable.shape_button_choice_disabled
-                !isPickupActive -> R.drawable.shape_button_choice_selected
+                pendingMethod == METODE_PESAN_ANTAR -> R.drawable.shape_button_choice_selected
                 else -> R.drawable.shape_button_choice_default
             }
         )
         btnPickup.setBackgroundResource(
-            if (isPickupActive) {
+            if (pendingMethod == METODE_AMBIL_SENDIRI) {
                 R.drawable.shape_button_choice_selected
             } else {
                 R.drawable.shape_button_choice_default
             }
         )
+
+        updateBranchCard(btnPickupMenteng, LIZ_KITCHEN_BRANCHES[0])
+        updateBranchCard(btnPickupCengkareng, LIZ_KITCHEN_BRANCHES[1])
+
+        val isValid = isMethodSelectionValid(
+            pendingMethod,
+            pendingPickupBranch != null,
+            isDeliveryAvailable
+        )
+        btnConfirmMethod.isEnabled = isValid
+        btnConfirmMethod.alpha = if (isValid) 1f else 0.45f
+    }
+
+    private fun updateBranchCard(
+        button: androidx.appcompat.widget.AppCompatButton,
+        branch: LizKitchenBranch
+    ) {
+        button.setBackgroundResource(
+            if (branch.id == pendingPickupBranch?.id) {
+                R.drawable.shape_button_choice_selected
+            } else {
+                R.drawable.shape_button_choice_default
+            }
+        )
+        button.setTextColor(Color.parseColor("#3A2A20"))
     }
 
     private fun buildBranchButtonText(branch: LizKitchenBranch): String {
@@ -176,4 +214,14 @@ class MetodeAmbilFragment : BottomSheetDialogFragment() {
         }
     }
 
+}
+
+internal fun isMethodSelectionValid(
+    method: String,
+    hasPickupBranch: Boolean,
+    isDeliveryAvailable: Boolean
+): Boolean = when (method) {
+    METODE_PESAN_ANTAR -> isDeliveryAvailable
+    METODE_AMBIL_SENDIRI -> hasPickupBranch
+    else -> false
 }
