@@ -37,6 +37,7 @@ import com.dissy.lizkitchen.databinding.DialogPhotoSourceBinding
 import com.dissy.lizkitchen.databinding.FragmentOrderDetailBinding
 import com.dissy.lizkitchen.model.Order
 import com.dissy.lizkitchen.utility.ORDER_STATUS_CANCELED
+import com.dissy.lizkitchen.utility.ORDER_STATUS_AWAITING_ADMIN_COMPLETION
 import com.dissy.lizkitchen.utility.ORDER_STATUS_CONFIRMED
 import com.dissy.lizkitchen.utility.ORDER_STATUS_DONE
 import com.dissy.lizkitchen.utility.ORDER_STATUS_EXPIRED
@@ -45,8 +46,6 @@ import com.dissy.lizkitchen.utility.ORDER_STATUS_PAYMENT_VERIFICATION
 import com.dissy.lizkitchen.utility.ORDER_STATUS_PROCESSING
 import com.dissy.lizkitchen.utility.ORDER_STATUS_READY_PICKUP
 import com.dissy.lizkitchen.utility.ORDER_STATUS_SHIPPING
-import com.dissy.lizkitchen.utility.COMPLETION_LABEL_USER_PROOF
-import com.dissy.lizkitchen.utility.COMPLETION_TYPE_USER_PROOF
 import com.dissy.lizkitchen.utility.Preferences
 import com.dissy.lizkitchen.utility.deliveryDistanceLabel
 import com.dissy.lizkitchen.utility.deliveryFeeLabel
@@ -59,6 +58,7 @@ import com.dissy.lizkitchen.utility.orderToFirestoreMap
 import com.dissy.lizkitchen.utility.pickupBranchAddressForOrder
 import com.dissy.lizkitchen.utility.pickupBranchNameForOrder
 import com.dissy.lizkitchen.utility.printOrderInvoice
+import com.dissy.lizkitchen.utility.receiptConfirmationRemainingLabel
 import com.dissy.lizkitchen.utility.setFirebaseRequestLoading
 import com.dissy.lizkitchen.utility.validateOrderExpiryOnRead
 import com.google.firebase.firestore.SetOptions
@@ -68,6 +68,9 @@ import com.google.firebase.storage.FirebaseStorage
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class OrderDetailFragment : Fragment() {
     private var _binding: FragmentOrderDetailBinding? = null
@@ -207,6 +210,13 @@ class OrderDetailFragment : Fragment() {
             tvItemCount.text = buildItemSummary(order)
             tvPriceSum.text = formatCurrency(order.totalPrice.toString())
             tvMetodePengambilan.text = metodePengambilanDisplayForOrder(order).ifBlank { "-" }
+            tvBranchName.text = pickupBranchNameForOrder(order)
+            tvBranchAddress.text = pickupBranchAddressForOrder(order)
+            llAlamat.visibility = if (order.metodePengambilan.contains("antar", ignoreCase = true)) {
+                View.VISIBLE
+            } else {
+                View.GONE
+            }
             tvAlamat.text = buildAddressText(order)
             tvOrderDate.text = order.tanggalOrder.ifBlank { "-" }
             tvJamOrder.text = order.jamOrder.ifBlank { "-" }
@@ -297,28 +307,14 @@ class OrderDetailFragment : Fragment() {
                     actionContainer.visibility = View.VISIBLE
                     val isPickup = normalizedStatus.equals(ORDER_STATUS_READY_PICKUP, ignoreCase = true) ||
                         order.metodePengambilan.contains("ambil", ignoreCase = true)
-                    tvActionTitle.text = if (isPickup) {
-                        "Konfirmasi setelah pesanan sudah kamu ambil."
-                    } else {
-                        "Konfirmasi setelah pesanan sudah kamu terima."
-                    }
+                    tvActionTitle.text = buildReceiptPhotoPrompt(order, isPickup)
                     btnReceive.visibility = View.VISIBLE
-                    btnReceive.text = if (isPickup) "Sudah Diambil" else "Pesanan Diterima"
-                    btnReceive.setOnClickListener { requestReceiptProof(order) }
-                }
-                normalizedStatus.equals(ORDER_STATUS_DONE, ignoreCase = true) -> {
-                    if (order.receiptProofUrl.isBlank()) {
-                        actionContainer.visibility = View.VISIBLE
-                        val isPickup = order.metodePengambilan.contains("ambil", ignoreCase = true)
-                        tvActionTitle.text = if (isPickup) {
-                            "Pesanan pickup sudah selesai. Kirim foto bukti pengambilan untuk melengkapi pesanan."
-                        } else {
-                            "Kirim foto bukti penerimaan untuk melengkapi pesanan."
-                        }
-                        btnReceive.visibility = View.VISIBLE
-                        btnReceive.text = if (isPickup) "Kirim Bukti Pengambilan" else "Kirim Bukti Penerimaan"
-                        btnReceive.setOnClickListener { requestReceiptProof(order) }
+                    btnReceive.text = if (isPickup) {
+                        "Upload Foto Pengambilan"
+                    } else {
+                        "Upload Foto Penerimaan"
                     }
+                    btnReceive.setOnClickListener { requestReceiptProof(order) }
                 }
             }
         }
@@ -533,11 +529,9 @@ class OrderDetailFragment : Fragment() {
                     .addOnSuccessListener { downloadUri ->
                         val uploadedAt = System.currentTimeMillis()
                         val updates = mapOf(
-                            "status" to ORDER_STATUS_DONE,
+                            "status" to ORDER_STATUS_AWAITING_ADMIN_COMPLETION,
                             "receiptProofUrl" to downloadUri.toString(),
-                            "receiptProofUploadedAtMillis" to uploadedAt,
-                            "completionType" to COMPLETION_TYPE_USER_PROOF,
-                            "completionLabel" to COMPLETION_LABEL_USER_PROOF
+                            "receiptProofUploadedAtMillis" to uploadedAt
                         )
                         val globalOrderRef = db.collection("orders").document(currentOrderId)
                         val userOrderRef = db.collection("users").document(currentUserId)
@@ -548,11 +542,9 @@ class OrderDetailFragment : Fragment() {
                         }.addOnSuccessListener {
                             if (_binding == null) return@addOnSuccessListener
                             currentOrder = order.copy(
-                                status = ORDER_STATUS_DONE,
+                                status = ORDER_STATUS_AWAITING_ADMIN_COMPLETION,
                                 receiptProofUrl = downloadUri.toString(),
-                                receiptProofUploadedAtMillis = uploadedAt,
-                                completionType = COMPLETION_TYPE_USER_PROOF,
-                                completionLabel = COMPLETION_LABEL_USER_PROOF
+                                receiptProofUploadedAtMillis = uploadedAt
                             )
                             selectedReceiptProofUri = null
                             setRequestLoading(false)
@@ -590,7 +582,8 @@ class OrderDetailFragment : Fragment() {
         val (textColor, backgroundColor) = when (status) {
             ORDER_STATUS_DONE -> "#128A35" to "#E8F7EC"
             ORDER_STATUS_CANCELED, ORDER_STATUS_EXPIRED -> "#C62828" to "#FDECEC"
-            ORDER_STATUS_PENDING_PAYMENT, ORDER_STATUS_PAYMENT_VERIFICATION -> "#C46A16" to "#FFF0DE"
+            ORDER_STATUS_PENDING_PAYMENT, ORDER_STATUS_PAYMENT_VERIFICATION,
+            ORDER_STATUS_AWAITING_ADMIN_COMPLETION -> "#C46A16" to "#FFF0DE"
             ORDER_STATUS_CONFIRMED, ORDER_STATUS_SHIPPING, ORDER_STATUS_READY_PICKUP -> "#128A35" to "#E8F7EC"
             ORDER_STATUS_PROCESSING -> "#9C6843" to "#F7E6DA"
             else -> "#9C6843" to "#F7E6DA"
@@ -613,6 +606,7 @@ class OrderDetailFragment : Fragment() {
             ORDER_STATUS_PROCESSING -> "Pesanan sedang dibuat oleh tim Liz Kitchen."
             ORDER_STATUS_SHIPPING -> "Pesanan sedang dalam perjalanan menuju alamat penerima."
             ORDER_STATUS_READY_PICKUP -> "Pesanan sudah siap diambil di cabang Liz Kitchen."
+            ORDER_STATUS_AWAITING_ADMIN_COMPLETION -> "Bukti sudah dikirim dan menunggu admin menyelesaikan pesanan."
             ORDER_STATUS_DONE -> "Pesanan selesai. Terima kasih sudah berbelanja di Liz Kitchen."
             ORDER_STATUS_CANCELED -> "Pesanan ini sudah dibatalkan."
             ORDER_STATUS_EXPIRED -> "Batas pembayaran 1x24 jam sudah lewat. Silahkan buat pesanan baru."
@@ -624,6 +618,23 @@ class OrderDetailFragment : Fragment() {
         val itemTypeCount = order.cart.size
         val quantityCount = order.cart.sumOf { it.jumlahPesanan }
         return "$itemTypeCount jenis produk | $quantityCount item"
+    }
+
+    private fun buildReceiptPhotoPrompt(order: Order, isPickup: Boolean): String {
+        val action = if (isPickup) "diambil" else "diterima"
+        val deadline = order.autoCompletionDeadlineAtMillis
+        val intro = "Foto pesanan yang sudah $action agar admin dapat menyelesaikannya dengan bukti."
+        if (deadline <= 0L) return intro
+
+        val deadlineText = SimpleDateFormat("dd MMM yyyy, HH:mm", Locale("id", "ID"))
+            .format(Date(deadline))
+        val remaining = deadline - System.currentTimeMillis()
+        if (remaining <= 0L) {
+            return "$intro Tenggat sudah lewat; segera upload selama pesanan masih menunggu konfirmasi."
+        }
+
+        val remainingText = receiptConfirmationRemainingLabel(remaining)
+        return "$intro Upload sebelum $deadlineText (sisa $remainingText) agar tidak diselesaikan otomatis oleh sistem."
     }
 
     private fun buildAddressText(order: Order): String {

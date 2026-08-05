@@ -20,6 +20,7 @@ import com.dissy.lizkitchen.ui.login.LoginActivity
 import com.dissy.lizkitchen.utility.ORDER_STATUS_CANCELED
 import com.dissy.lizkitchen.utility.ORDER_STATUS_CONFIRMED
 import com.dissy.lizkitchen.utility.ORDER_STATUS_DONE
+import com.dissy.lizkitchen.utility.ORDER_STATUS_AWAITING_ADMIN_COMPLETION
 import com.dissy.lizkitchen.utility.ORDER_STATUS_EXPIRED
 import com.dissy.lizkitchen.utility.ORDER_STATUS_PENDING_PAYMENT
 import com.dissy.lizkitchen.utility.ORDER_STATUS_PAYMENT_VERIFICATION
@@ -238,6 +239,7 @@ class AdminUserOrderFragment : Fragment() {
             StatusFilter(ORDER_STATUS_PROCESSING, "Diproses"),
             StatusFilter(ORDER_STATUS_SHIPPING, "Dikirim"),
             StatusFilter(ORDER_STATUS_READY_PICKUP, "Siap Diambil"),
+            StatusFilter(ORDER_STATUS_AWAITING_ADMIN_COMPLETION, "Menunggu Selesai"),
             StatusFilter(ORDER_STATUS_DONE, "Selesai"),
             StatusFilter(ORDER_STATUS_CANCELED, "Dibatalkan"),
             StatusFilter(ORDER_STATUS_EXPIRED, "Expired")

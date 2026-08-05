@@ -12,6 +12,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.dissy.lizkitchen.databinding.RvOrderUserBinding
 import com.dissy.lizkitchen.model.Order
 import com.dissy.lizkitchen.utility.ORDER_STATUS_CANCELED
+import com.dissy.lizkitchen.utility.ORDER_STATUS_AWAITING_ADMIN_COMPLETION
 import com.dissy.lizkitchen.utility.ORDER_STATUS_CONFIRMED
 import com.dissy.lizkitchen.utility.ORDER_STATUS_DONE
 import com.dissy.lizkitchen.utility.ORDER_STATUS_EXPIRED
@@ -66,7 +67,8 @@ class HomeOrderUserAdapter(private val onItemClick: (String) -> Unit) : ListAdap
         val (textColor, backgroundColor) = when (status) {
             ORDER_STATUS_DONE -> "#128A35" to "#E8F7EC"
             ORDER_STATUS_CANCELED, ORDER_STATUS_EXPIRED -> "#C62828" to "#FDECEC"
-            ORDER_STATUS_PENDING_PAYMENT, ORDER_STATUS_PAYMENT_VERIFICATION -> "#C46A16" to "#FFF0DE"
+            ORDER_STATUS_PENDING_PAYMENT, ORDER_STATUS_PAYMENT_VERIFICATION,
+            ORDER_STATUS_AWAITING_ADMIN_COMPLETION -> "#C46A16" to "#FFF0DE"
             ORDER_STATUS_SHIPPING, ORDER_STATUS_CONFIRMED, ORDER_STATUS_READY_PICKUP -> "#128A35" to "#E8F7EC"
             ORDER_STATUS_PROCESSING -> "#9C6843" to "#F7E6DA"
             else -> "#9C6843" to "#F7E6DA"

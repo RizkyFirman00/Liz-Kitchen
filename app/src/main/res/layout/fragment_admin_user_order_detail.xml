@@ -257,6 +257,44 @@
             </LinearLayout>
 
             <LinearLayout
+                android:id="@+id/branchPanel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:background="@drawable/bg_order_card"
+                android:orientation="vertical"
+                android:padding="14dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/poppins_semibold"
+                    android:text="Cabang Dipilih"
+                    android:textColor="#3A2A20"
+                    android:textSize="14sp" />
+
+                <TextView
+                    android:id="@+id/tv_branchName"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:fontFamily="@font/poppins_semibold"
+                    android:textColor="@color/brown_old"
+                    android:textSize="13sp"
+                    tools:text="Cabang Menteng" />
+
+                <TextView
+                    android:id="@+id/tv_branchAddress"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="3dp"
+                    android:fontFamily="@font/poppins_regular"
+                    android:textColor="#765945"
+                    android:textSize="12sp"
+                    tools:text="Jl. Kebon Sirih Barat I No.24, Menteng, Jakarta Pusat" />
+            </LinearLayout>
+
+            <LinearLayout
                 android:id="@+id/ll_alamat"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

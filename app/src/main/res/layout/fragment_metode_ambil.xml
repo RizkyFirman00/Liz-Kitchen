@@ -49,6 +49,21 @@
         android:textColor="#9C6843"
         android:textSize="10sp" />
 
+    <TextView
+        android:id="@+id/tvRecommendedBranch"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:background="@drawable/bg_cart_card"
+        android:fontFamily="@font/poppins_medium"
+        android:lineSpacingExtra="2dp"
+        android:padding="12dp"
+        android:textColor="@color/brown_old"
+        android:textSize="11sp"
+        android:visibility="gone"
+        tools:text="Cabang pengiriman terdekat\nCabang Cengkareng\nThe City Resort Malibu\n1,2 km | Ongkir Gratis"
+        tools:visibility="visible" />
+
     <androidx.appcompat.widget.AppCompatButton
         android:id="@+id/btnAntar"
         android:layout_width="match_parent"
@@ -89,19 +104,6 @@
             android:text="Pilih Cabang"
             android:textColor="#3A2A20"
             android:textSize="14sp" />
-
-        <TextView
-            android:id="@+id/tvRecommendedBranch"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
-            android:fontFamily="@font/poppins_medium"
-            android:lineSpacingExtra="2dp"
-            android:textColor="@color/brown_old"
-            android:textSize="12sp"
-            android:visibility="gone"
-            tools:text="Terdekat: Cabang Cengkareng - 1,2 km"
-            tools:visibility="visible" />
 
         <androidx.appcompat.widget.AppCompatButton
             android:id="@+id/btnPickupMenteng"

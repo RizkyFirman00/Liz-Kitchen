@@ -40,6 +40,9 @@ import com.dissy.lizkitchen.databinding.FragmentAdminUserOrderDetailBinding
 import com.dissy.lizkitchen.model.Cart
 import com.dissy.lizkitchen.model.Order
 import com.dissy.lizkitchen.utility.METODE_AMBIL_SENDIRI
+import com.dissy.lizkitchen.utility.COMPLETION_LABEL_USER_PROOF
+import com.dissy.lizkitchen.utility.COMPLETION_TYPE_USER_PROOF
+import com.dissy.lizkitchen.utility.ORDER_STATUS_AWAITING_ADMIN_COMPLETION
 import com.dissy.lizkitchen.utility.ORDER_STATUS_CANCELED
 import com.dissy.lizkitchen.utility.ORDER_STATUS_CONFIRMED
 import com.dissy.lizkitchen.utility.ORDER_STATUS_DONE
@@ -158,10 +161,6 @@ class AdminUserOrderDetailFragment : Fragment() {
                 ?.let { showPaymentProofDialog(it, "Bukti Penerimaan Pelanggan") }
         }
 
-        binding.btnConfirm.setOnClickListener {
-            confirmOrder()
-        }
-
         binding.btnProcess.setOnClickListener {
             updateOrderStatus(ORDER_STATUS_PROCESSING)
         }
@@ -258,12 +257,15 @@ class AdminUserOrderDetailFragment : Fragment() {
             tvCustomerEmail.text = order.user.email.orEmpty().ifBlank { "Email belum tersedia" }
             tvOrderDate.text = order.tanggalOrder.ifBlank { "-" }
             tvMetodePengambilan.text = metodePengambilanDisplayForOrder(order).ifBlank { "-" }
-            tvJamOrder.text = order.jamOrder.ifBlank { "-" }
-            tvAddressTitle.text = if (order.metodePengambilan.contains("ambil", ignoreCase = true)) {
-                "Alamat Cabang"
+            tvBranchName.text = pickupBranchNameForOrder(order)
+            tvBranchAddress.text = pickupBranchAddressForOrder(order)
+            llAlamat.visibility = if (order.metodePengambilan.contains("antar", ignoreCase = true)) {
+                VISIBLE
             } else {
-                "Alamat Penerima"
+                GONE
             }
+            tvJamOrder.text = order.jamOrder.ifBlank { "-" }
+            tvAddressTitle.text = "Alamat Penerima"
             tvAlamat.text = buildAddressText(order)
             tvPriceSum.text = formatCurrency(order.totalPrice.toString())
             tvOrderSubtotal.text = formatCurrency(orderProductSubtotal(order).toString())
@@ -344,7 +346,18 @@ class AdminUserOrderDetailFragment : Fragment() {
             selectedStatusProofUri = null
             statusProofTarget = null
 
-            when (order.status) {
+            val canFinishFromUserProof = order.receiptProofUrl.isNotBlank() && order.status in setOf(
+                ORDER_STATUS_AWAITING_ADMIN_COMPLETION,
+                ORDER_STATUS_SHIPPING,
+                ORDER_STATUS_READY_PICKUP
+            )
+            if (canFinishFromUserProof) {
+                actionContainer.visibility = VISIBLE
+                tvActionTitle.text = "Bukti pelanggan sudah tersedia. Selesaikan pesanan setelah bukti diperiksa."
+                btnConfirm.visibility = VISIBLE
+                btnConfirm.text = "Pesanan Selesai"
+                btnConfirm.setOnClickListener { completeOrderWithUserProof() }
+            } else when (order.status) {
                 ORDER_STATUS_PENDING_PAYMENT, ORDER_STATUS_PAYMENT_VERIFICATION -> {
                     actionContainer.visibility = VISIBLE
                     val hasPaymentProof = order.paymentProofUrl.isNotBlank()
@@ -357,6 +370,7 @@ class AdminUserOrderDetailFragment : Fragment() {
                     btnConfirm.visibility = VISIBLE
                     btnConfirm.isEnabled = hasPaymentProof
                     btnConfirm.text = if (hasPaymentProof) "Verifikasi Pembayaran" else "Menunggu Bukti"
+                    btnConfirm.setOnClickListener { confirmOrder() }
                     btnCancel.text = "Batalkan"
                 }
                 ORDER_STATUS_CONFIRMED -> {
@@ -388,11 +402,6 @@ class AdminUserOrderDetailFragment : Fragment() {
                             updateStatusWithProof(ORDER_STATUS_SHIPPING)
                         }
                     }
-                }
-                ORDER_STATUS_DONE -> {
-                    actionContainer.visibility = VISIBLE
-                    tvActionTitle.text = "Pesanan selesai. Tambahkan atau ganti bukti pesanan diterima."
-                    bindStatusProofInput(order, ORDER_STATUS_DONE)
                 }
             }
         }
@@ -515,7 +524,8 @@ class AdminUserOrderDetailFragment : Fragment() {
         val (textColor, backgroundColor) = when (status) {
             ORDER_STATUS_DONE -> "#128A35" to "#E8F7EC"
             ORDER_STATUS_CANCELED, ORDER_STATUS_EXPIRED -> "#C62828" to "#FDECEC"
-            ORDER_STATUS_PENDING_PAYMENT, ORDER_STATUS_PAYMENT_VERIFICATION -> "#C46A16" to "#FFF0DE"
+            ORDER_STATUS_PENDING_PAYMENT, ORDER_STATUS_PAYMENT_VERIFICATION,
+            ORDER_STATUS_AWAITING_ADMIN_COMPLETION -> "#C46A16" to "#FFF0DE"
             ORDER_STATUS_CONFIRMED, ORDER_STATUS_SHIPPING, ORDER_STATUS_READY_PICKUP -> "#128A35" to "#E8F7EC"
             ORDER_STATUS_PROCESSING -> "#9C6843" to "#F7E6DA"
             else -> "#9C6843" to "#F7E6DA"
@@ -537,6 +547,7 @@ class AdminUserOrderDetailFragment : Fragment() {
             ORDER_STATUS_PROCESSING -> "Pesanan sedang dibuat oleh tim Liz Kitchen."
             ORDER_STATUS_SHIPPING -> "Pesanan sedang dalam pengiriman ke pelanggan."
             ORDER_STATUS_READY_PICKUP -> "Pesanan sudah siap diambil di cabang."
+            ORDER_STATUS_AWAITING_ADMIN_COMPLETION -> "Bukti pelanggan sudah masuk dan menunggu penyelesaian admin."
             ORDER_STATUS_DONE -> "Pesanan sudah selesai."
             ORDER_STATUS_CANCELED -> "Pesanan ini sudah dibatalkan."
             ORDER_STATUS_EXPIRED -> "Batas pembayaran 1x24 jam sudah lewat. Pesanan tidak bisa diproses."
@@ -666,6 +677,24 @@ class AdminUserOrderDetailFragment : Fragment() {
         updateOrderDocuments(updates) {
             cutStock(orderId)
             Toast.makeText(requireContext(), "Berhasil mengkonfirmasi pesanan", Toast.LENGTH_SHORT).show()
+            fetchOrderDetails()
+        }
+    }
+
+    private fun completeOrderWithUserProof() {
+        if (currentOrder?.receiptProofUrl.isNullOrBlank()) {
+            Toast.makeText(requireContext(), "Bukti penerimaan pelanggan belum tersedia", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        updateOrderDocuments(
+            mapOf(
+                "status" to ORDER_STATUS_DONE,
+                "completionType" to COMPLETION_TYPE_USER_PROOF,
+                "completionLabel" to COMPLETION_LABEL_USER_PROOF
+            )
+        ) {
+            Toast.makeText(requireContext(), "Pesanan berhasil diselesaikan", Toast.LENGTH_SHORT).show()
             fetchOrderDetails()
         }
     }

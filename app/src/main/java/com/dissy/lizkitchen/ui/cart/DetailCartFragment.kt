@@ -248,9 +248,8 @@ class DetailCartFragment : Fragment() {
                 selectedPickupBranch = null
                 selectedDeliveryFee = 0L
                 selectedDeliveryDistanceMeters = 0L
-                updateSelectedMethodView()
             }
-            updatePriceSummary()
+            updateSelectedMethodView()
         }
     }
 
@@ -265,7 +264,7 @@ class DetailCartFragment : Fragment() {
         } else {
             "Alamat berubah. Tekan ikon lokasi untuk memvalidasi ulang"
         }
-        updatePriceSummary()
+        updateSelectedMethodView()
     }
 
     private fun setAddressTextWithoutInvalidating(address: String) {
@@ -314,6 +313,12 @@ class DetailCartFragment : Fragment() {
 
     private fun updateSelectedMethodView() {
         val pickupBranch = selectedPickupBranch
+        val deliveryBranch = deliveryCheckResult?.nearestBranch
+        val displayedBranch = when (selectedMetodePengambilan) {
+            METODE_AMBIL_SENDIRI -> pickupBranch
+            METODE_PESAN_ANTAR -> deliveryBranch
+            else -> null
+        }
         binding.tvMetodePengambilan.text = when {
             selectedMetodePengambilan == METODE_AMBIL_SENDIRI && pickupBranch != null ->
                 "$METODE_AMBIL_SENDIRI - ${pickupBranch.name}"
@@ -321,19 +326,23 @@ class DetailCartFragment : Fragment() {
             else -> "Pilih Metode Pengambilan"
         }
 
-        if (selectedMetodePengambilan == METODE_AMBIL_SENDIRI && pickupBranch != null) {
+        if (displayedBranch != null) {
             binding.pickupBranchContainer.visibility = View.VISIBLE
-            binding.textInputLayout.visibility = View.GONE
-            binding.textInputPatokan.visibility = View.GONE
-            binding.tvPickupBranchName.text = pickupBranch.name
-            binding.tvPickupBranchAddress.text = pickupBranch.address
+            binding.tvBranchSummaryTitle.text = if (selectedMetodePengambilan == METODE_PESAN_ANTAR) {
+                "Cabang Pengiriman Terdekat"
+            } else {
+                "Cabang Pengambilan"
+            }
+            binding.tvPickupBranchName.text = displayedBranch.name
+            binding.tvPickupBranchAddress.text = displayedBranch.address
         } else {
             binding.pickupBranchContainer.visibility = View.GONE
-            binding.textInputLayout.visibility = View.VISIBLE
-            binding.textInputPatokan.visibility = View.VISIBLE
             binding.tvPickupBranchName.text = ""
             binding.tvPickupBranchAddress.text = ""
         }
+        val isPickup = selectedMetodePengambilan == METODE_AMBIL_SENDIRI
+        binding.textInputLayout.visibility = if (isPickup) View.GONE else View.VISIBLE
+        binding.textInputPatokan.visibility = if (isPickup) View.GONE else View.VISIBLE
 
         if (selectedMetodePengambilan != METODE_PESAN_ANTAR) {
             selectedDeliveryFee = 0L
@@ -530,7 +539,11 @@ class DetailCartFragment : Fragment() {
         val userId = Preferences.getUserId(requireContext())
         if (userId != null && orderId != null) {
             setRequestLoading(true)
-            val pickupBranch = if (metodePengambilan == METODE_AMBIL_SENDIRI) selectedPickupBranch else null
+            val orderBranch = if (metodePengambilan == METODE_AMBIL_SENDIRI) {
+                selectedPickupBranch
+            } else {
+                deliveryCheckResult?.nearestBranch
+            }
             val deliveryFee = if (metodePengambilan == METODE_PESAN_ANTAR) selectedDeliveryFee else 0L
             val deliveryDistance = if (metodePengambilan == METODE_PESAN_ANTAR) {
                 selectedDeliveryDistanceMeters
@@ -542,9 +555,9 @@ class DetailCartFragment : Fragment() {
                 "user" to mapOf("alamat" to alamat),
                 "patokanAlamat" to patokanAlamat,
                 "metodePengambilan" to metodePengambilan,
-                "pickupBranchId" to pickupBranch?.id.orEmpty(),
-                "pickupBranchName" to pickupBranch?.name.orEmpty(),
-                "pickupBranchAddress" to pickupBranch?.address.orEmpty(),
+                "pickupBranchId" to orderBranch?.id.orEmpty(),
+                "pickupBranchName" to orderBranch?.name.orEmpty(),
+                "pickupBranchAddress" to orderBranch?.address.orEmpty(),
                 "deliveryDistanceMeters" to deliveryDistance,
                 "deliveryFee" to deliveryFee,
                 "totalPrice" to (orderSubtotalPrice + deliveryFee),

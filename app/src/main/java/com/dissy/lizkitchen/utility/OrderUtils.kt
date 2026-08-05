@@ -16,6 +16,7 @@ const val ORDER_STATUS_CONFIRMED = "Sudah Dikonfirmasi"
 const val ORDER_STATUS_PROCESSING = "Sedang Diproses"
 const val ORDER_STATUS_SHIPPING = "Sedang Dikirim"
 const val ORDER_STATUS_READY_PICKUP = "Siap Diambil"
+const val ORDER_STATUS_AWAITING_ADMIN_COMPLETION = "Menunggu Penyelesaian Admin"
 const val ORDER_STATUS_DONE = "Selesai"
 const val ORDER_STATUS_CANCELED = "Dibatalkan"
 const val ORDER_STATUS_EXPIRED = "Expired"
@@ -109,6 +110,17 @@ fun completionLabelForOrder(order: Order): String {
         } else {
             ""
         }
+    }
+}
+
+fun receiptConfirmationRemainingLabel(remainingMillis: Long): String {
+    if (remainingMillis <= 0L) return "Tenggat sudah lewat"
+    val days = remainingMillis / (24L * 60L * 60L * 1_000L)
+    val hours = (remainingMillis / (60L * 60L * 1_000L)) % 24L
+    return when {
+        days > 0L -> "$days hari $hours jam"
+        hours > 0L -> "$hours jam"
+        else -> "kurang dari 1 jam"
     }
 }
 

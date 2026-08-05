@@ -12,6 +12,8 @@ import com.dissy.lizkitchen.utility.LizKitchenBranch
 import com.dissy.lizkitchen.utility.METODE_AMBIL_SENDIRI
 import com.dissy.lizkitchen.utility.METODE_PESAN_ANTAR
 import com.dissy.lizkitchen.utility.branchLocationLabel
+import com.dissy.lizkitchen.utility.deliveryFeeForDistanceMeters
+import com.dissy.lizkitchen.utility.deliveryFeeLabel
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import java.util.Locale
 
@@ -108,12 +110,17 @@ class MetodeAmbilFragment : BottomSheetDialogFragment() {
             return
         }
 
-        val distanceText = recommendedDistanceMeters?.let { formatDistance(it) }
+        val distance = recommendedDistanceMeters
+        val distanceText = distance?.let { formatDistance(it) }
+        val feeText = distance?.let { deliveryFeeForDistanceMeters(it) }?.let { deliveryFeeLabel(it) }
         tvRecommendedBranch.visibility = View.VISIBLE
-        tvRecommendedBranch.text = if (distanceText == null) {
-            "Terdekat: ${branch.name}"
-        } else {
-            "Terdekat: ${branch.name} - $distanceText"
+        tvRecommendedBranch.text = buildString {
+            append("Cabang pengiriman terdekat\n")
+            append(branch.name)
+            append('\n')
+            append(branch.address)
+            if (distanceText != null) append("\n$distanceText")
+            if (feeText != null) append(" | Ongkir $feeText")
         }
     }
 
