@@ -56,6 +56,7 @@ class HomeFragment : Fragment() {
             2,
             StaggeredGridLayoutManager.VERTICAL
         )
+        binding.rvUser.itemAnimator = null
         binding.rvUser.setHasFixedSize(false)
         binding.tvHomeSummary.text = "Memuat katalog..."
         setupFilters()
