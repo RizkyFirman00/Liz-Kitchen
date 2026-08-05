@@ -11,7 +11,8 @@ test("only completes eligible overdue orders with admin proof", () => {
   };
 
   assert.equal(isAutoCompletable(order, 101), true);
-  assert.equal(isAutoCompletable({ ...order, status: "Sedang Dikirim", statusProofs: { "Sedang Dikirim": "proof.jpg" } }, 101), true);
+  assert.equal(isAutoCompletable({ ...order, status: "Sudah Diantar", statusProofs: { "Sudah Diantar": "proof.jpg" } }, 101), true);
+  assert.equal(isAutoCompletable({ ...order, status: "Sedang Dikirim", statusProofs: { "Sedang Dikirim": "proof.jpg" } }, 101), false);
   assert.equal(isAutoCompletable(order, 99), false);
   assert.equal(isAutoCompletable({ ...order, receiptProofUrl: "manual.jpg" }, 101), false);
   assert.equal(isAutoCompletable({ ...order, status: "Menunggu Penyelesaian Admin" }, 101), false);

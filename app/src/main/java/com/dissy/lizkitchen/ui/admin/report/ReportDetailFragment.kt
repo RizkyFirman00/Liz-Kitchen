@@ -21,6 +21,7 @@ import com.dissy.lizkitchen.databinding.FragmentReportDetailBinding
 import com.dissy.lizkitchen.model.Order
 import com.dissy.lizkitchen.utility.ORDER_STATUS_CANCELED
 import com.dissy.lizkitchen.utility.ORDER_STATUS_CONFIRMED
+import com.dissy.lizkitchen.utility.ORDER_STATUS_DELIVERED
 import com.dissy.lizkitchen.utility.ORDER_STATUS_DONE
 import com.dissy.lizkitchen.utility.ORDER_STATUS_EXPIRED
 import com.dissy.lizkitchen.utility.ORDER_STATUS_PENDING_PAYMENT
@@ -74,6 +75,7 @@ class ReportDetailFragment : Fragment() {
                 R.id.menu_menungguPembayaran -> updateStatusFilter(ORDER_STATUS_PENDING_PAYMENT)
                 R.id.menu_verifikasiPembayaran -> updateStatusFilter(ORDER_STATUS_PAYMENT_VERIFICATION)
                 R.id.menu_sedangDikirim -> updateStatusFilter(ORDER_STATUS_SHIPPING)
+                R.id.menu_sudahDiantar -> updateStatusFilter(ORDER_STATUS_DELIVERED)
                 R.id.menu_siapDiambil -> updateStatusFilter(ORDER_STATUS_READY_PICKUP)
                 R.id.menu_sudahDikonfirmasi -> updateStatusFilter(ORDER_STATUS_CONFIRMED)
                 R.id.menu_sedangDiproses -> updateStatusFilter(ORDER_STATUS_PROCESSING)
@@ -126,7 +128,9 @@ class ReportDetailFragment : Fragment() {
     private fun updateStatusFilter(status: String) {
         val filteredList = when (status) {
             "Semua" -> orderList
-            "Ambil Sendiri", "Pesan Antar" -> orderList.filter { it.metodePengambilan == status }
+            "Ambil Sendiri", "Pesan Antar" -> orderList.filter {
+                it.metodePengambilan == status && it.status != ORDER_STATUS_CANCELED
+            }
             else -> orderList.filter { it.status == status }
         }
         currentReportList = filteredList

@@ -19,6 +19,7 @@ import com.dissy.lizkitchen.model.Order
 import com.dissy.lizkitchen.ui.login.LoginActivity
 import com.dissy.lizkitchen.utility.ORDER_STATUS_CANCELED
 import com.dissy.lizkitchen.utility.ORDER_STATUS_CONFIRMED
+import com.dissy.lizkitchen.utility.ORDER_STATUS_DELIVERED
 import com.dissy.lizkitchen.utility.ORDER_STATUS_DONE
 import com.dissy.lizkitchen.utility.ORDER_STATUS_AWAITING_ADMIN_COMPLETION
 import com.dissy.lizkitchen.utility.ORDER_STATUS_EXPIRED
@@ -33,7 +34,6 @@ import com.dissy.lizkitchen.utility.setFirebaseRequestLoading
 import com.dissy.lizkitchen.utility.validateOrderExpiryOnRead
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
-import com.google.android.material.tabs.TabLayout
 
 class AdminUserOrderFragment : Fragment() {
     private var _binding: FragmentAdminUserOrderBinding? = null
@@ -104,7 +104,20 @@ class AdminUserOrderFragment : Fragment() {
     }
 
     private fun setupFilterAndSort() {
-        setupStatusTabs()
+        val statusAdapter = ArrayAdapter(
+            requireContext(),
+            android.R.layout.simple_spinner_item,
+            STATUS_FILTERS.map { it.label }
+        ).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+        binding.spinnerFilterStatus.adapter = statusAdapter
+        binding.spinnerFilterStatus.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                selectedStatus = STATUS_FILTERS.getOrNull(position)?.status ?: STATUS_ALL
+                applyFilterAndSort()
+            }
+
+            override fun onNothingSelected(parent: AdapterView<*>?) = Unit
+        }
 
         val sortAdapter = ArrayAdapter(
             requireContext(),
@@ -121,28 +134,6 @@ class AdminUserOrderFragment : Fragment() {
 
             override fun onNothingSelected(parent: AdapterView<*>?) = Unit
         }
-    }
-
-    private fun setupStatusTabs() {
-        binding.tabFilterStatus.removeAllTabs()
-        STATUS_FILTERS.forEachIndexed { index, filter ->
-            val tab = binding.tabFilterStatus.newTab().setText(filter.label)
-            binding.tabFilterStatus.addTab(tab, index == 0)
-        }
-
-        binding.tabFilterStatus.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
-            override fun onTabSelected(tab: TabLayout.Tab) {
-                selectedStatus = STATUS_FILTERS.getOrNull(tab.position)?.status ?: STATUS_ALL
-                applyFilterAndSort()
-            }
-
-            override fun onTabUnselected(tab: TabLayout.Tab) = Unit
-
-            override fun onTabReselected(tab: TabLayout.Tab) {
-                selectedStatus = STATUS_FILTERS.getOrNull(tab.position)?.status ?: STATUS_ALL
-                applyFilterAndSort()
-            }
-        })
     }
 
     private fun applyFilterAndSort() {
@@ -238,6 +229,7 @@ class AdminUserOrderFragment : Fragment() {
             StatusFilter(ORDER_STATUS_CONFIRMED, "Dikonfirmasi"),
             StatusFilter(ORDER_STATUS_PROCESSING, "Diproses"),
             StatusFilter(ORDER_STATUS_SHIPPING, "Dikirim"),
+            StatusFilter(ORDER_STATUS_DELIVERED, "Sudah Diantar"),
             StatusFilter(ORDER_STATUS_READY_PICKUP, "Siap Diambil"),
             StatusFilter(ORDER_STATUS_AWAITING_ADMIN_COMPLETION, "Menunggu Selesai"),
             StatusFilter(ORDER_STATUS_DONE, "Selesai"),

@@ -1,4 +1,5 @@
 <resources>
+    <string name="delivery_estimate">Estimasi tiba maksimal 1 hari setelah pesanan mulai dikirim.</string>
     <string name="app_name">LizKitchen</string>
     <string name="permission_not_granted">Permission Not Granted</string>
     <string name="permission_camera_denied">Camera permission denied.</string>

@@ -39,6 +39,7 @@ import com.dissy.lizkitchen.model.Order
 import com.dissy.lizkitchen.utility.ORDER_STATUS_CANCELED
 import com.dissy.lizkitchen.utility.ORDER_STATUS_AWAITING_ADMIN_COMPLETION
 import com.dissy.lizkitchen.utility.ORDER_STATUS_CONFIRMED
+import com.dissy.lizkitchen.utility.ORDER_STATUS_DELIVERED
 import com.dissy.lizkitchen.utility.ORDER_STATUS_DONE
 import com.dissy.lizkitchen.utility.ORDER_STATUS_EXPIRED
 import com.dissy.lizkitchen.utility.ORDER_STATUS_PENDING_PAYMENT
@@ -210,6 +211,11 @@ class OrderDetailFragment : Fragment() {
             tvItemCount.text = buildItemSummary(order)
             tvPriceSum.text = formatCurrency(order.totalPrice.toString())
             tvMetodePengambilan.text = metodePengambilanDisplayForOrder(order).ifBlank { "-" }
+            tvDeliveryEstimate.visibility = if (order.metodePengambilan.contains("antar", ignoreCase = true)) {
+                View.VISIBLE
+            } else {
+                View.GONE
+            }
             tvBranchName.text = pickupBranchNameForOrder(order)
             tvBranchAddress.text = pickupBranchAddressForOrder(order)
             llAlamat.visibility = if (order.metodePengambilan.contains("antar", ignoreCase = true)) {
@@ -232,6 +238,7 @@ class OrderDetailFragment : Fragment() {
             val statusProofEntries = listOf(
                 ORDER_STATUS_PROCESSING,
                 ORDER_STATUS_SHIPPING,
+                ORDER_STATUS_DELIVERED,
                 ORDER_STATUS_READY_PICKUP,
                 ORDER_STATUS_DONE
             ).mapNotNull { status ->
@@ -275,6 +282,8 @@ class OrderDetailFragment : Fragment() {
             }
 
             actionContainer.visibility = View.GONE
+            tvActionTitle.visibility = View.VISIBLE
+            receiptPromptContainer.visibility = View.GONE
             btnCancel.visibility = View.GONE
             btnConfirm.visibility = View.GONE
             btnReceive.visibility = View.GONE
@@ -302,12 +311,14 @@ class OrderDetailFragment : Fragment() {
                         findNavController().navigate(R.id.navigation_confirm, bundle)
                     }
                 }
-                normalizedStatus.equals(ORDER_STATUS_SHIPPING, ignoreCase = true) ||
+                normalizedStatus.equals(ORDER_STATUS_DELIVERED, ignoreCase = true) ||
                     normalizedStatus.equals(ORDER_STATUS_READY_PICKUP, ignoreCase = true) -> {
                     actionContainer.visibility = View.VISIBLE
                     val isPickup = normalizedStatus.equals(ORDER_STATUS_READY_PICKUP, ignoreCase = true) ||
                         order.metodePengambilan.contains("ambil", ignoreCase = true)
-                    tvActionTitle.text = buildReceiptPhotoPrompt(order, isPickup)
+                    tvActionTitle.visibility = View.GONE
+                    receiptPromptContainer.visibility = View.VISIBLE
+                    bindReceiptPrompt(order, isPickup)
                     btnReceive.visibility = View.VISIBLE
                     btnReceive.text = if (isPickup) {
                         "Upload Foto Pengambilan"
@@ -439,6 +450,7 @@ class OrderDetailFragment : Fragment() {
         return when (status) {
             ORDER_STATUS_PROCESSING -> "Bukti Pesanan Diproses"
             ORDER_STATUS_SHIPPING -> "Bukti Pesanan Dikirim"
+            ORDER_STATUS_DELIVERED -> "Bukti Pesanan Sudah Diantar"
             ORDER_STATUS_READY_PICKUP -> "Bukti Pesanan Siap Diambil"
             ORDER_STATUS_DONE -> "Bukti Pesanan Diterima"
             else -> "Bukti Status Pesanan"
@@ -584,7 +596,8 @@ class OrderDetailFragment : Fragment() {
             ORDER_STATUS_CANCELED, ORDER_STATUS_EXPIRED -> "#C62828" to "#FDECEC"
             ORDER_STATUS_PENDING_PAYMENT, ORDER_STATUS_PAYMENT_VERIFICATION,
             ORDER_STATUS_AWAITING_ADMIN_COMPLETION -> "#C46A16" to "#FFF0DE"
-            ORDER_STATUS_CONFIRMED, ORDER_STATUS_SHIPPING, ORDER_STATUS_READY_PICKUP -> "#128A35" to "#E8F7EC"
+            ORDER_STATUS_CONFIRMED, ORDER_STATUS_SHIPPING, ORDER_STATUS_DELIVERED,
+            ORDER_STATUS_READY_PICKUP -> "#128A35" to "#E8F7EC"
             ORDER_STATUS_PROCESSING -> "#9C6843" to "#F7E6DA"
             else -> "#9C6843" to "#F7E6DA"
         }
@@ -605,6 +618,7 @@ class OrderDetailFragment : Fragment() {
             ORDER_STATUS_CONFIRMED -> "Pembayaran sudah diterima. Pesanan akan segera masuk proses produksi."
             ORDER_STATUS_PROCESSING -> "Pesanan sedang dibuat oleh tim Liz Kitchen."
             ORDER_STATUS_SHIPPING -> "Pesanan sedang dalam perjalanan menuju alamat penerima."
+            ORDER_STATUS_DELIVERED -> "Pesanan sudah sampai. Upload foto penerimaan agar admin dapat menyelesaikannya."
             ORDER_STATUS_READY_PICKUP -> "Pesanan sudah siap diambil di cabang Liz Kitchen."
             ORDER_STATUS_AWAITING_ADMIN_COMPLETION -> "Bukti sudah dikirim dan menunggu admin menyelesaikan pesanan."
             ORDER_STATUS_DONE -> "Pesanan selesai. Terima kasih sudah berbelanja di Liz Kitchen."
@@ -620,21 +634,26 @@ class OrderDetailFragment : Fragment() {
         return "$itemTypeCount jenis produk | $quantityCount item"
     }
 
-    private fun buildReceiptPhotoPrompt(order: Order, isPickup: Boolean): String {
-        val action = if (isPickup) "diambil" else "diterima"
-        val deadline = order.autoCompletionDeadlineAtMillis
-        val intro = "Foto pesanan yang sudah $action agar admin dapat menyelesaikannya dengan bukti."
-        if (deadline <= 0L) return intro
-
-        val deadlineText = SimpleDateFormat("dd MMM yyyy, HH:mm", Locale("id", "ID"))
-            .format(Date(deadline))
-        val remaining = deadline - System.currentTimeMillis()
-        if (remaining <= 0L) {
-            return "$intro Tenggat sudah lewat; segera upload selama pesanan masih menunggu konfirmasi."
+    private fun bindReceiptPrompt(order: Order, isPickup: Boolean) = with(binding) {
+        tvReceiptEyebrow.text = if (isPickup) "KONFIRMASI PENGAMBILAN" else "KONFIRMASI PENERIMAAN"
+        tvReceiptTitle.text = if (isPickup) "Pesanan sudah diambil?" else "Pesanan sudah sampai?"
+        tvReceiptDescription.text = if (isPickup) {
+            "Upload foto pesanan yang kamu ambil agar admin dapat menyelesaikan pesanan."
+        } else {
+            "Upload foto pesanan yang kamu terima agar admin dapat menyelesaikan pesanan."
         }
 
-        val remainingText = receiptConfirmationRemainingLabel(remaining)
-        return "$intro Upload sebelum $deadlineText (sisa $remainingText) agar tidak diselesaikan otomatis oleh sistem."
+        val deadline = order.autoCompletionDeadlineAtMillis
+        if (deadline <= 0L) {
+            tvReceiptDeadline.text = "Menunggu sinkronisasi"
+            tvReceiptRemaining.text = "Sedang disiapkan"
+            return@with
+        }
+
+        tvReceiptDeadline.text = SimpleDateFormat("dd-MM-yyyy, HH:mm", Locale("id", "ID"))
+            .format(Date(deadline))
+        val remaining = deadline - System.currentTimeMillis()
+        tvReceiptRemaining.text = receiptConfirmationRemainingLabel(remaining)
     }
 
     private fun buildAddressText(order: Order): String {

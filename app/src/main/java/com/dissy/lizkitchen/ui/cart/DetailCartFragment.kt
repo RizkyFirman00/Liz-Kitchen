@@ -325,6 +325,11 @@ class DetailCartFragment : Fragment() {
             selectedMetodePengambilan.isNotBlank() -> selectedMetodePengambilan
             else -> "Pilih Metode Pengambilan"
         }
+        binding.tvDeliveryEstimate.visibility = if (selectedMetodePengambilan == METODE_PESAN_ANTAR) {
+            View.VISIBLE
+        } else {
+            View.GONE
+        }
 
         if (displayedBranch != null) {
             binding.pickupBranchContainer.visibility = View.VISIBLE

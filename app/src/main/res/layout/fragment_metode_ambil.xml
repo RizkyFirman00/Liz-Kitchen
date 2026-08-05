@@ -50,6 +50,15 @@
         android:textSize="10sp" />
 
     <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:fontFamily="@font/poppins_semibold"
+        android:text="@string/delivery_estimate"
+        android:textColor="@color/brown_old"
+        android:textSize="10sp" />
+
+    <TextView
         android:id="@+id/tvRecommendedBranch"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

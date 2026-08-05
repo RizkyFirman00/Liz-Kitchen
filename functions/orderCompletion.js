@@ -1,4 +1,4 @@
-const ELIGIBLE_STATUSES = new Set(["Sedang Dikirim", "Siap Diambil"]);
+const ELIGIBLE_STATUSES = new Set(["Sudah Diantar", "Siap Diambil"]);
 const THREE_DAYS_MILLIS = 3 * 24 * 60 * 60 * 1000;
 
 function hasRequiredStatusProof(order) {

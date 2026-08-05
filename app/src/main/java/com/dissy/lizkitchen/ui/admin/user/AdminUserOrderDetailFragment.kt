@@ -45,6 +45,7 @@ import com.dissy.lizkitchen.utility.COMPLETION_TYPE_USER_PROOF
 import com.dissy.lizkitchen.utility.ORDER_STATUS_AWAITING_ADMIN_COMPLETION
 import com.dissy.lizkitchen.utility.ORDER_STATUS_CANCELED
 import com.dissy.lizkitchen.utility.ORDER_STATUS_CONFIRMED
+import com.dissy.lizkitchen.utility.ORDER_STATUS_DELIVERED
 import com.dissy.lizkitchen.utility.ORDER_STATUS_DONE
 import com.dissy.lizkitchen.utility.ORDER_STATUS_EXPIRED
 import com.dissy.lizkitchen.utility.ORDER_STATUS_PENDING_PAYMENT
@@ -257,6 +258,11 @@ class AdminUserOrderDetailFragment : Fragment() {
             tvCustomerEmail.text = order.user.email.orEmpty().ifBlank { "Email belum tersedia" }
             tvOrderDate.text = order.tanggalOrder.ifBlank { "-" }
             tvMetodePengambilan.text = metodePengambilanDisplayForOrder(order).ifBlank { "-" }
+            tvDeliveryEstimate.visibility = if (order.metodePengambilan.contains("antar", ignoreCase = true)) {
+                VISIBLE
+            } else {
+                GONE
+            }
             tvBranchName.text = pickupBranchNameForOrder(order)
             tvBranchAddress.text = pickupBranchAddressForOrder(order)
             llAlamat.visibility = if (order.metodePengambilan.contains("antar", ignoreCase = true)) {
@@ -306,6 +312,7 @@ class AdminUserOrderDetailFragment : Fragment() {
             val statusProofEntries = listOf(
                 ORDER_STATUS_PROCESSING,
                 ORDER_STATUS_SHIPPING,
+                ORDER_STATUS_DELIVERED,
                 ORDER_STATUS_READY_PICKUP,
                 ORDER_STATUS_DONE
             ).mapNotNull { status ->
@@ -348,7 +355,7 @@ class AdminUserOrderDetailFragment : Fragment() {
 
             val canFinishFromUserProof = order.receiptProofUrl.isNotBlank() && order.status in setOf(
                 ORDER_STATUS_AWAITING_ADMIN_COMPLETION,
-                ORDER_STATUS_SHIPPING,
+                ORDER_STATUS_DELIVERED,
                 ORDER_STATUS_READY_PICKUP
             )
             if (canFinishFromUserProof) {
@@ -403,6 +410,16 @@ class AdminUserOrderDetailFragment : Fragment() {
                         }
                     }
                 }
+                ORDER_STATUS_SHIPPING -> {
+                    actionContainer.visibility = VISIBLE
+                    tvActionTitle.text = "Upload bukti saat pesanan sudah sampai ke pelanggan."
+                    btnShipping.visibility = VISIBLE
+                    btnShipping.text = "Sudah Diantar"
+                    bindStatusProofInput(order, ORDER_STATUS_DELIVERED)
+                    btnShipping.setOnClickListener {
+                        updateStatusWithProof(ORDER_STATUS_DELIVERED)
+                    }
+                }
             }
         }
     }
@@ -439,6 +456,7 @@ class AdminUserOrderDetailFragment : Fragment() {
         when (target) {
             ORDER_STATUS_PROCESSING -> binding.btnProcess.isEnabled = hasPhoto
             ORDER_STATUS_SHIPPING -> binding.btnShipping.isEnabled = hasPhoto
+            ORDER_STATUS_DELIVERED -> binding.btnShipping.isEnabled = hasPhoto
             ORDER_STATUS_READY_PICKUP -> binding.btnReady.isEnabled = hasPhoto
             ORDER_STATUS_DONE -> binding.btnUploadStatusProof.isEnabled = hasSelectedPhoto
         }
@@ -448,6 +466,7 @@ class AdminUserOrderDetailFragment : Fragment() {
         return when (status) {
             ORDER_STATUS_PROCESSING -> "Bukti Pesanan Diproses"
             ORDER_STATUS_SHIPPING -> "Bukti Pesanan Dikirim"
+            ORDER_STATUS_DELIVERED -> "Bukti Pesanan Sudah Diantar"
             ORDER_STATUS_READY_PICKUP -> "Bukti Pesanan Siap Diambil"
             ORDER_STATUS_DONE -> "Bukti Pesanan Diterima"
             else -> "Bukti Status Pesanan"
@@ -526,7 +545,8 @@ class AdminUserOrderDetailFragment : Fragment() {
             ORDER_STATUS_CANCELED, ORDER_STATUS_EXPIRED -> "#C62828" to "#FDECEC"
             ORDER_STATUS_PENDING_PAYMENT, ORDER_STATUS_PAYMENT_VERIFICATION,
             ORDER_STATUS_AWAITING_ADMIN_COMPLETION -> "#C46A16" to "#FFF0DE"
-            ORDER_STATUS_CONFIRMED, ORDER_STATUS_SHIPPING, ORDER_STATUS_READY_PICKUP -> "#128A35" to "#E8F7EC"
+            ORDER_STATUS_CONFIRMED, ORDER_STATUS_SHIPPING, ORDER_STATUS_DELIVERED,
+            ORDER_STATUS_READY_PICKUP -> "#128A35" to "#E8F7EC"
             ORDER_STATUS_PROCESSING -> "#9C6843" to "#F7E6DA"
             else -> "#9C6843" to "#F7E6DA"
         }
@@ -546,6 +566,7 @@ class AdminUserOrderDetailFragment : Fragment() {
             ORDER_STATUS_CONFIRMED -> "Pembayaran sudah dikonfirmasi. Pesanan siap masuk proses produksi."
             ORDER_STATUS_PROCESSING -> "Pesanan sedang dibuat oleh tim Liz Kitchen."
             ORDER_STATUS_SHIPPING -> "Pesanan sedang dalam pengiriman ke pelanggan."
+            ORDER_STATUS_DELIVERED -> "Pesanan sudah diantar. Menunggu bukti penerimaan pelanggan."
             ORDER_STATUS_READY_PICKUP -> "Pesanan sudah siap diambil di cabang."
             ORDER_STATUS_AWAITING_ADMIN_COMPLETION -> "Bukti pelanggan sudah masuk dan menunggu penyelesaian admin."
             ORDER_STATUS_DONE -> "Pesanan sudah selesai."

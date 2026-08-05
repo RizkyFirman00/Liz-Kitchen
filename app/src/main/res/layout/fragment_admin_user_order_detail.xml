@@ -537,6 +537,18 @@
                     android:textSize="13sp"
                     tools:text="Ambil Sendiri" />
 
+                <TextView
+                    android:id="@+id/tvDeliveryEstimate"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="3dp"
+                    android:fontFamily="@font/poppins_regular"
+                    android:text="@string/delivery_estimate"
+                    android:textColor="#9C6843"
+                    android:textSize="10sp"
+                    android:visibility="gone"
+                    tools:visibility="visible" />
+
                 <LinearLayout
                     android:id="@+id/priceBreakdownPanel"
                     android:layout_width="match_parent"
