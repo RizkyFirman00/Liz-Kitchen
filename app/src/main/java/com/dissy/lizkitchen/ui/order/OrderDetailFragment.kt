@@ -1,17 +1,14 @@
 package com.dissy.lizkitchen.ui.order
 
 import android.Manifest
-import android.app.Activity
 import android.app.DownloadManager
 import android.content.Context
-import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.net.Uri
 import android.os.Bundle
 import android.os.Environment
-import android.provider.MediaStore
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -26,7 +23,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.widget.AppCompatImageView
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.content.ContextCompat
-import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -51,7 +47,8 @@ import com.dissy.lizkitchen.utility.Preferences
 import com.dissy.lizkitchen.utility.deliveryDistanceLabel
 import com.dissy.lizkitchen.utility.deliveryFeeLabel
 import com.dissy.lizkitchen.utility.completionLabelForOrder
-import com.dissy.lizkitchen.utility.createCustomTempFile
+import com.dissy.lizkitchen.utility.cameraImageUri
+import com.dissy.lizkitchen.utility.isUsableCameraImage
 import com.dissy.lizkitchen.utility.metodePengambilanDisplayForOrder
 import com.dissy.lizkitchen.utility.orderFromDocument
 import com.dissy.lizkitchen.utility.orderProductSubtotal
@@ -59,6 +56,7 @@ import com.dissy.lizkitchen.utility.orderToFirestoreMap
 import com.dissy.lizkitchen.utility.pickupBranchAddressForOrder
 import com.dissy.lizkitchen.utility.pickupBranchNameForOrder
 import com.dissy.lizkitchen.utility.printOrderInvoice
+import com.dissy.lizkitchen.utility.prepareCameraImage
 import com.dissy.lizkitchen.utility.receiptConfirmationRemainingLabel
 import com.dissy.lizkitchen.utility.setFirebaseRequestLoading
 import com.dissy.lizkitchen.utility.validateOrderExpiryOnRead
@@ -102,13 +100,26 @@ class OrderDetailFragment : Fragment() {
     }
 
     private val receiptCameraLauncher = registerForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        val photoFile = receiptCameraFile
-        if (result.resultCode != Activity.RESULT_OK || photoFile == null || !photoFile.exists()) return@registerForActivityResult
-        val photoUri = FileProvider.getUriForFile(requireContext(), "com.dissy.lizkitchen", photoFile)
+        ActivityResultContracts.TakePicture()
+    ) { success ->
+        if (!success) return@registerForActivityResult
+        val photoFile = receiptCameraFile?.takeIf(::isUsableCameraImage)
+            ?: return@registerForActivityResult
+        val currentContext = context
+        if (currentContext == null) return@registerForActivityResult
+        val photoUri = currentContext.cameraImageUri(photoFile)
         selectedReceiptProofUri = photoUri
         uploadReceiptProof(photoUri)
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        receiptCameraFile = savedInstanceState?.getString(STATE_RECEIPT_CAMERA_FILE)?.let(::File)
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        receiptCameraFile?.absolutePath?.let { outState.putString(STATE_RECEIPT_CAMERA_FILE, it) }
+        super.onSaveInstanceState(outState)
     }
 
     override fun onCreateView(
@@ -512,14 +523,14 @@ class OrderDetailFragment : Fragment() {
     }
 
     private fun openReceiptCamera() {
-        val photoFile = createCustomTempFile(requireActivity().application)
-        receiptCameraFile = photoFile
-        val photoUri = FileProvider.getUriForFile(requireContext(), "com.dissy.lizkitchen", photoFile)
-        val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE).apply {
-            putExtra(MediaStore.EXTRA_OUTPUT, photoUri)
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+        runCatching {
+            val (photoFile, photoUri) = requireContext().prepareCameraImage()
+            receiptCameraFile = photoFile
+            receiptCameraLauncher.launch(photoUri)
+        }.onFailure {
+            receiptCameraFile = null
+            Toast.makeText(requireContext(), "Kamera tidak dapat dibuka", Toast.LENGTH_SHORT).show()
         }
-        receiptCameraLauncher.launch(intent)
     }
 
     private fun uploadReceiptProof(uri: Uri) {
@@ -755,5 +766,9 @@ class OrderDetailFragment : Fragment() {
         invoiceWebView?.destroy()
         invoiceWebView = null
         _binding = null
+    }
+
+    private companion object {
+        const val STATE_RECEIPT_CAMERA_FILE = "receipt_camera_file"
     }
 }

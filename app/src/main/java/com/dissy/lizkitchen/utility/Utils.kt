@@ -6,6 +6,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Environment
+import androidx.core.content.FileProvider
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
@@ -34,9 +35,18 @@ fun uriToFile(selectedImg: Uri, context: Context): File {
 }
 
 fun createCustomTempFile(context: Context): File {
-    val storageDir: File? = context.getExternalFilesDir(Environment.DIRECTORY_PICTURES)
+    val storageDir = context.getExternalFilesDir(Environment.DIRECTORY_PICTURES) ?: context.cacheDir
     return File.createTempFile(timeStamp, ".jpg", storageDir)
 }
+
+fun Context.prepareCameraImage(): Pair<File, Uri> {
+    val file = createCustomTempFile(this)
+    return file to cameraImageUri(file)
+}
+
+fun Context.cameraImageUri(file: File): Uri = FileProvider.getUriForFile(this, packageName, file)
+
+fun isUsableCameraImage(file: File?): Boolean = file?.isFile == true && file.length() > 0L
 
 fun String.convertStringToLong(): Long {
     val cleanedString = this.replace(",", "")

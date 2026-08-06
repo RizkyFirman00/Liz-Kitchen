@@ -244,7 +244,7 @@
                     </com.google.android.material.textfield.TextInputLayout>
 
                     <com.google.android.material.textfield.TextInputLayout
-                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="10dp"
@@ -324,6 +324,7 @@
                             android:fontFamily="@font/poppins_regular"
                             android:focusable="false"
                             android:inputType="none"
+                            android:paddingHorizontal="16dp"
                             android:textSize="14sp" />
                     </com.google.android.material.textfield.TextInputLayout>
 

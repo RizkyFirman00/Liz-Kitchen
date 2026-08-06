@@ -1,18 +1,15 @@
 package com.dissy.lizkitchen.ui.admin.cake
 
 import android.Manifest
-import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.DatePickerDialog
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.net.Uri
 import android.os.Bundle
-import android.provider.MediaStore
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -24,7 +21,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.widget.AppCompatButton
 import androidx.core.view.setMargins
 import androidx.core.content.ContextCompat
-import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.bumptech.glide.Glide
@@ -33,12 +29,13 @@ import com.dissy.lizkitchen.model.ProductCategory
 import com.dissy.lizkitchen.utility.availableCategories
 import com.dissy.lizkitchen.utility.cakeFromMap
 import com.dissy.lizkitchen.utility.clearFocusWhenTouchOutsideInput
-import com.dissy.lizkitchen.utility.createCustomTempFile
 import com.dissy.lizkitchen.utility.formatProductPrice
 import com.dissy.lizkitchen.utility.formatProductionDate
 import com.dissy.lizkitchen.utility.limitNumericInput
+import com.dissy.lizkitchen.utility.isUsableCameraImage
 import com.dissy.lizkitchen.utility.PRODUCT_UNIT
 import com.dissy.lizkitchen.utility.PRODUCT_VARIANT_NAMES
+import com.dissy.lizkitchen.utility.prepareCameraImage
 import com.dissy.lizkitchen.utility.productPriceToLong
 import com.dissy.lizkitchen.utility.setFirebaseRequestLoading
 import com.dissy.lizkitchen.utility.toFirestoreMap
@@ -53,7 +50,7 @@ class CakeDetailFragment : Fragment() {
     private var _binding: FragmentCakeDetailBinding? = null
     private val binding get() = _binding!!
     private val db = Firebase.firestore
-    private lateinit var photoPath: String
+    private var cameraFile: File? = null
     private val storage = Firebase.storage
     private var file: File? = null
     private var productionAtMillis: Long = 0L
@@ -64,6 +61,26 @@ class CakeDetailFragment : Fragment() {
 
     private val requestCameraPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
         if (isGranted) openCamera() else Toast.makeText(requireContext(), "Camera permission denied", Toast.LENGTH_SHORT).show()
+    }
+
+    private val launcherIntentCamera = registerForActivityResult(
+        ActivityResultContracts.TakePicture()
+    ) { success ->
+        if (!success) return@registerForActivityResult
+        val photoFile = cameraFile?.takeIf(::isUsableCameraImage)
+            ?: return@registerForActivityResult
+        file = photoFile
+        if (_binding != null) Glide.with(this).load(photoFile).into(binding.ivBanner)
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        cameraFile = savedInstanceState?.getString(STATE_CAMERA_FILE)?.let(::File)
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        cameraFile?.absolutePath?.let { outState.putString(STATE_CAMERA_FILE, it) }
+        super.onSaveInstanceState(outState)
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
@@ -374,22 +391,14 @@ class CakeDetailFragment : Fragment() {
 
     private fun startGalleryWithPermissionCheck() = openGallery()
 
-    @SuppressLint("QueryPermissionsNeeded")
     private fun openCamera() {
-        val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
-        createCustomTempFile(requireActivity().application).also {
-            val photoURI = FileProvider.getUriForFile(requireContext(), "com.dissy.lizkitchen", it)
-            photoPath = it.absolutePath
-            intent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI)
-            launcherIntentCamera.launch(intent)
-        }
-    }
-
-    private val launcherIntentCamera = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
-        if (it.resultCode == Activity.RESULT_OK) {
-            val myFile = File(photoPath)
-            file = myFile
-            Glide.with(this).load(BitmapFactory.decodeFile(myFile.path)).into(binding.ivBanner)
+        runCatching {
+            val (photoFile, photoUri) = requireContext().prepareCameraImage()
+            cameraFile = photoFile
+            launcherIntentCamera.launch(photoUri)
+        }.onFailure {
+            cameraFile = null
+            Toast.makeText(requireContext(), "Kamera tidak dapat dibuka", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -418,5 +427,9 @@ class CakeDetailFragment : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
+    }
+
+    private companion object {
+        const val STATE_CAMERA_FILE = "cake_detail_camera_file"
     }
 }

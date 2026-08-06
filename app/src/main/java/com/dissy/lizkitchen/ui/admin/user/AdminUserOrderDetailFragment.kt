@@ -2,17 +2,14 @@ package com.dissy.lizkitchen.ui.admin.user
 
 import android.Manifest
 import android.annotation.SuppressLint
-import android.app.Activity
 import android.app.DownloadManager
 import android.content.Context
-import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.os.Environment
 import android.net.Uri
-import android.provider.MediaStore
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -29,7 +26,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.widget.AppCompatImageView
 import androidx.core.content.ContextCompat
-import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -54,17 +50,19 @@ import com.dissy.lizkitchen.utility.ORDER_STATUS_PROCESSING
 import com.dissy.lizkitchen.utility.ORDER_STATUS_READY_PICKUP
 import com.dissy.lizkitchen.utility.ORDER_STATUS_SHIPPING
 import com.dissy.lizkitchen.utility.cartItemsFromAny
-import com.dissy.lizkitchen.utility.createCustomTempFile
+import com.dissy.lizkitchen.utility.cameraImageUri
 import com.dissy.lizkitchen.utility.deliveryDistanceLabel
 import com.dissy.lizkitchen.utility.deliveryFeeLabel
 import com.dissy.lizkitchen.utility.completionLabelForOrder
 import com.dissy.lizkitchen.utility.metodePengambilanDisplayForOrder
+import com.dissy.lizkitchen.utility.isUsableCameraImage
 import com.dissy.lizkitchen.utility.orderFromDocument
 import com.dissy.lizkitchen.utility.orderProductSubtotal
 import com.dissy.lizkitchen.utility.pickupBranchAddressForOrder
 import com.dissy.lizkitchen.utility.pickupBranchNameForOrder
 import com.dissy.lizkitchen.utility.printOrderInvoice
 import com.dissy.lizkitchen.utility.productCategoriesFromAny
+import com.dissy.lizkitchen.utility.prepareCameraImage
 import com.dissy.lizkitchen.utility.setFirebaseRequestLoading
 import com.dissy.lizkitchen.utility.toFirestoreMap
 import com.dissy.lizkitchen.utility.validateOrderExpiryOnRead
@@ -99,16 +97,29 @@ class AdminUserOrderDetailFragment : Fragment() {
     }
 
     private val statusCameraLauncher = registerForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        val photoFile = statusCameraFile
-        if (result.resultCode != Activity.RESULT_OK || photoFile == null || !photoFile.exists() || _binding == null) return@registerForActivityResult
-        val photoUri = Uri.fromFile(photoFile)
+        ActivityResultContracts.TakePicture()
+    ) { success ->
+        if (!success) return@registerForActivityResult
+        val photoFile = statusCameraFile?.takeIf(::isUsableCameraImage)
+            ?: return@registerForActivityResult
+        val currentContext = context
+        if (currentContext == null || _binding == null) return@registerForActivityResult
+        val photoUri = currentContext.cameraImageUri(photoFile)
         selectedStatusProofUri = photoUri
         Glide.with(this).load(photoUri).into(binding.ivStatusProofInput)
         binding.tvStatusProofHint.text = "Foto siap diunggah saat status disimpan."
         binding.btnChooseStatusProof.text = "Ganti Foto Bukti"
         updateStatusProofActionAvailability()
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        statusCameraFile = savedInstanceState?.getString(STATE_STATUS_CAMERA_FILE)?.let(::File)
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        statusCameraFile?.absolutePath?.let { outState.putString(STATE_STATUS_CAMERA_FILE, it) }
+        super.onSaveInstanceState(outState)
     }
 
     private val statusProofPicker = registerForActivityResult(
@@ -529,14 +540,14 @@ class AdminUserOrderDetailFragment : Fragment() {
     }
 
     private fun openStatusCamera() {
-        val photoFile = createCustomTempFile(requireActivity().application)
-        statusCameraFile = photoFile
-        val photoUri = FileProvider.getUriForFile(requireContext(), "com.dissy.lizkitchen", photoFile)
-        val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE).apply {
-            putExtra(MediaStore.EXTRA_OUTPUT, photoUri)
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+        runCatching {
+            val (photoFile, photoUri) = requireContext().prepareCameraImage()
+            statusCameraFile = photoFile
+            statusCameraLauncher.launch(photoUri)
+        }.onFailure {
+            statusCameraFile = null
+            Toast.makeText(requireContext(), "Kamera tidak dapat dibuka", Toast.LENGTH_SHORT).show()
         }
-        statusCameraLauncher.launch(intent)
     }
 
     private fun applyStatusStyle(textView: TextView, status: String) {
@@ -901,5 +912,9 @@ class AdminUserOrderDetailFragment : Fragment() {
         invoiceWebView?.destroy()
         invoiceWebView = null
         _binding = null
+    }
+
+    private companion object {
+        const val STATE_STATUS_CAMERA_FILE = "status_camera_file"
     }
 }
