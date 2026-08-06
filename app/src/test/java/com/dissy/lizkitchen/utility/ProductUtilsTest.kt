@@ -38,6 +38,12 @@ class ProductUtilsTest {
         assertEquals("12", normalizeNumericInput("00012", 6))
         assertEquals("0", normalizeNumericInput("000000", 6))
         assertEquals("123456", normalizeNumericInput("1234567", 6))
+        assertEquals("999", normalizeNumericInput("9999", 3))
         assertEquals("45000", normalizeNumericInput("Rp 45.000", 9))
+    }
+
+    @Test
+    fun productVariantNames_matchAdminDropdown() {
+        assertEquals(listOf("250 gram", "500 gram", "700 gram"), PRODUCT_VARIANT_NAMES)
     }
 }

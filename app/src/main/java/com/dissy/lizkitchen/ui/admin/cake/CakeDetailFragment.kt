@@ -17,8 +17,6 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ArrayAdapter
-import android.widget.Filter
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
@@ -40,6 +38,7 @@ import com.dissy.lizkitchen.utility.formatProductPrice
 import com.dissy.lizkitchen.utility.formatProductionDate
 import com.dissy.lizkitchen.utility.limitNumericInput
 import com.dissy.lizkitchen.utility.PRODUCT_UNIT
+import com.dissy.lizkitchen.utility.PRODUCT_VARIANT_NAMES
 import com.dissy.lizkitchen.utility.productPriceToLong
 import com.dissy.lizkitchen.utility.setFirebaseRequestLoading
 import com.dissy.lizkitchen.utility.toFirestoreMap
@@ -51,7 +50,6 @@ import java.io.File
 import java.util.Calendar
 
 class CakeDetailFragment : Fragment() {
-    private val variantNameOptions = listOf("250 Gram", "500 Gram", "700 Gram")
     private var _binding: FragmentCakeDetailBinding? = null
     private val binding get() = _binding!!
     private val db = Firebase.firestore
@@ -75,12 +73,12 @@ class CakeDetailFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        binding.etStokVarian.limitNumericInput(6)
+        binding.etNamaVarian.setSimpleItems(PRODUCT_VARIANT_NAMES.toTypedArray())
+        binding.etStokVarian.limitNumericInput(3)
         binding.etHargaVarian.limitNumericInput(9, formatThousands = true)
         binding.root.clearFocusWhenTouchOutsideInput()
         binding.etTanggalProduksi.setOnClickListener { showProductionDatePicker() }
         binding.tilTanggalProduksi.setEndIconOnClickListener { showProductionDatePicker() }
-        setupVariantNameDropdown()
         documentId = arguments?.getString("documentId")
         documentId?.let { fetchCakeData(it) }
         binding.btnToHome.setOnClickListener { findNavController().navigateUp() }
@@ -89,36 +87,6 @@ class CakeDetailFragment : Fragment() {
         binding.btnAddVarian.setOnClickListener { saveVariantFromInput() }
         binding.btnUpdateData.setOnClickListener { updateCakeData() }
         binding.btnDeleteData.setOnClickListener { deleteCakeData() }
-    }
-
-    private fun setupVariantNameDropdown() {
-        val adapter = object : ArrayAdapter<String>(
-            requireContext(),
-            android.R.layout.simple_dropdown_item_1line,
-            variantNameOptions
-        ) {
-            override fun getFilter(): Filter {
-                return object : Filter() {
-                    override fun performFiltering(constraint: CharSequence?): FilterResults {
-                        return FilterResults().apply {
-                            values = variantNameOptions
-                            count = variantNameOptions.size
-                        }
-                    }
-
-                    override fun publishResults(constraint: CharSequence?, results: FilterResults?) {
-                        notifyDataSetChanged()
-                    }
-                }
-            }
-        }
-        binding.etNamaVarian.setAdapter(adapter)
-        binding.etNamaVarian.setOnClickListener {
-            binding.etNamaVarian.showDropDown()
-        }
-        binding.etNamaVarian.setOnFocusChangeListener { _, hasFocus ->
-            if (hasFocus) binding.etNamaVarian.showDropDown()
-        }
     }
 
     private fun fetchCakeData(id: String) {
@@ -146,8 +114,8 @@ class CakeDetailFragment : Fragment() {
         val name = binding.etNamaVarian.text.toString().trim()
         val stock = binding.etStokVarian.text.toString().toLongOrNull()
         val price = formatProductPrice(binding.etHargaVarian.text.toString())
-        if (name.isEmpty() || stock == null || price.isEmpty() || productPriceToLong(price) <= 0L) {
-            Toast.makeText(requireContext(), "Nama varian, stok, dan harga wajib diisi", Toast.LENGTH_SHORT).show()
+        if (name !in PRODUCT_VARIANT_NAMES || stock == null || price.isEmpty() || productPriceToLong(price) <= 0L) {
+            Toast.makeText(requireContext(), "Pilih nama varian, lalu isi stok dan harga", Toast.LENGTH_SHORT).show()
             return
         }
         val variant = ProductCategory(name, price, stock, PRODUCT_UNIT)
@@ -162,7 +130,11 @@ class CakeDetailFragment : Fragment() {
     private fun editVariant(index: Int) {
         val variant = variants[index]
         editingVariantIndex = index
-        binding.etNamaVarian.setText(variant.namaKategori)
+        binding.etNamaVarian.setText(
+            PRODUCT_VARIANT_NAMES.firstOrNull { it.equals(variant.namaKategori, ignoreCase = true) }
+                ?: variant.namaKategori,
+            false
+        )
         binding.etStokVarian.setText(variant.stok.toString())
         binding.etHargaVarian.setText(variant.harga)
         binding.btnAddVarian.text = "Simpan Perubahan Varian"

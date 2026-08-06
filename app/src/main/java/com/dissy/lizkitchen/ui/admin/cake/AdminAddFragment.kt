@@ -40,6 +40,7 @@ import com.dissy.lizkitchen.utility.formatProductPrice
 import com.dissy.lizkitchen.utility.formatProductionDate
 import com.dissy.lizkitchen.utility.limitNumericInput
 import com.dissy.lizkitchen.utility.PRODUCT_UNIT
+import com.dissy.lizkitchen.utility.PRODUCT_VARIANT_NAMES
 import com.dissy.lizkitchen.utility.productPriceToLong
 import com.dissy.lizkitchen.utility.setFirebaseRequestLoading
 import com.dissy.lizkitchen.utility.toFirestoreMap
@@ -75,7 +76,8 @@ class AdminAddFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         binding.root.clearFocusWhenTouchOutsideInput()
-        binding.etStokVarian.limitNumericInput(6)
+        binding.etNamaVarian.setSimpleItems(PRODUCT_VARIANT_NAMES.toTypedArray())
+        binding.etStokVarian.limitNumericInput(3)
         binding.etHargaVarian.limitNumericInput(9, formatThousands = true)
         productionAtMillis = startOfTodayMillis()
         binding.etTanggalProduksi.setText(formatProductionDate(productionAtMillis))
@@ -103,8 +105,8 @@ class AdminAddFragment : Fragment() {
         val name = binding.etNamaVarian.text.toString().trim()
         val stock = binding.etStokVarian.text.toString().toLongOrNull()
         val price = formatProductPrice(binding.etHargaVarian.text.toString())
-        if (name.isEmpty() || stock == null || price.isEmpty() || productPriceToLong(price) <= 0L) {
-            Toast.makeText(requireContext(), "Nama varian, stok, dan harga wajib diisi", Toast.LENGTH_SHORT).show()
+        if (name !in PRODUCT_VARIANT_NAMES || stock == null || price.isEmpty() || productPriceToLong(price) <= 0L) {
+            Toast.makeText(requireContext(), "Pilih nama varian, lalu isi stok dan harga", Toast.LENGTH_SHORT).show()
             return
         }
         val variant = ProductCategory(name, price, stock, PRODUCT_UNIT)
@@ -119,7 +121,11 @@ class AdminAddFragment : Fragment() {
     private fun editVariant(index: Int) {
         val variant = variants[index]
         editingVariantIndex = index
-        binding.etNamaVarian.setText(variant.namaKategori)
+        binding.etNamaVarian.setText(
+            PRODUCT_VARIANT_NAMES.firstOrNull { it.equals(variant.namaKategori, ignoreCase = true) }
+                ?: variant.namaKategori,
+            false
+        )
         binding.etStokVarian.setText(variant.stok.toString())
         binding.etHargaVarian.setText(variant.harga)
         binding.btnAddVarian.text = "Simpan Perubahan Varian"
